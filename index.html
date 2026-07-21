@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WorkTrack Pro</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<style>
+  :root {
+    /* 暖灰(阿玛尼灰) + 酒红色主色调 —— 沉稳、克制、有质感 */
+    --night-deep: #211B1A;
+    --night-mid: #2A2220;
+    --night-indigo: #3D2530;
+    --brand-blue: #7B2635;
+    --brand-cyan: #C9A063;
+    --brand-amber: #C68A3D;
+    --light-surface: #EDEAE4;
+    --light-elevated: #FAF8F4;
+    --danger: #B23A4E;
+    --success: #4C7A5A;
+    --warning: #B8863C;
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 10px;
+    --text-1: #2A2220;
+    --text-2: #8A8175;
+    --border-c: rgba(42,32,26,.10);
+    --surface: var(--light-elevated);
+    --page-bg: var(--light-surface);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--page-bg);
+    color: var(--text-1);
+    transition: background .3s ease, color .3s ease;
+  }
+  button { font-family: inherit; }
+  .hidden { display: none !important; }
+
+  .float-controls {
+    position: fixed; top: 18px; right: 18px; z-index: 40;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .icon-btn {
+    width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border-c);
+    background: var(--surface); color: var(--text-1); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    box-shadow: 0 4px 14px rgba(35,25,20,.08);
+  }
+  select.lang-select {
+    height: 38px; border-radius: 999px; border: 1px solid var(--border-c);
+    background: var(--surface); color: var(--text-1); padding: 0 12px; font-size: 13px;
+    box-shadow: 0 4px 14px rgba(35,25,20,.08);
+  }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    background: var(--page-bg); border-bottom: 1px solid var(--border-c);
+    color: var(--text-1); padding: 88px 24px 64px; text-align: center;
+  }
+  .hero-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: .02em; color: var(--text-2); margin-bottom: 22px; }
+  .hero-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand-blue); }
+  .hero h1 { font-size: 38px; font-weight: 700; margin: 0 0 14px; letter-spacing: -0.01em; color: var(--text-1); }
+  .hero p { font-size: 16px; color: var(--text-2); max-width: 480px; margin: 0 auto; line-height: 1.6; }
+
+  /* ---------- SHARED LAYOUT ---------- */
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  section.page-section { padding: 48px 0 64px; }
+
+  /* ---------- ENTRANCE PANELS ---------- */
+  .entrance-panel {
+    display: flex; align-items: center; gap: 26px; padding: 30px 32px; border-radius: var(--radius-lg);
+    background: var(--surface); border: 1px solid var(--border-c); box-shadow: 0 10px 30px rgba(35,25,20,.06);
+    max-width: 760px; margin: 0 auto 20px; flex-wrap: wrap;
+  }
+  .entrance-icon {
+    width: 58px; height: 58px; border-radius: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 24px; color: #fff;
+  }
+  .entrance-icon.employee { background: linear-gradient(135deg, var(--brand-blue), var(--brand-cyan)); }
+  .entrance-icon.admin { background: linear-gradient(135deg, var(--night-indigo), var(--brand-blue)); }
+  .entrance-body { flex: 1; min-width: 200px; }
+  .entrance-body h3 { margin: 0 0 4px; font-size: 17px; font-weight: 700; }
+  .entrance-body p { margin: 0; font-size: 13.5px; color: var(--text-2); }
+  .entrance-actions { display: flex; gap: 10px; flex-shrink: 0; }
+
+  .btn {
+    height: 42px; padding: 0 20px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
+    cursor: pointer; border: 1px solid transparent; transition: transform .12s ease, background .15s ease;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--brand-blue); color: #FBF3EE; }
+  .btn-primary:hover { background: #641F2C; }
+  .btn-outline { background: transparent; border-color: var(--border-c); color: var(--text-1); }
+  .btn-outline:hover { background: rgba(123,38,53,.08); }
+  .btn-block { width: 100%; }
+
+  /* ---------- FOOTER ---------- */
+  footer { padding: 40px 24px 56px; text-align: center; }
+  .footer-text { font-size: 12.5px; color: var(--text-2); }
+  .secret-mark {
+    display: inline-flex; align-items: center; gap: 5px; margin-left: 14px; cursor: pointer;
+    font-size: 12px; color: var(--text-2); opacity: .55; background: none; border: none; padding: 4px 6px;
+    font-family: inherit; vertical-align: middle; transition: opacity .15s ease, color .15s ease;
+  }
+  .secret-mark:hover { opacity: 1; color: var(--brand-blue); }
+  .secret-mark .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; display: inline-block; }
+
+  /* ---------- MODALS ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(30,20,18,.55); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px;
+  }
+  .modal-box {
+    background: var(--surface); border-radius: var(--radius-lg); padding: 28px; width: 100%; max-width: 420px;
+    max-height: 88vh; overflow-y: auto; position: relative; box-shadow: 0 30px 70px rgba(30,20,18,.35);
+  }
+  .modal-box.wide { max-width: 620px; }
+  .modal-close {
+    position: absolute; top: 18px; right: 18px; width: 30px; height: 30px; border-radius: 50%;
+    border: none; background: rgba(120,130,160,.14); color: var(--text-1); cursor: pointer; font-size: 15px;
+  }
+  .modal-title { font-size: 19px; font-weight: 700; margin: 0 0 4px; }
+  .modal-sub { font-size: 13px; color: var(--text-2); margin: 0 0 20px; }
+  .tab-switch { display: flex; background: rgba(120,130,160,.10); border-radius: 999px; padding: 4px; margin-bottom: 22px; }
+  .tab-switch button {
+    flex: 1; border: none; background: transparent; padding: 9px 0; border-radius: 999px; font-size: 13.5px;
+    font-weight: 600; color: var(--text-2); cursor: pointer;
+  }
+  .tab-switch button.active { background: var(--surface); color: var(--text-1); box-shadow: 0 2px 8px rgba(35,25,20,.10); }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12.5px; color: var(--text-2); margin-bottom: 6px; font-weight: 600; }
+  .field input, .field select {
+    width: 100%; height: 42px; border-radius: var(--radius-sm); border: 1px solid var(--border-c);
+    background: rgba(120,130,160,.06); color: var(--text-1); padding: 0 14px; font-size: 13.5px;
+  }
+  .field input:focus, .field select:focus { outline: 2px solid var(--brand-blue); outline-offset: 1px; }
+  .field-hint { font-size: 11.5px; color: var(--text-2); margin-top: 5px; line-height: 1.5; }
+  .logo-upload {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius-sm);
+    border: 1px dashed var(--border-c); font-size: 13px; color: var(--text-2); cursor: pointer;
+  }
+
+  /* ---------- APP VIEWS (employee / company admin / platform admin) ---------- */
+  .view { display: none; }
+  .view.active { display: block; }
+  .app-topbar {
+    display: flex; align-items: center; gap: 14px; padding: 16px 24px; border-bottom: 1px solid var(--border-c);
+  }
+  .app-topbar .back-link {
+    display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: var(--text-1);
+    cursor: pointer; background: none; border: none; padding: 0;
+  }
+  .app-topbar .back-link span.arrow { color: var(--text-2); font-weight: 400; }
+  .app-body { max-width: 1080px; margin: 0 auto; padding: 28px 24px 60px; }
+
+  .glass {
+    background: var(--surface); border: 1px solid var(--border-c); border-radius: var(--radius-lg); padding: 20px;
+    box-shadow: 0 8px 24px rgba(35,25,20,.05);
+  }
+  .phone-frame {
+    max-width: 380px; margin: 0 auto; border-radius: 36px; padding: 14px;
+    background: linear-gradient(160deg, var(--night-deep), var(--night-indigo));
+    box-shadow: 0 20px 50px rgba(10,15,40,.30);
+  }
+  .phone-screen {
+    border-radius: 26px; overflow: hidden; min-height: 620px;
+    background: linear-gradient(180deg, var(--night-mid), var(--night-deep));
+    padding: 18px; color: #fff;
+  }
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 12px; margin: 16px 0; }
+  .metric-card { border-radius: var(--radius-md); padding: 14px; background: rgba(123,38,53,.07); border: 1px solid rgba(123,38,53,.14); }
+  .phone-screen .metric-card { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
+  .metric-label { font-size: 12px; opacity: .7; margin-bottom: 6px; }
+  .metric-value { font-size: 21px; font-weight: 700; }
+
+  .clock-btn {
+    display: block; width: 100%; padding: 17px; border-radius: 18px; border: none;
+    font-size: 15.5px; font-weight: 700; cursor: pointer; margin: 16px 0;
+    background: var(--brand-cyan); color: #2E1B08; transition: transform .15s ease;
+  }
+  .clock-btn.clocked-in { background: var(--danger); color: #fff; }
+  .clock-btn:active { transform: scale(.98); }
+
+  .list-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.10); }
+  .glass .list-item { border-bottom: 1px solid var(--border-c); }
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 600; }
+  .badge.success { background: rgba(52,199,123,.16); color: #1f8a56; }
+  .badge.warning { background: rgba(239,174,59,.18); color: #96690e; }
+  .badge.danger { background: rgba(224,84,108,.16); color: #a53250; }
+
+  .admin-layout { display: flex; gap: 20px; align-items: flex-start; }
+  .nav-rail { width: 220px; flex-shrink: 0; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; cursor: pointer; margin-bottom: 6px; font-size: 14px; }
+  .nav-item:hover { background: rgba(123,38,53,.08); }
+  .nav-item.active { background: var(--brand-blue); color: #fff; font-weight: 600; }
+  .admin-main { flex: 1; min-width: 0; }
+  .gps-map { height: 320px; border-radius: var(--radius-md); margin-top: 14px; overflow: hidden; border: 1px solid var(--border-c); }
+  .gps-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-2); margin-top: 14px; }
+  .gps-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .gps-legend .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--text-1); }
+  .leave-card { border-radius: var(--radius-md); border: 1px solid var(--border-c); padding: 14px 16px; margin-bottom: 12px; }
+  .leave-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .leave-card-reason { font-size: 13px; color: var(--text-2); margin: 8px 0 0; }
+  .leave-attachment-link { font-size: 12.5px; color: var(--brand-blue); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; }
+  .msg-thread { margin-top: 10px; border-top: 1px solid var(--border-c); padding-top: 10px; }
+  .msg-bubble { font-size: 12.5px; padding: 8px 10px; border-radius: 12px; background: rgba(120,130,160,.08); margin-bottom: 6px; max-width: 85%; }
+  .msg-bubble .msg-sender { font-weight: 700; font-size: 11px; color: var(--text-2); margin-bottom: 2px; }
+  .msg-bubble.self { background: rgba(123,38,53,.10); margin-left: auto; }
+  .msg-input-row { display: flex; gap: 8px; margin-top: 8px; }
+  .msg-input-row input { flex: 1; height: 36px; border-radius: 999px; border: 1px solid var(--border-c); background: rgba(120,130,160,.06); padding: 0 14px; font-size: 12.5px; color: var(--text-1); }
+  .msg-toggle { background: none; border: none; color: var(--brand-blue); font-size: 12px; cursor: pointer; padding: 0; font-family: inherit; }
+  table.data-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
+  table.data-table th { text-align: left; padding: 10px 8px; color: var(--text-2); font-weight: 600; font-size: 12px; }
+  table.data-table td { padding: 10px 8px; border-top: 1px solid var(--border-c); }
+  h2.section-title { font-size: 20px; margin: 0 0 4px; }
+  p.section-sub { margin: 0 0 16px; color: var(--text-2); font-size: 13px; }
+
+  @media (max-width: 760px) {
+    .hero h1 { font-size: 30px; }
+    .admin-layout { flex-direction: column; }
+    .nav-rail { width: 100%; display: flex; overflow-x: auto; gap: 8px; }
+    .nav-item { white-space: nowrap; margin-bottom: 0; }
+    .entrance-panel { flex-direction: column; text-align: center; }
+    .entrance-actions { width: 100%; }
+    .entrance-actions .btn { flex: 1; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="float-controls">
+  <select class="lang-select" id="langSelect">
+    <option value="zh">简体中文</option>
+    <option value="en">English</option>
+  </select>
+</div>
+
+<div class="view active" id="view-home">
+  <div class="hero">
+    <div class="hero-brand"><span class="hero-dot"></span><span data-i18n="brand">WorkTrack Pro</span></div>
+    <h1 data-i18n="heroTitle">智能劳动力管理平台</h1>
+    <p data-i18n="heroSub">面向餐厅、外卖、咖啡店与配送团队的一站式考勤、GPS、工资与请假管理</p>
+  </div>
+
+  <div class="container">
+    <section class="page-section">
+      <div class="entrance-panel">
+        <div class="entrance-icon employee">👤</div>
+        <div class="entrance-body">
+          <h3 data-i18n="employeeEntranceTitle">员工</h3>
+          <p data-i18n="employeeEntranceSub">打卡、查看工资、请假申请、公司公告一站搞定</p>
+        </div>
+        <div class="entrance-actions">
+          <button class="btn btn-outline" id="btnEmployeeRegister" data-i18n="register">注册</button>
+          <button class="btn btn-primary" id="btnEmployeeLogin" data-i18n="login">登录</button>
+        </div>
+      </div>
+
+      <div class="entrance-panel">
+        <div class="entrance-icon admin">🏢</div>
+        <div class="entrance-body">
+          <h3 data-i18n="adminEntranceTitle">公司管理员</h3>
+          <p data-i18n="adminEntranceSub">管理员工、审批请假、查看 GPS 与工资统计</p>
+        </div>
+        <div class="entrance-actions">
+          <button class="btn btn-outline" id="btnCompanyRegister" data-i18n="registerCompany">注册我的公司</button>
+          <button class="btn btn-primary" id="btnCompanyLogin" data-i18n="login">登录</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <span class="footer-text" data-i18n="footerText">© 2026 WorkTrack Pro</span>
+    <button class="secret-mark" id="platformSecretMark"><span class="dot"></span><span data-i18n="platformEntranceTitle">平台管理员</span></button>
+  </footer>
+</div>
+
+<div class="view" id="view-employeeApp">
+  <div class="app-topbar">
+    <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack Pro</span></button>
+  </div>
+  <div class="app-body">
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <div id="employeeCompanyLogo" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;background:#7B2635;">DP</div>
+          <div>
+            <div style="font-weight:700;" id="employeeCompanyName">Delicious Poke Co.</div>
+            <div style="font-size:12px;opacity:.7;" id="employeeCompanySlogan" data-i18n="companySloganSample1">新鲜每一天</div>
+          </div>
+        </div>
+        <div style="font-size:13px;opacity:.7;margin:10px 0 2px;" id="todayDate"></div>
+        <h2 class="section-title" data-i18n="welcomeTitle">欢迎回来,Alex</h2>
+
+        <button class="clock-btn" id="clockBtn" data-i18n="clockIn">上班打卡</button>
+        <div style="text-align:center;font-size:13px;opacity:.75;margin-top:-8px;">
+          <span data-i18n="todayWorked">今日已工作</span>: <span id="todayTimer">00:00:00</span>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-card"><div class="metric-label" data-i18n="weekHours">本周工时</div><div class="metric-value">32.5h</div></div>
+          <div class="metric-card"><div class="metric-label" data-i18n="monthHours">本月工时</div><div class="metric-value">128h</div></div>
+          <div class="metric-card"><div class="metric-label" data-i18n="salary">工资摘要</div><div class="metric-value">€1,860</div></div>
+          <div class="metric-card"><div class="metric-label" data-i18n="attendanceRate">出勤率</div><div class="metric-value">96%</div></div>
+        </div>
+
+        <div class="glass" style="padding:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);cursor:pointer;" id="btnOpenLeaveCenter">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div style="font-weight:600;" data-i18n="leaveBalance">请假余额</div>
+            <span style="font-size:12px;opacity:.7;" data-i18n="leaveCenterOpen">请假中心 →</span>
+          </div>
+          <div class="list-item"><span class="badge success" data-i18n="annual">年假</span><span style="margin-left:auto;" id="empAnnualBalance">14 / 21 <span data-i18n="days">天</span></span></div>
+          <div class="list-item"><span class="badge warning" data-i18n="sick">病假</span><span style="margin-left:auto;">5 <span data-i18n="days">天</span></span></div>
+          <div class="list-item" style="border-bottom:none;"><span class="badge danger" data-i18n="personal">事假</span><span style="margin-left:auto;">2 <span data-i18n="days">天</span></span></div>
+        </div>
+
+        <div class="glass" style="padding:14px;margin-top:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);">
+          <div style="font-weight:600;margin-bottom:6px;" data-i18n="monthHoursTemp">本月工时(临时工/兼职)</div>
+          <div style="font-size:13px;opacity:.85;" id="empMonthlyHoursNote" data-i18n="monthHoursTempNote">如果您是临时工或兼职员工,本月累计工作时长会在这里持续更新,便于按工时结算工资。</div>
+        </div>
+
+        <div class="glass" style="padding:14px;margin-top:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);">
+          <div style="font-weight:600;margin-bottom:6px;" data-i18n="announcements">公司公告</div>
+          <div style="font-size:13px;opacity:.85;" data-i18n="announcementSample">下周三全员培训,请准时参加。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-companyAdminApp">
+  <div class="app-topbar">
+    <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack Pro</span></button>
+  </div>
+  <div class="app-body">
+    <div class="admin-layout">
+      <div class="nav-rail glass">
+        <div class="nav-item active" data-section="ca-dashboard"><span data-i18n="navDashboard">首页</span></div>
+        <div class="nav-item" data-section="ca-employees"><span data-i18n="navEmployees">员工管理</span></div>
+        <div class="nav-item" data-section="ca-gps"><span data-i18n="navGps">GPS 看板</span></div>
+        <div class="nav-item" data-section="ca-payroll"><span data-i18n="navPayroll">工资管理</span></div>
+        <div class="nav-item" data-section="ca-leave"><span data-i18n="navLeave">请假审批</span></div>
+        <div class="nav-item" data-section="ca-settings"><span data-i18n="navSettings">设置</span></div>
+      </div>
+      <div class="admin-main">
+        <div class="glass ca-section" id="ca-dashboard">
+          <h2 class="section-title" data-i18n="caDashboardTitle">公司概览</h2>
+          <p class="section-sub" data-i18n="caDashboardSub">关键运营指标一览</p>
+          <div class="metric-grid">
+            <div class="metric-card"><div class="metric-label" data-i18n="headcount">在职员工</div><div class="metric-value">42</div></div>
+            <div class="metric-card"><div class="metric-label" data-i18n="onDuty">当前在岗</div><div class="metric-value">17</div></div>
+            <div class="metric-card"><div class="metric-label" data-i18n="pendingLeave">待审批请假</div><div class="metric-value">3</div></div>
+            <div class="metric-card"><div class="metric-label" data-i18n="attendanceRate">出勤率</div><div class="metric-value">94%</div></div>
+          </div>
+        </div>
+        <div class="glass ca-section" id="ca-employees" style="display:none;margin-top:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <h2 class="section-title" data-i18n="navEmployees">员工管理</h2>
+              <p class="section-sub" style="margin:0;" data-i18n="employeesSub">管理员可以添加新员工、调整权限,或删除员工的全部记录</p>
+            </div>
+            <button class="btn btn-primary" id="btnAddEmployee" data-i18n="addEmployee">+ 添加员工</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th data-i18n="colName">姓名</th><th data-i18n="colRole">角色</th><th data-i18n="colType">用工类型</th><th data-i18n="colStatus">状态</th>
+                <th data-i18n="colHours">本周工时</th><th data-i18n="colMonthHoursShort">本月工时</th><th data-i18n="colActions">操作</th>
+              </tr>
+            </thead>
+            <tbody id="employeeTableBody"></tbody>
+          </table>
+        </div>
+        <div class="glass ca-section" id="ca-gps" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navGps">实时 GPS 看板</h2>
+          <p class="section-sub" data-i18n="gpsSub">仅在员工"上班打卡"到"下班打卡"期间追踪,地图数据来自 OpenStreetMap</p>
+          <div class="gps-map" id="gpsMap"></div>
+          <div class="gps-legend">
+            <span><span class="dot" style="background:#3E7D5C;"></span><span data-i18n="gpsLegendMoving">配送中</span></span>
+            <span><span class="dot" style="background:#B8863C;"></span><span data-i18n="gpsLegendStopped">短暂停留</span></span>
+            <span><span class="dot" style="background:#B23A4E;"></span><span data-i18n="gpsLegendFlagged">异常停留(仅提示,非自动判违规)</span></span>
+          </div>
+        </div>
+        <div class="glass ca-section" id="ca-payroll" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navPayroll">本月工资</h2>
+          <table class="data-table">
+            <tr><th data-i18n="colName">姓名</th><th data-i18n="colRegular">正常工时</th><th data-i18n="colOvertime">加班工时</th><th data-i18n="colTotal">应发合计</th></tr>
+            <tr><td>Alex Chen</td><td>160h</td><td>8h</td><td>€1,860</td></tr>
+            <tr><td>Maria Santos</td><td>152h</td><td>0h</td><td>€1,672</td></tr>
+          </table>
+        </div>
+        <div class="glass ca-section" id="ca-leave" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navLeave">请假审批</h2>
+          <p class="section-sub" data-i18n="caLeaveSub">年假 / 病假 / 事假 / 培训 / 出差统一在这里审批,每条请求都有留言板可与员工沟通</p>
+          <div id="leaveRequestList"></div>
+        </div>
+        <div class="glass ca-section" id="ca-settings" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navSettings">设置</h2>
+          <p class="section-sub" data-i18n="settingsSub">公司资料与员工邀请码管理</p>
+
+          <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;">
+            <div style="font-weight:700;margin-bottom:10px;" data-i18n="companyProfile">公司资料</div>
+            <div class="form-grid">
+              <div class="field full"><label data-i18n="fieldCompanyName">公司名称</label><input type="text" id="settingsCompanyName" value="Delicious Poke Co." /></div>
+              <div class="field full"><label data-i18n="fieldSlogan">公司口号</label><input type="text" id="settingsCompanySlogan" value="新鲜每一天" /></div>
+              <div class="field"><label data-i18n="settingsAnnualQuota">默认年假天数</label><input type="number" id="settingsAnnualQuota" value="21" min="0" /></div>
+            </div>
+            <button class="btn btn-outline" id="btnSaveCompanyProfile" style="margin-top:6px;" data-i18n="saveChanges">保存修改</button>
+            <span class="field-hint hidden" id="profileSaveNotice" style="color:var(--success);margin-left:10px;"></span>
+          </div>
+
+          <div class="glass" style="background:rgba(123,38,53,.05);">
+            <div style="font-weight:700;margin-bottom:4px;" data-i18n="inviteCodeManagement">邀请码管理</div>
+            <p class="section-sub" style="margin:0 0 12px;" data-i18n="inviteCodeManagementSub">注册公司时已自动生成一个常用邀请码(公司名前缀 + 随机数字),员工凭此码即可自动归属到本公司,无需从列表里选择,不会混淆。可随时重新生成,或为单个新员工单独生成一次性邀请码。</p>
+            <div class="list-item" style="border-bottom:none;">
+              <div>
+                <div style="font-size:11px;color:var(--text-2);" data-i18n="currentInviteCode">当前公司邀请码</div>
+                <div style="font-size:20px;font-weight:700;letter-spacing:.03em;" id="currentInviteCodeValue">POKE-4821</div>
+              </div>
+              <span style="margin-left:auto;display:flex;gap:8px;">
+                <button class="btn btn-outline" id="btnCopyInviteCode" style="height:34px;padding:0 14px;font-size:12.5px;" data-i18n="copyCode">复制</button>
+                <button class="btn btn-primary" id="btnRegenerateInviteCode" style="height:34px;padding:0 14px;font-size:12.5px;" data-i18n="regenerateCode">重新生成</button>
+              </span>
+            </div>
+            <div class="field-hint" id="regenerateNotice" style="display:none;color:var(--success);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-platformAdminApp">
+  <div class="app-topbar">
+    <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack Pro</span></button>
+  </div>
+  <div class="app-body">
+    <div class="admin-layout">
+      <div class="nav-rail glass">
+        <div class="nav-item active" data-section="pa-dashboard"><span data-i18n="navDashboard">首页</span></div>
+        <div class="nav-item" data-section="pa-companies"><span data-i18n="navCompanies">公司管理</span></div>
+        <div class="nav-item" data-section="pa-revenue"><span data-i18n="navRevenue">收入看板</span></div>
+        <div class="nav-item" data-section="pa-ads"><span data-i18n="navAds">广告管理</span></div>
+      </div>
+      <div class="admin-main">
+        <div class="glass pa-section" id="pa-dashboard">
+          <h2 class="section-title" data-i18n="paDashboardTitle">平台概览</h2>
+          <div class="metric-grid">
+            <div class="metric-card"><div class="metric-label" data-i18n="totalCompanies">入驻公司总数</div><div class="metric-value">1,284</div></div>
+            <div class="metric-card"><div class="metric-label" data-i18n="mrr">月经常性收入</div><div class="metric-value">€14,230</div></div>
+            <div class="metric-card"><div class="metric-label" data-i18n="activeTrials">试用中公司</div><div class="metric-value">96</div></div>
+            <div class="metric-card"><div class="metric-label" data-i18n="systemHealth">系统健康度</div><div class="metric-value">99.9%</div></div>
+          </div>
+        </div>
+        <div class="glass pa-section" id="pa-companies" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navCompanies">公司管理</h2>
+          <table class="data-table">
+            <tr><th data-i18n="colCompany">公司</th><th data-i18n="colPlan">订阅状态</th><th data-i18n="colEmployees">员工数</th></tr>
+            <tr><td>Delicious Poke Co.</td><td><span class="badge success" data-i18n="statusActive">在职</span></td><td>42</td></tr>
+            <tr><td>Café Luna</td><td><span class="badge warning" data-i18n="statusTrial">试用中</span></td><td>8</td></tr>
+          </table>
+        </div>
+        <div class="glass pa-section" id="pa-revenue" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navRevenue">收入看板</h2>
+          <div class="metric-grid">
+            <div class="metric-card"><div class="metric-label" data-i18n="mrr">月经常性收入</div><div class="metric-value">€14,230</div></div>
+            <div class="metric-card"><div class="metric-label" data-i18n="churn">流失率</div><div class="metric-value">2.1%</div></div>
+          </div>
+        </div>
+        <div class="glass pa-section" id="pa-ads" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navAds">广告管理</h2>
+          <p class="section-sub" data-i18n="adsSub">仅支持 Banner 广告,不支持弹窗或全屏广告。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- MODALS ---------- -->
+<div class="modal-overlay hidden" id="modal-employee">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="employeeEntranceTitle">员工</h3>
+    <p class="modal-sub" data-i18n="employeeModalSub">登录或使用公司邀请码注册</p>
+    <div class="tab-switch">
+      <button class="tab-active-toggle active" data-tab="login" data-i18n="login">登录</button>
+      <button class="tab-active-toggle" data-tab="register" data-i18n="register">注册</button>
+    </div>
+    <form id="form-employee-login" class="auth-pane">
+      <div class="field"><label data-i18n="fieldEmployeeCode">员工编号 / 手机号</label><input type="text" placeholder="e.g. EMP-1024" /></div>
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" placeholder="••••••••" /></div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="login">登录</button>
+    </form>
+    <form id="form-employee-register" class="auth-pane hidden">
+      <div class="field"><label data-i18n="fieldFullName">姓名</label><input type="text" placeholder="Alex Chen" /></div>
+      <div class="field"><label data-i18n="fieldPhone">电话号码</label><input type="text" placeholder="+31 6 1234 5678" /></div>
+      <div class="field"><label data-i18n="fieldEmployeeId">员工编号</label><input type="text" placeholder="EMP-1024" /></div>
+      <div class="field">
+        <label data-i18n="fieldInviteCode">公司邀请码</label>
+        <input type="text" id="inviteCodeInput" placeholder="POKE-4821" autocomplete="off" />
+        <div class="field-hint" id="inviteCodePreview"></div>
+      </div>
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" placeholder="••••••••" />
+        <div class="field-hint" data-i18n="passwordHint">密码由您自行设置,注册成功后可随时在个人资料中修改。</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="submitRegister">提交注册</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-company">
+  <div class="modal-box wide">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="adminEntranceTitle">公司管理员</h3>
+    <p class="modal-sub" data-i18n="companyModalSub">登录已有公司,或注册一家新公司入驻</p>
+    <div class="tab-switch">
+      <button class="tab-active-toggle active" data-tab="login" data-i18n="login">登录</button>
+      <button class="tab-active-toggle" data-tab="register" data-i18n="registerCompany">注册我的公司</button>
+    </div>
+    <form id="form-company-login" class="auth-pane">
+      <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" placeholder="admin@yourcompany.com" /></div>
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" placeholder="••••••••" /></div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="login">登录</button>
+    </form>
+    <form id="form-company-register" class="auth-pane hidden">
+      <div class="field full">
+        <label data-i18n="fieldLogo">公司 Logo</label>
+        <label class="logo-upload"><input type="file" accept="image/*" style="display:none;" /><span>📷</span><span data-i18n="uploadLogo">点击上传 Logo</span></label>
+      </div>
+      <div class="form-grid">
+        <div class="field full"><label data-i18n="fieldCompanyName">公司名称</label><input type="text" placeholder="Bloom Bakery" /></div>
+        <div class="field full"><label data-i18n="fieldSlogan">公司口号</label><input type="text" placeholder="手工烘焙,温暖每一天" /></div>
+        <div class="field"><label data-i18n="fieldCountry">国家</label><input type="text" placeholder="Netherlands" /></div>
+        <div class="field"><label data-i18n="fieldCity">城市</label><input type="text" placeholder="Amsterdam" /></div>
+        <div class="field"><label data-i18n="fieldPostalCode">邮编</label><input type="text" placeholder="1012 AB" /></div>
+        <div class="field"><label data-i18n="fieldGps">GPS 坐标</label><input type="text" placeholder="52.3676, 4.9041" /></div>
+        <div class="field full"><label data-i18n="fieldAddress">完整地址</label><input type="text" placeholder="Damrak 1" /></div>
+        <div class="field"><label data-i18n="fieldContactPerson">联系人</label><input type="text" placeholder="Jonas Weber" /></div>
+        <div class="field"><label data-i18n="fieldPhone">电话</label><input type="text" placeholder="+31 6 1234 5678" /></div>
+        <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" placeholder="admin@yourcompany.com" /></div>
+        <div class="field"><label data-i18n="fieldWhatsapp">WhatsApp</label><input type="text" placeholder="+31 6 1234 5678" /></div>
+        <div class="field"><label data-i18n="fieldVat">VAT 税号(可选)</label><input type="text" placeholder="NL123456789B01" /></div>
+        <div class="field"><label data-i18n="fieldCoc">商会注册号</label><input type="text" placeholder="12345678" /></div>
+        <div class="field full"><label data-i18n="fieldPassword">密码</label><input type="password" placeholder="••••••••" />
+          <div class="field-hint" data-i18n="passwordHint">密码由您自行设置,注册成功后可随时在个人资料中修改。</div>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:6px;" data-i18n="submitRegisterCompany">提交注册,开始 30 天免费试用</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-platform">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="platformEntranceTitle">平台管理员</h3>
+    <p class="modal-sub" data-i18n="platformModalSub">仅限 WorkTrack Pro 运营团队使用</p>
+    <form id="form-platform-login">
+      <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" id="platformEmail" placeholder="ops@worktrackpro.com" /></div>
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" id="platformPassword" placeholder="••••••••" /></div>
+      <p class="field-hint hidden" id="platformLoginError" style="color:var(--brand-blue);" data-i18n="platformLoginError">邮箱或密码不正确</p>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="login">登录</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-add-employee">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="addEmployee">+ 添加员工</h3>
+    <p class="modal-sub" data-i18n="addEmployeeSub">该员工会收到邀请码,自行完成注册并设置密码</p>
+    <form id="form-add-employee">
+      <div class="field"><label data-i18n="fieldFullName">姓名</label><input type="text" id="newEmployeeName" placeholder="Sam Park" required /></div>
+      <div class="field"><label data-i18n="fieldPhone">电话号码</label><input type="text" id="newEmployeePhone" placeholder="+31 6 1234 5678" /></div>
+      <div class="field"><label data-i18n="fieldEmployeeId">员工编号</label><input type="text" id="newEmployeeId" placeholder="EMP-1031" /></div>
+      <div class="field">
+        <label data-i18n="fieldPermissionLevel">权限级别</label>
+        <select id="newEmployeeRole">
+          <option value="employee" data-i18n="roleEmployee">员工</option>
+          <option value="manager" data-i18n="roleManager">主管(可审批请假、查看排班)</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="submitAddEmployee">生成邀请码并添加</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-leave-center">
+  <div class="modal-box wide">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="leaveCenterTitle">请假中心</h3>
+    <p class="modal-sub" data-i18n="leaveCenterSub">年假、病假、事假、出差、培训统一在这里申请与查看,每条请求都可以留言与经理沟通</p>
+
+    <div class="metric-grid" style="margin-bottom:18px;">
+      <div class="metric-card"><div class="metric-label" data-i18n="annual">年假</div><div class="metric-value" id="lcAnnualValue">14 / 21</div></div>
+      <div class="metric-card"><div class="metric-label" data-i18n="sick">病假</div><div class="metric-value">5</div></div>
+      <div class="metric-card"><div class="metric-label" data-i18n="personal">事假</div><div class="metric-value">2</div></div>
+    </div>
+
+    <div style="font-weight:700;margin-bottom:10px;" data-i18n="newLeaveRequest">新的请假申请</div>
+    <form id="form-leave-request">
+      <div class="form-grid">
+        <div class="field full">
+          <label data-i18n="fieldLeaveType">请假类型</label>
+          <select id="leaveTypeSelect">
+            <option value="ANNUAL" data-i18n="annual">年假</option>
+            <option value="SICK" data-i18n="sick">病假</option>
+            <option value="PERSONAL" data-i18n="personal">事假</option>
+            <option value="TRAINING" data-i18n="training">培训</option>
+            <option value="BUSINESS_TRIP" data-i18n="businessTrip">出差</option>
+          </select>
+        </div>
+        <div class="field"><label data-i18n="fieldStartDate">开始日期</label><input type="date" id="leaveStartDate" required /></div>
+        <div class="field"><label data-i18n="fieldEndDate">结束日期</label><input type="date" id="leaveEndDate" required /></div>
+        <div class="field full"><label data-i18n="fieldLeaveReason">请假理由</label><input type="text" id="leaveReason" placeholder="..." required /></div>
+        <div class="field full hidden" id="sickAttachmentField">
+          <label data-i18n="fieldDoctorNote">家庭医生看病通知(病假证明)</label>
+          <label class="logo-upload"><input type="file" style="display:none;" id="doctorNoteFile" /><span>📎</span><span data-i18n="uploadDoctorNote">点击上传医生证明</span></label>
+        </div>
+        <div class="field full hidden" id="tripDetailsField">
+          <label data-i18n="fieldDestination">目的地 / 行程安排</label>
+          <input type="text" id="tripDestination" data-i18n-placeholder="fieldDestinationPlaceholder" placeholder="例如:柏林分公司,含往返交通与住宿安排" />
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:6px;" data-i18n="submitLeaveRequest">提交申请</button>
+    </form>
+
+    <div style="font-weight:700;margin:22px 0 10px;" data-i18n="leaveHistory">我的请假记录</div>
+    <div id="leaveHistoryList"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const i18n = {
+  zh: {
+    brand: "WorkTrack Pro",
+    heroTitle: "智能劳动力管理平台",
+    heroSub: "面向餐厅、外卖、咖啡店与配送团队的一站式考勤、GPS、工资与请假管理",
+    companySloganSample1: "新鲜每一天", companySloganSample2: "慢下来,喝杯咖啡", companySloganSample3: "极速送达",
+    companySloganSample4: "地道风味", companySloganSample5: "手工烘焙,温暖每一天", companySloganSample6: "最后一公里配送专家",
+    companySloganSample7: "北欧简餐,简单美味", companySloganSample8: "社区好邻居",
+    employeeEntranceTitle: "员工", employeeEntranceSub: "打卡、查看工资、请假申请、公司公告一站搞定",
+    adminEntranceTitle: "公司管理员", adminEntranceSub: "管理员工、审批请假、查看 GPS 与工资统计",
+    login: "登录", register: "注册", registerCompany: "注册我的公司",
+    employeeModalSub: "登录或使用公司邀请码注册", companyModalSub: "登录已有公司,或注册一家新公司入驻",
+    platformEntranceTitle: "平台管理员", platformModalSub: "仅限 WorkTrack Pro 运营团队使用",
+    platformLoginError: "邮箱或密码不正确",
+    fieldEmployeeCode: "员工编号 / 手机号", fieldPassword: "密码", fieldFullName: "姓名", fieldPhone: "电话号码",
+    fieldEmployeeId: "员工编号", fieldInviteCode: "公司邀请码", fieldEmail: "邮箱", fieldLogo: "公司 Logo",
+    uploadLogo: "点击上传 Logo", fieldCompanyName: "公司名称", fieldSlogan: "公司口号", fieldCountry: "国家",
+    fieldCity: "城市", fieldPostalCode: "邮编", fieldGps: "GPS 坐标", fieldAddress: "完整地址",
+    fieldContactPerson: "联系人", fieldWhatsapp: "WhatsApp", fieldVat: "VAT 税号(可选)", fieldCoc: "商会注册号",
+    passwordHint: "密码由您自行设置,注册成功后可随时在个人资料中修改。",
+    submitRegister: "提交注册", submitRegisterCompany: "提交注册,开始 30 天免费试用",
+    footerText: "© 2026 WorkTrack Pro",
+    companyName: "Delicious Poke Co.", welcomeTitle: "欢迎回来,Alex", clockIn: "上班打卡", clockOut: "下班打卡",
+    todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "工资摘要", attendanceRate: "出勤率",
+    leaveBalance: "请假余额", annual: "年假", sick: "病假", personal: "事假", days: "天",
+    announcements: "公司公告", announcementSample: "下周三全员培训,请准时参加。",
+    navDashboard: "首页", navEmployees: "员工管理", navGps: "GPS 看板", navPayroll: "工资管理", navLeave: "请假审批",
+    gpsSub: "仅在员工\"上班打卡\"到\"下班打卡\"期间追踪,地图数据来自 OpenStreetMap",
+    gpsLegendMoving: "配送中", gpsLegendStopped: "短暂停留", gpsLegendFlagged: "异常停留(仅提示,非自动判违规)",
+    inviteCodeMatch: "即将加入:", inviteCodeNoMatch: "未识别该邀请码,请向公司管理员确认",
+    caDashboardTitle: "公司概览", caDashboardSub: "关键运营指标一览",
+    headcount: "在职员工", onDuty: "当前在岗", pendingLeave: "待审批请假",
+    colName: "姓名", colRole: "角色", colStatus: "状态", colHours: "本周工时", colActions: "操作",
+    roleEmployee: "员工", roleManager: "主管(可审批请假、查看排班)", statusActive: "在职", statusPending: "待审批", statusTrial: "试用中",
+    employeesSub: "管理员可以添加新员工、调整权限,或删除员工的全部记录",
+    addEmployee: "+ 添加员工", addEmployeeSub: "该员工会收到邀请码,自行完成注册并设置密码",
+    fieldPermissionLevel: "权限级别", submitAddEmployee: "生成邀请码并添加",
+    deleteEmployee: "删除", confirmDeleteEmployee: "确定要删除该员工的全部记录吗?此操作会清除个人信息,工资等财务记录将做匿名化保留以满足合规要求,不可撤销。",
+    colRegular: "正常工时", colOvertime: "加班工时", colTotal: "应发合计", approve: "批准", reject: "拒绝",
+    navCompanies: "公司管理", navRevenue: "收入看板", navAds: "广告管理",
+    paDashboardTitle: "平台概览", totalCompanies: "入驻公司总数", mrr: "月经常性收入",
+    activeTrials: "试用中公司", systemHealth: "系统健康度",
+    colCompany: "公司", colPlan: "订阅状态", colEmployees: "员工数", churn: "流失率",
+    adsSub: "仅支持 Banner 广告,不支持弹窗或全屏广告。",
+    navSettings: "设置",
+    colType: "用工类型", colMonthHoursShort: "本月工时",
+    typeFullTime: "正式员工", typePartTime: "兼职", typeTemporary: "临时工",
+    caLeaveSub: "年假 / 病假 / 事假 / 培训 / 出差统一在这里审批,每条请求都有留言板可与员工沟通",
+    settingsSub: "公司资料与员工邀请码管理",
+    companyProfile: "公司资料", settingsAnnualQuota: "默认年假天数(每个公司可自行设置)", saveChanges: "保存修改",
+    profileSaved: "已保存(演示环境,数据不会持久化)",
+    inviteCodeManagement: "邀请码管理",
+    inviteCodeManagementSub: "注册公司时已自动生成一个常用邀请码(公司名前缀 + 随机数字),员工凭此码即可自动归属到本公司,无需从列表里选择,不会混淆。可随时重新生成,或为单个新员工单独生成一次性邀请码。",
+    currentInviteCode: "当前公司邀请码", copyCode: "复制", regenerateCode: "重新生成",
+    codeCopied: "已复制到剪贴板", codeRegenerated: "已生成新邀请码,旧邀请码立即失效",
+    leaveCenterOpen: "请假中心 →", leaveCenterTitle: "请假中心",
+    leaveCenterSub: "年假、病假、事假、出差、培训统一在这里申请与查看,每条请求都可以留言与经理沟通",
+    monthHoursTemp: "本月工时(临时工/兼职)",
+    monthHoursTempNote: "如果您是临时工或兼职员工,本月累计工作时长会在这里持续更新,便于按工时结算工资。",
+    newLeaveRequest: "新的请假申请", fieldLeaveType: "请假类型", training: "培训", businessTrip: "出差",
+    fieldStartDate: "开始日期", fieldEndDate: "结束日期", fieldLeaveReason: "请假理由",
+    fieldDoctorNote: "家庭医生看病通知(病假证明)", uploadDoctorNote: "点击上传医生证明",
+    fieldDestination: "目的地 / 行程安排", fieldDestinationPlaceholder: "例如:柏林分公司,含往返交通与住宿安排",
+    submitLeaveRequest: "提交申请", leaveHistory: "我的请假记录",
+    statusApproved: "已批准", statusRejected: "已拒绝", statusPending2: "待审批",
+    payRateNote: "工资按比例发放", writeMessage: "发送留言", messagePlaceholder: "给经理留言...",
+    viewMessages: "查看留言", hideMessages: "收起留言", noMessagesYet: "暂无留言",
+    doctorNoteAttached: "已附医生证明", managerName: "经理"
+  },
+  en: {
+    brand: "WorkTrack Pro",
+    heroTitle: "Smart workforce management platform",
+    heroSub: "One place for attendance, GPS, payroll and leave — built for restaurants, takeaway, cafés and delivery teams",
+    companySloganSample1: "Fresh every day", companySloganSample2: "Slow down, grab a coffee", companySloganSample3: "Delivered at speed",
+    companySloganSample4: "Authentic flavor", companySloganSample5: "Handcrafted, warm every day", companySloganSample6: "Last-mile delivery experts",
+    companySloganSample7: "Simple, delicious Nordic food", companySloganSample8: "Your friendly neighborhood market",
+    employeeEntranceTitle: "Employees", employeeEntranceSub: "Clock in, check pay, request leave and read announcements in one place",
+    adminEntranceTitle: "Company admin", adminEntranceSub: "Manage staff, approve leave, monitor GPS and payroll",
+    login: "Log in", register: "Register", registerCompany: "Register my company",
+    employeeModalSub: "Log in, or register with your company invitation code", companyModalSub: "Log in to your company, or onboard a new one",
+    platformEntranceTitle: "Platform admin", platformModalSub: "For the WorkTrack Pro operations team only",
+    platformLoginError: "Incorrect email or password",
+    fieldEmployeeCode: "Employee ID / phone", fieldPassword: "Password", fieldFullName: "Full name", fieldPhone: "Phone number",
+    fieldEmployeeId: "Employee ID", fieldInviteCode: "Company invitation code", fieldEmail: "Email", fieldLogo: "Company logo",
+    uploadLogo: "Click to upload logo", fieldCompanyName: "Company name", fieldSlogan: "Company slogan", fieldCountry: "Country",
+    fieldCity: "City", fieldPostalCode: "Postal code", fieldGps: "GPS coordinate", fieldAddress: "Full address",
+    fieldContactPerson: "Contact person", fieldWhatsapp: "WhatsApp", fieldVat: "VAT number (optional)", fieldCoc: "Chamber of commerce no.",
+    passwordHint: "You set this password yourself — change it anytime from your profile after registering.",
+    submitRegister: "Submit registration", submitRegisterCompany: "Submit and start your 30-day free trial",
+    footerText: "© 2026 WorkTrack Pro",
+    companyName: "Delicious Poke Co.", welcomeTitle: "Welcome back, Alex", clockIn: "Clock in", clockOut: "Clock out",
+    todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "Salary summary", attendanceRate: "Attendance rate",
+    leaveBalance: "Leave balance", annual: "Annual", sick: "Sick", personal: "Personal", days: "days",
+    announcements: "Announcements", announcementSample: "Company-wide training next Wednesday, please attend on time.",
+    navDashboard: "Dashboard", navEmployees: "Employees", navGps: "GPS dashboard", navPayroll: "Payroll", navLeave: "Leave approval",
+    gpsSub: "Tracking only runs from clock-in to clock-out. Map data © OpenStreetMap contributors.",
+    gpsLegendMoving: "En route", gpsLegendStopped: "Brief stop", gpsLegendFlagged: "Flagged long stop (hint only, not automatic)",
+    inviteCodeMatch: "You're about to join:", inviteCodeNoMatch: "Code not recognized — check with your company admin",
+    caDashboardTitle: "Company overview", caDashboardSub: "Key operating metrics at a glance",
+    headcount: "Headcount", onDuty: "Currently on duty", pendingLeave: "Pending leave requests",
+    colName: "Name", colRole: "Role", colStatus: "Status", colHours: "Hours this week", colActions: "Actions",
+    roleEmployee: "Employee", roleManager: "Manager (can approve leave, view schedules)", statusActive: "Active", statusPending: "Pending", statusTrial: "Trialing",
+    employeesSub: "Admins can add employees, adjust permissions, or delete an employee's full record",
+    addEmployee: "+ Add employee", addEmployeeSub: "This employee will receive an invitation code to complete registration and set their own password",
+    fieldPermissionLevel: "Permission level", submitAddEmployee: "Generate invitation code and add",
+    deleteEmployee: "Delete", confirmDeleteEmployee: "Delete this employee's entire record? Personal data will be erased; payroll/financial records will be anonymized to meet legal retention requirements. This cannot be undone.",
+    colRegular: "Regular hours", colOvertime: "Overtime", colTotal: "Total pay", approve: "Approve", reject: "Reject",
+    navCompanies: "Companies", navRevenue: "Revenue", navAds: "Advertisements",
+    paDashboardTitle: "Platform overview", totalCompanies: "Total companies", mrr: "Monthly recurring revenue",
+    activeTrials: "Companies trialing", systemHealth: "System health",
+    colCompany: "Company", colPlan: "Subscription", colEmployees: "Employees", churn: "Churn rate",
+    adsSub: "Banner ads only — no popups, no fullscreen ads.",
+    navSettings: "Settings",
+    colType: "Employment type", colMonthHoursShort: "Hours this month",
+    typeFullTime: "Full-time", typePartTime: "Part-time", typeTemporary: "Temporary",
+    caLeaveSub: "Annual, sick, personal, training and business-trip requests all live here, each with a message thread to the employee",
+    settingsSub: "Company profile and employee invitation codes",
+    companyProfile: "Company profile", settingsAnnualQuota: "Default annual leave days (configurable per company)", saveChanges: "Save changes",
+    profileSaved: "Saved (demo only — not persisted)",
+    inviteCodeManagement: "Invitation code management",
+    inviteCodeManagementSub: "A standing invitation code (company-name prefix + random digits) was auto-generated the moment your company registered — employees who enter it are placed in your company automatically, no picking from a list, no cross-company mix-ups. Regenerate it any time, or mint a one-time code for a single new hire.",
+    currentInviteCode: "Current company invitation code", copyCode: "Copy", regenerateCode: "Regenerate",
+    codeCopied: "Copied to clipboard", codeRegenerated: "New code generated — the old code is now invalid",
+    leaveCenterOpen: "Leave center →", leaveCenterTitle: "Leave center",
+    leaveCenterSub: "Annual, sick, personal, business-trip and training requests all in one place, each with a message thread to your manager",
+    monthHoursTemp: "Hours this month (part-time / temporary)",
+    monthHoursTempNote: "If you're a part-time or temporary employee, your running monthly hours total is tracked here so pay can be calculated by hours worked.",
+    newLeaveRequest: "New leave request", fieldLeaveType: "Leave type", training: "Training", businessTrip: "Business trip",
+    fieldStartDate: "Start date", fieldEndDate: "End date", fieldLeaveReason: "Reason",
+    fieldDoctorNote: "Family doctor's visit notice (sick leave certificate)", uploadDoctorNote: "Click to upload doctor's note",
+    fieldDestination: "Destination / itinerary", fieldDestinationPlaceholder: "e.g. Berlin office, incl. travel and accommodation plan",
+    submitLeaveRequest: "Submit request", leaveHistory: "My leave history",
+    statusApproved: "Approved", statusRejected: "Rejected", statusPending2: "Pending",
+    payRateNote: "Pay rate for this leave type", writeMessage: "Send", messagePlaceholder: "Message your manager...",
+    viewMessages: "View messages", hideMessages: "Hide messages", noMessagesYet: "No messages yet",
+    doctorNoteAttached: "Doctor's note attached", managerName: "Manager"
+  }
+};
+
+let currentLang = "zh";
+
+function applyI18n() {
+  const dict = i18n[currentLang];
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (dict[key] !== undefined && key !== "clockIn") el.textContent = dict[key];
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    const key = el.getAttribute("data-i18n-placeholder");
+    if (dict[key] !== undefined) el.placeholder = dict[key];
+  });
+  const clockBtn = document.getElementById("clockBtn");
+  clockBtn.textContent = clockBtn.classList.contains("clocked-in") ? dict.clockOut : dict.clockIn;
+  document.documentElement.lang = currentLang;
+  renderEmployeeTable();
+  renderLeaveRequests();
+  renderLeaveHistory();
+}
+
+document.getElementById("langSelect").addEventListener("change", e => {
+  currentLang = e.target.value;
+  applyI18n();
+});
+
+function showView(id) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+document.querySelectorAll("[data-back-home]").forEach(btn => btn.addEventListener("click", () => showView("view-home")));
+
+/* ---------- 员工管理:添加 / 删除 ----------
+   对应权限文档:公司管理员有权直接添加新员工(生成邀请码,员工自行完成注册与设置密码),
+   也有权删除员工的全部记录(个人信息清除,财务类记录做匿名化保留以满足合规要求)。 */
+let employeeIdCounter = 1000;
+const employees = [
+  { id: employeeIdCounter++, name: "Alex Chen",    role: "employee", status: "active",  hours: "32.5h", employmentType: "full_time", monthHours: "128h" },
+  { id: employeeIdCounter++, name: "Maria Santos", role: "employee", status: "active",  hours: "28.0h", employmentType: "full_time", monthHours: "112h" },
+  { id: employeeIdCounter++, name: "Jonas Weber",  role: "employee", status: "pending", hours: "—",     employmentType: "full_time", monthHours: "—" },
+  { id: employeeIdCounter++, name: "Sam Park",     role: "employee", status: "active",  hours: "14.0h", employmentType: "temporary",  monthHours: "56h" }
+];
+
+function employmentTypeLabel(dict, type) {
+  if (type === "temporary") return dict.typeTemporary;
+  if (type === "part_time") return dict.typePartTime;
+  return dict.typeFullTime;
+}
+
+function renderEmployeeTable() {
+  const tbody = document.getElementById("employeeTableBody");
+  if (!tbody) return;
+  const dict = i18n[currentLang];
+  tbody.innerHTML = "";
+  employees.forEach(emp => {
+    const statusBadge = emp.status === "active"
+      ? '<span class="badge success">' + dict.statusActive + '</span>'
+      : '<span class="badge warning">' + dict.statusPending + '</span>';
+    const roleLabel = emp.role === "manager" ? dict.roleManager : dict.roleEmployee;
+    const typeBadgeClass = emp.employmentType === "temporary" ? "warning" : (emp.employmentType === "part_time" ? "warning" : "success");
+    const typeBadge = '<span class="badge ' + typeBadgeClass + '">' + employmentTypeLabel(dict, emp.employmentType) + '</span>';
+    const row = document.createElement("tr");
+    row.innerHTML =
+      '<td>' + emp.name + '</td>' +
+      '<td>' + roleLabel + '</td>' +
+      '<td>' + typeBadge + '</td>' +
+      '<td>' + statusBadge + '</td>' +
+      '<td>' + emp.hours + '</td>' +
+      '<td>' + emp.monthHours + '</td>' +
+      '<td><button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-delete-employee="' + emp.id + '">' + dict.deleteEmployee + '</button></td>';
+    tbody.appendChild(row);
+  });
+  tbody.querySelectorAll("[data-delete-employee]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const dict2 = i18n[currentLang];
+      if (window.confirm(dict2.confirmDeleteEmployee)) {
+        const targetId = Number(btn.dataset.deleteEmployee);
+        const idx = employees.findIndex(e => e.id === targetId);
+        if (idx !== -1) employees.splice(idx, 1);
+        renderEmployeeTable();
+      }
+    });
+  });
+}
+
+document.getElementById("btnAddEmployee").addEventListener("click", () => openModal("modal-add-employee"));
+
+document.getElementById("form-add-employee").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = document.getElementById("newEmployeeName").value.trim();
+  const role = document.getElementById("newEmployeeRole").value;
+  if (!name) return;
+  employees.push({ id: employeeIdCounter++, name, role, status: "pending", hours: "—", employmentType: "full_time", monthHours: "—" });
+  renderEmployeeTable();
+  e.target.reset();
+  closeModal(document.getElementById("modal-add-employee"));
+});
+
+function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
+function closeModal(el) { el.classList.add("hidden"); }
+document.querySelectorAll("[data-close-modal]").forEach(btn => {
+  btn.addEventListener("click", () => closeModal(btn.closest(".modal-overlay")));
+});
+document.querySelectorAll(".modal-overlay").forEach(overlay => {
+  overlay.addEventListener("click", e => { if (e.target === overlay) closeModal(overlay); });
+});
+
+function wireModalTabs(modalId) {
+  const modal = document.getElementById(modalId);
+  modal.querySelectorAll(".tab-active-toggle").forEach(tabBtn => {
+    tabBtn.addEventListener("click", () => {
+      modal.querySelectorAll(".tab-active-toggle").forEach(b => b.classList.remove("active"));
+      tabBtn.classList.add("active");
+      modal.querySelectorAll(".auth-pane").forEach(pane => pane.classList.add("hidden"));
+      modal.querySelector("#form-" + modalId.replace("modal-", "") + "-" + tabBtn.dataset.tab).classList.remove("hidden");
+    });
+  });
+}
+wireModalTabs("modal-employee");
+wireModalTabs("modal-company");
+
+document.getElementById("btnEmployeeLogin").addEventListener("click", () => openModal("modal-employee"));
+document.getElementById("btnEmployeeRegister").addEventListener("click", () => {
+  openModal("modal-employee");
+  document.querySelector('#modal-employee [data-tab="register"]').click();
+});
+document.getElementById("btnCompanyLogin").addEventListener("click", () => openModal("modal-company"));
+document.getElementById("btnCompanyRegister").addEventListener("click", () => {
+  openModal("modal-company");
+  document.querySelector('#modal-company [data-tab="register"]').click();
+});
+document.getElementById("platformSecretMark").addEventListener("click", () => openModal("modal-platform"));
+
+document.getElementById("form-employee-login").addEventListener("submit", e => {
+  e.preventDefault(); closeModal(document.getElementById("modal-employee")); showView("view-employeeApp");
+});
+document.getElementById("form-employee-register").addEventListener("submit", e => {
+  e.preventDefault(); closeModal(document.getElementById("modal-employee")); showView("view-employeeApp");
+});
+document.getElementById("form-company-login").addEventListener("submit", e => {
+  e.preventDefault(); closeModal(document.getElementById("modal-company")); showView("view-companyAdminApp");
+});
+document.getElementById("form-company-register").addEventListener("submit", e => {
+  e.preventDefault(); closeModal(document.getElementById("modal-company")); showView("view-companyAdminApp");
+});
+document.getElementById("form-platform-login").addEventListener("submit", e => {
+  e.preventDefault();
+  const email = document.getElementById("platformEmail").value.trim().toLowerCase();
+  const password = document.getElementById("platformPassword").value;
+  const errorEl = document.getElementById("platformLoginError");
+  if (email === "vavgrace@gmail.com" && password === "Almere@1992") {
+    errorEl.classList.add("hidden");
+    e.target.reset();
+    closeModal(document.getElementById("modal-platform"));
+    showView("view-platformAdminApp");
+  } else {
+    errorEl.classList.remove("hidden");
+  }
+});
+
+function wireNavRail(prefix, viewId) {
+  document.querySelectorAll('.nav-item[data-section^="' + prefix + '-"]').forEach(item => {
+    item.addEventListener("click", () => {
+      document.querySelectorAll('.nav-item[data-section^="' + prefix + '-"]').forEach(i => i.classList.remove("active"));
+      item.classList.add("active");
+      document.querySelectorAll('#' + viewId + ' [id^="' + prefix + '-"]').forEach(sec => sec.style.display = "none");
+      document.getElementById(item.dataset.section).style.display = "block";
+      if (item.dataset.section === "ca-gps") { initGpsMap(); }
+    });
+  });
+}
+wireNavRail("ca", "view-companyAdminApp");
+wireNavRail("pa", "view-platformAdminApp");
+
+let clockedIn = false;
+let elapsedSeconds = 0;
+let timerHandle = null;
+const clockBtn = document.getElementById("clockBtn");
+const timerEl = document.getElementById("todayTimer");
+
+function formatElapsed(total) {
+  const h = String(Math.floor(total / 3600)).padStart(2, "0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  const s = String(total % 60).padStart(2, "0");
+  return h + ":" + m + ":" + s;
+}
+
+clockBtn.addEventListener("click", () => {
+  clockedIn = !clockedIn;
+  clockBtn.classList.toggle("clocked-in", clockedIn);
+  if (clockedIn) {
+    timerHandle = setInterval(() => { elapsedSeconds++; timerEl.textContent = formatElapsed(elapsedSeconds); }, 1000);
+  } else {
+    clearInterval(timerHandle);
+  }
+  applyI18n();
+});
+
+document.getElementById("todayDate").textContent = new Date().toLocaleDateString(
+  currentLang === "zh" ? "zh-CN" : "en-GB",
+  { year: "numeric", month: "long", day: "numeric", weekday: "long" }
+);
+
+/* ---------- GPS 看板:真实地图(Leaflet + OpenStreetMap,免费,无需 API Key) ----------
+   演示的是架构文档里已经设计好的机制:员工上班打卡后每隔一段时间上报一次 GPS 坐标,
+   服务端把连续坐标串成路线(routes/route_stops),停留超过阈值的点标记为"异常停留"
+   仅供管理员复核参考,绝不自动判定违规或扣款。 */
+const gpsRoutes = [
+  {
+    name: "Alex Chen", color: "#3E7D5C",
+    path: [[52.3731,4.8926],[52.3712,4.8952],[52.3695,4.8981],[52.3676,4.8963],[52.3654,4.8952],[52.3644,4.8920],[52.3612,4.8901],[52.3557,4.8930]],
+    flaggedStopIndex: 5, flaggedLabel: "停留 18 分钟 · 建议管理员核实"
+  },
+  {
+    name: "Maria Santos", color: "#54606B",
+    path: [[52.3791,4.9003],[52.3769,4.9036],[52.3735,4.9065],[52.3702,4.9081],[52.3670,4.9074],[52.3644,4.9048]]
+  },
+  {
+    name: "Jonas Weber", color: "#B8863C",
+    path: [[52.3579,4.8686],[52.3600,4.8735],[52.3628,4.8790],[52.3652,4.8834],[52.3661,4.8880],[52.3676,4.8926]]
+  }
+];
+
+let gpsMap = null;
+let gpsAnimHandle = null;
+
+function initGpsMap() {
+  if (gpsMap) { gpsMap.invalidateSize(); return; }
+  if (typeof L === "undefined") { return; }
+
+  gpsMap = L.map("gpsMap", { zoomControl: true, attributionControl: true }).setView([52.368, 4.895], 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(gpsMap);
+
+  const markers = gpsRoutes.map(route => {
+    L.polyline(route.path, { color: route.color, weight: 3, opacity: .55 }).addTo(gpsMap);
+
+    if (route.flaggedStopIndex !== undefined) {
+      const stopPoint = route.path[route.flaggedStopIndex];
+      L.circle(stopPoint, { radius: 60, color: "#B23A4E", fillColor: "#B23A4E", fillOpacity: .18, weight: 1 })
+        .addTo(gpsMap)
+        .bindPopup("<b>" + route.name + "</b><br/>" + route.flaggedLabel);
+    }
+
+    const icon = L.divIcon({
+      className: "",
+      html: '<div style="width:16px;height:16px;border-radius:50%;background:' + route.color + ';border:3px solid #fff;box-shadow:0 0 0 3px rgba(0,0,0,.12);"></div>',
+      iconSize: [16, 16], iconAnchor: [8, 8]
+    });
+    const marker = L.marker(route.path[0], { icon }).addTo(gpsMap).bindPopup("<b>" + route.name + "</b>");
+    return { marker, route, index: 0 };
+  });
+
+  gpsAnimHandle = setInterval(() => {
+    markers.forEach(m => {
+      m.index = (m.index + 1) % m.route.path.length;
+      m.marker.setLatLng(m.route.path[m.index]);
+    });
+  }, 1400);
+}
+
+/* ---------- 邀请码 → 所属公司预览 ----------
+   邀请码在平台内全局唯一(数据库层面 UNIQUE 约束),一个码只对应一家公司,
+   员工不需要从列表里"挑选"公司 —— 从根本上避免选错/看错导致的公司混淆。
+   这里的字典只是本地演示数据,真实系统由后端 /companies/:id/invitation-codes 生成与校验。 */
+const inviteCodeDirectory = {
+  "POKE-4821": "Delicious Poke Co.",
+  "LUNA-1190": "Café Luna",
+  "DASH-7734": "Swift Dash Delivery",
+  "WOK-3302": "Golden Wok Kitchen",
+  "BLOOM-5561": "Bloom Bakery"
+};
+
+const inviteInput = document.getElementById("inviteCodeInput");
+const invitePreview = document.getElementById("inviteCodePreview");
+inviteInput.addEventListener("input", () => {
+  const code = inviteInput.value.trim().toUpperCase();
+  const dict = i18n[currentLang];
+  if (!code) { invitePreview.textContent = ""; return; }
+  const matchedCompany = inviteCodeDirectory[code];
+  if (matchedCompany) {
+    invitePreview.textContent = dict.inviteCodeMatch + " " + matchedCompany;
+    invitePreview.style.color = "#3E7D5C";
+  } else {
+    invitePreview.textContent = dict.inviteCodeNoMatch;
+    invitePreview.style.color = "var(--brand-blue)";
+  }
+});
+
+/* ---------- 请假中心 / 请假审批(留言板 + 病假证明 + 出差培训行程 + 21天年假扣减) ----------
+   同一套 leaveRequests 数据被两处消费:员工端"请假中心"(仅显示本人记录,可提交新申请)、
+   公司管理后台"请假审批"(显示全部员工记录,可批准/拒绝)。每条记录都有独立留言板
+   (leave_request_messages 的前端体现),病假证明/出差行程作为附加字段按需展示。 */
+let leaveRequestIdCounter = 500;
+const leaveRequests = [
+  { id: leaveRequestIdCounter++, employeeName: "Jonas Weber", category: "ANNUAL", days: 3, reason: "家庭旅行 / Family trip", status: "pending", messages: [] },
+  { id: leaveRequestIdCounter++, employeeName: "Alex Chen", category: "SICK", days: 1, reason: "感冒发烧,需要休息一天 / Flu, need a day to recover", status: "pending", hasAttachment: true, messages: [{ sender: "Alex Chen", text: "已上传医生证明,麻烦审批一下,谢谢!", senderRole: "employee" }] },
+  { id: leaveRequestIdCounter++, employeeName: "Maria Santos", category: "PERSONAL", days: 1, reason: "处理个人事务 / Personal errand", status: "approved", messages: [] }
+];
+
+let annualLeaveBalance = { allocated: 21, used: 7 };
+function updateAnnualBalanceDisplay() {
+  const dict = i18n[currentLang];
+  const remaining = annualLeaveBalance.allocated - annualLeaveBalance.used;
+  const el1 = document.getElementById("empAnnualBalance");
+  if (el1) el1.textContent = remaining + " / " + annualLeaveBalance.allocated + " " + dict.days;
+  const el2 = document.getElementById("lcAnnualValue");
+  if (el2) el2.textContent = remaining + " / " + annualLeaveBalance.allocated;
+}
+
+function leaveTypeBadgeInfo(dict, category) {
+  const map = {
+    ANNUAL:        { label: dict.annual,       cls: "success", payRate: 100 },
+    SICK:          { label: dict.sick,         cls: "warning", payRate: 100 },
+    PERSONAL:      { label: dict.personal,     cls: "danger",  payRate: 70  },
+    TRAINING:      { label: dict.training,     cls: "success", payRate: 100 },
+    BUSINESS_TRIP: { label: dict.businessTrip, cls: "success", payRate: 100 }
+  };
+  return map[category] || map.ANNUAL;
+}
+
+function buildLeaveCardHtml(req, isAdminView) {
+  const dict = i18n[currentLang];
+  const info = leaveTypeBadgeInfo(dict, req.category);
+  const statusBadge = req.status === "approved"
+    ? '<span class="badge success">' + dict.statusApproved + "</span>"
+    : req.status === "rejected"
+      ? '<span class="badge danger">' + dict.statusRejected + "</span>"
+      : '<span class="badge warning">' + dict.statusPending2 + "</span>";
+  let actionsHtml = "";
+  if (isAdminView && req.status === "pending") {
+    actionsHtml =
+      '<button class="btn" style="background:var(--success);color:#04342C;height:32px;padding:0 14px;" data-approve-leave="' + req.id + '">' + dict.approve + "</button>" +
+      '<button class="btn" style="background:var(--danger);color:#fff;height:32px;padding:0 14px;" data-reject-leave="' + req.id + '">' + dict.reject + "</button>";
+  }
+  const nameHtml = isAdminView ? "<strong>" + req.employeeName + "</strong> · " : "";
+  const attachmentHtml = req.hasAttachment
+    ? '<div><a href="#" class="leave-attachment-link" onclick="return false;">📎 ' + dict.doctorNoteAttached + "</a></div>"
+    : "";
+  const tripHtml = req.destination ? '<div class="leave-card-reason">🧳 ' + req.destination + "</div>" : "";
+  const messages = req.messages || [];
+  // "self"(高亮/靠右显示)是相对于"当前正在看这条留言板的人"计算的,不是留言本身固定的属性——
+  // 同一条经理发的留言,在管理后台里显示为"我方",在员工自己的请假中心里应显示为"对方"。
+  const messagesHtml = messages.length
+    ? messages.map(m => {
+        const isSelf = isAdminView ? m.senderRole === "manager" : m.senderRole === "employee";
+        return '<div class="msg-bubble' + (isSelf ? " self" : "") + '"><div class="msg-sender">' + m.sender + "</div>" + m.text + "</div>";
+      }).join("")
+    : '<div style="font-size:12px;color:var(--text-2);">' + dict.noMessagesYet + "</div>";
+
+  return '<div class="leave-card" data-leave-card="' + req.id + '">' +
+    '<div class="leave-card-head">' +
+      "<span>" + nameHtml + '<span class="badge ' + info.cls + '">' + info.label + "</span> · " + req.days + " " + dict.days + "</span>" +
+      '<span style="margin-left:auto;display:flex;gap:8px;align-items:center;">' + statusBadge + actionsHtml + "</span>" +
+    "</div>" +
+    '<div class="leave-card-reason">' + req.reason + "</div>" +
+    attachmentHtml + tripHtml +
+    '<div style="font-size:11.5px;color:var(--text-2);margin-top:6px;">' + dict.payRateNote + ": " + info.payRate + "%</div>" +
+    '<button class="msg-toggle" data-toggle-messages="' + req.id + '" style="margin-top:8px;">' + dict.viewMessages + "</button>" +
+    '<div class="msg-thread hidden" id="msg-thread-' + req.id + '">' +
+      messagesHtml +
+      '<div class="msg-input-row"><input type="text" placeholder="' + dict.messagePlaceholder + '" id="msg-input-' + req.id + '" />' +
+      '<button class="btn btn-outline" style="height:36px;padding:0 14px;font-size:12px;" data-send-message="' + req.id + '">' + dict.writeMessage + "</button></div>" +
+    "</div>" +
+  "</div>";
+}
+
+function wireLeaveCardEvents(container, isAdminView) {
+  container.querySelectorAll("[data-approve-leave]").forEach(btn => {
+    btn.addEventListener("click", () => approveLeaveRequest(Number(btn.dataset.approveLeave)));
+  });
+  container.querySelectorAll("[data-reject-leave]").forEach(btn => {
+    btn.addEventListener("click", () => rejectLeaveRequest(Number(btn.dataset.rejectLeave)));
+  });
+  container.querySelectorAll("[data-toggle-messages]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const dict = i18n[currentLang];
+      const thread = document.getElementById("msg-thread-" + btn.dataset.toggleMessages);
+      thread.classList.toggle("hidden");
+      btn.textContent = thread.classList.contains("hidden") ? dict.viewMessages : dict.hideMessages;
+    });
+  });
+  container.querySelectorAll("[data-send-message]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.dataset.sendMessage);
+      const input = document.getElementById("msg-input-" + id);
+      const text = input.value.trim();
+      if (!text) return;
+      const dict = i18n[currentLang];
+      const req = leaveRequests.find(r => r.id === id);
+      req.messages = req.messages || [];
+      req.messages.push({ sender: isAdminView ? dict.managerName : req.employeeName, text, senderRole: isAdminView ? "manager" : "employee" });
+      renderLeaveRequests();
+      renderLeaveHistory();
+      const thread = document.getElementById("msg-thread-" + id);
+      if (thread) thread.classList.remove("hidden");
+    });
+  });
+}
+
+function renderLeaveRequests() {
+  const container = document.getElementById("leaveRequestList");
+  if (!container) return;
+  container.innerHTML = leaveRequests.map(req => buildLeaveCardHtml(req, true)).join("");
+  wireLeaveCardEvents(container, true);
+}
+
+function renderLeaveHistory() {
+  const container = document.getElementById("leaveHistoryList");
+  if (!container) return;
+  const mine = leaveRequests.filter(r => r.employeeName === "Alex Chen");
+  container.innerHTML = mine.map(req => buildLeaveCardHtml(req, false)).join("");
+  wireLeaveCardEvents(container, false);
+}
+
+function approveLeaveRequest(id) {
+  const req = leaveRequests.find(r => r.id === id);
+  if (!req) return;
+  req.status = "approved";
+  // 每休息一天,年假天数里就扣除一天(仅 ANNUAL 类别影响年假余额;
+  // 病假/事假走各自的工资比例,不占用年假天数)。
+  if (req.category === "ANNUAL" && req.employeeName === "Alex Chen") {
+    annualLeaveBalance.used += req.days;
+    updateAnnualBalanceDisplay();
+  }
+  renderLeaveRequests();
+  renderLeaveHistory();
+}
+function rejectLeaveRequest(id) {
+  const req = leaveRequests.find(r => r.id === id);
+  if (!req) return;
+  req.status = "rejected";
+  renderLeaveRequests();
+  renderLeaveHistory();
+}
+
+document.getElementById("leaveTypeSelect").addEventListener("change", e => {
+  const val = e.target.value;
+  document.getElementById("sickAttachmentField").classList.toggle("hidden", val !== "SICK");
+  document.getElementById("tripDetailsField").classList.toggle("hidden", val !== "TRAINING" && val !== "BUSINESS_TRIP");
+});
+
+document.getElementById("form-leave-request").addEventListener("submit", e => {
+  e.preventDefault();
+  const category = document.getElementById("leaveTypeSelect").value;
+  const start = document.getElementById("leaveStartDate").value;
+  const end = document.getElementById("leaveEndDate").value;
+  const reason = document.getElementById("leaveReason").value.trim();
+  const destinationInput = document.getElementById("tripDestination");
+  if (!start || !end || !reason) return;
+  const days = Math.max(1, Math.round((new Date(end) - new Date(start)) / 86400000) + 1);
+  const hasAttachment = category === "SICK" && document.getElementById("doctorNoteFile").files.length > 0;
+  const req = { id: leaveRequestIdCounter++, employeeName: "Alex Chen", category, days, reason, status: "pending", hasAttachment, messages: [] };
+  if ((category === "TRAINING" || category === "BUSINESS_TRIP") && destinationInput.value.trim()) {
+    req.destination = destinationInput.value.trim();
+  }
+  leaveRequests.push(req);
+  renderLeaveRequests();
+  renderLeaveHistory();
+  e.target.reset();
+  document.getElementById("sickAttachmentField").classList.add("hidden");
+  document.getElementById("tripDetailsField").classList.add("hidden");
+});
+
+document.getElementById("btnOpenLeaveCenter").addEventListener("click", () => openModal("modal-leave-center"));
+
+/* ---------- 设置:公司资料 + 邀请码管理 ----------
+   邀请码 = 公司名前缀(去除非字母字符,截取前4位)+ 4位随机数字,注册公司的瞬间就自动生成一个
+   常用邀请码(见首页邀请码预览演示),这里补上"哪一个方便"问题里缺失的后台管理入口:
+   查看当前码、复制、以及重新生成(旧码立即失效)。 */
+function regenerateInviteCode() {
+  const nameInput = document.getElementById("settingsCompanyName");
+  const rawName = (nameInput ? nameInput.value : "Delicious Poke Co.").toUpperCase().replace(/[^A-Z]/g, "");
+  const prefix = rawName.slice(0, 4) || "CODE";
+  const suffix = String(Math.floor(1000 + Math.random() * 9000));
+  const newCode = prefix + "-" + suffix;
+  document.getElementById("currentInviteCodeValue").textContent = newCode;
+  const notice = document.getElementById("regenerateNotice");
+  notice.textContent = i18n[currentLang].codeRegenerated;
+  notice.style.display = "block";
+  setTimeout(() => { notice.style.display = "none"; }, 3000);
+}
+document.getElementById("btnRegenerateInviteCode").addEventListener("click", regenerateInviteCode);
+document.getElementById("btnCopyInviteCode").addEventListener("click", () => {
+  const notice = document.getElementById("regenerateNotice");
+  notice.textContent = i18n[currentLang].codeCopied;
+  notice.style.display = "block";
+  setTimeout(() => { notice.style.display = "none"; }, 2000);
+});
+document.getElementById("btnSaveCompanyProfile").addEventListener("click", () => {
+  const notice = document.getElementById("profileSaveNotice");
+  notice.textContent = i18n[currentLang].profileSaved;
+  notice.classList.remove("hidden");
+  setTimeout(() => { notice.classList.add("hidden"); }, 2500);
+});
+
+applyI18n();
+updateAnnualBalanceDisplay();
+</script>
+</body>
+</html>
