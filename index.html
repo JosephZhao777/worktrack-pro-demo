@@ -274,9 +274,6 @@
           <button class="btn btn-primary" id="btnEmployeeLogin" data-i18n="login">登录</button>
         </div>
       </div>
-      <div style="text-align:center;margin:-8px 0 20px;">
-        <button class="msg-toggle" id="btnQuickEnterEmployee" data-i18n="quickEnterEmployee">跳过登录,直接进入员工测试账号 →</button>
-      </div>
 
       <div class="entrance-panel">
         <div class="entrance-icon admin">🏢</div>
@@ -288,9 +285,6 @@
           <button class="btn btn-outline" id="btnCompanyRegister" data-i18n="registerCompany">注册我的公司</button>
           <button class="btn btn-primary" id="btnCompanyLogin" data-i18n="login">登录</button>
         </div>
-      </div>
-      <div style="text-align:center;margin:-8px 0 20px;">
-        <button class="msg-toggle" id="btnQuickEnterCompany" data-i18n="quickEnterCompany">跳过登录,直接进入公司测试后台 →</button>
       </div>
     </section>
   </div>
@@ -627,23 +621,25 @@
       <button class="tab-active-toggle" data-tab="register" data-i18n="register">注册</button>
     </div>
     <form id="form-employee-login" class="auth-pane">
-      <div class="field"><label data-i18n="fieldEmployeeCode">员工编号 / 手机号</label><input type="text" value="EMP-1024" placeholder="e.g. EMP-1024" /></div>
-      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" value="MyPassword123" placeholder="••••••••" /></div>
+      <div class="field"><label data-i18n="fieldEmployeeCode">员工编号 / 手机号</label><input type="text" id="empLoginCode" value="EMP-1024" placeholder="e.g. EMP-1024" /></div>
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" id="empLoginPassword" value="MyPassword123" placeholder="••••••••" /></div>
       <button type="button" class="msg-toggle" style="margin:-4px 0 10px;" data-open-forgot-password="employee" data-i18n="forgotPasswordLink">忘记密码?</button>
+      <p class="field-hint hidden" id="employeeLoginError" style="color:var(--danger);" data-i18n="employeeLoginError">员工编号或密码不正确</p>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="login">登录</button>
     </form>
     <form id="form-employee-register" class="auth-pane hidden">
-      <div class="field"><label data-i18n="fieldFullName">姓名</label><input type="text" value="Alex Chen" placeholder="Alex Chen" /></div>
-      <div class="field"><label data-i18n="fieldPhone">电话号码</label><input type="text" value="+31 6 1234 5678" placeholder="+31 6 1234 5678" /></div>
-      <div class="field"><label data-i18n="fieldEmployeeId">员工编号</label><input type="text" value="EMP-1024" placeholder="EMP-1024" /></div>
+      <div class="field"><label data-i18n="fieldFullName">姓名</label><input type="text" id="empRegName" value="Alex Chen" placeholder="Alex Chen" /></div>
+      <div class="field"><label data-i18n="fieldPhone">电话号码</label><input type="text" id="empRegPhone" value="+31 6 1234 5678" placeholder="+31 6 1234 5678" /></div>
+      <div class="field"><label data-i18n="fieldEmployeeId">员工编号</label><input type="text" id="empRegEmployeeId" value="EMP-1024" placeholder="EMP-1024" /></div>
       <div class="field">
         <label data-i18n="fieldInviteCode">公司邀请码</label>
         <input type="text" id="inviteCodeInput" value="POKE-4821" placeholder="POKE-4821" autocomplete="off" />
         <div class="field-hint" id="inviteCodePreview"></div>
       </div>
-      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" value="MyPassword123" placeholder="••••••••" />
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" id="empRegPassword" value="MyPassword123" placeholder="••••••••" />
         <div class="field-hint" data-i18n="passwordHint">密码由您自行设置,注册成功后可随时在个人资料中修改。</div>
       </div>
+      <p class="field-hint hidden" id="employeeRegisterError" style="color:var(--danger);"></p>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="submitRegister">提交注册</button>
     </form>
   </div>
@@ -659,9 +655,10 @@
       <button class="tab-active-toggle" data-tab="register" data-i18n="registerCompany">注册我的公司</button>
     </div>
     <form id="form-company-login" class="auth-pane">
-      <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" value="admin@yourcompany.com" placeholder="admin@yourcompany.com" /></div>
-      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" value="MyOwnPassword123" placeholder="••••••••" /></div>
+      <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" id="companyLoginEmail" value="admin@yourcompany.com" placeholder="admin@yourcompany.com" /></div>
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" id="companyLoginPassword" value="MyOwnPassword123" placeholder="••••••••" /></div>
       <button type="button" class="msg-toggle" style="margin:-4px 0 10px;" data-open-forgot-password="company" data-i18n="forgotPasswordLink">忘记密码?</button>
+      <p class="field-hint hidden" id="companyLoginError" style="color:var(--danger);" data-i18n="companyLoginError">邮箱或密码不正确</p>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="login">登录</button>
     </form>
     <form id="form-company-register" class="auth-pane hidden">
@@ -670,7 +667,7 @@
         <label class="logo-upload"><input type="file" accept="image/*" style="display:none;" /><span>📷</span><span data-i18n="uploadLogo">点击上传 Logo</span></label>
       </div>
       <div class="form-grid">
-        <div class="field full"><label data-i18n="fieldCompanyName">公司名称</label><input type="text" value="Bloom Bakery" placeholder="Bloom Bakery" /></div>
+        <div class="field full"><label data-i18n="fieldCompanyName">公司名称</label><input type="text" id="regCompanyName" value="Bloom Bakery" placeholder="Bloom Bakery" /></div>
         <div class="field full"><label data-i18n="fieldSlogan">公司口号</label><input type="text" value="手工烘焙,温暖每一天" placeholder="手工烘焙,温暖每一天" /></div>
         <div class="field"><label data-i18n="fieldCountry">国家</label><input type="text" id="regCountry" value="Netherlands" placeholder="Netherlands" /></div>
         <div class="field"><label data-i18n="fieldCity">城市</label><input type="text" id="regCity" placeholder="Amsterdam" /></div>
@@ -683,13 +680,14 @@
         </div>
         <div class="field"><label data-i18n="fieldContactPerson">联系人</label><input type="text" value="Jonas Weber" placeholder="Jonas Weber" /></div>
         <div class="field"><label data-i18n="fieldPhone">电话</label><input type="text" value="+31 6 1234 5678" placeholder="+31 6 1234 5678" /></div>
-        <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" value="admin@yourcompany.com" placeholder="admin@yourcompany.com" /></div>
+        <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" id="regCompanyEmail" value="admin@yourcompany.com" placeholder="admin@yourcompany.com" /></div>
         <div class="field"><label data-i18n="fieldWhatsapp">WhatsApp</label><input type="text" value="+31 6 1234 5678" placeholder="+31 6 1234 5678" /></div>
         <div class="field"><label data-i18n="fieldVat">VAT 税号(可选)</label><input type="text" value="NL123456789B01" placeholder="NL123456789B01" /></div>
         <div class="field"><label data-i18n="fieldCoc">商会注册号</label><input type="text" value="12345678" placeholder="12345678" /></div>
-        <div class="field full"><label data-i18n="fieldPassword">密码</label><input type="password" value="MyOwnPassword123" placeholder="••••••••" />
+        <div class="field full"><label data-i18n="fieldPassword">密码</label><input type="password" id="regCompanyPassword" value="MyOwnPassword123" placeholder="••••••••" />
           <div class="field-hint" data-i18n="passwordHint">密码由您自行设置,注册成功后可随时在个人资料中修改。</div>
         </div>
+        <div class="field full"><p class="field-hint hidden" id="companyRegisterError" style="color:var(--danger);"></p></div>
       </div>
 
       <div class="glass" style="background:rgba(123,38,53,.05);margin:4px 0 14px;padding:14px 16px;">
@@ -925,11 +923,16 @@ const i18n = {
     employeeEntranceTitle: "员工", employeeEntranceSub: "打卡、查看工资、请假申请、公司公告一站搞定",
     adminEntranceTitle: "公司管理员", adminEntranceSub: "管理员工、审批请假、查看 GPS 与工资统计",
     login: "登录", register: "注册", registerCompany: "注册我的公司",
-    quickEnterEmployee: "跳过登录,直接进入员工测试账号 →",
-    quickEnterCompany: "跳过登录,直接进入公司测试后台 →",
     employeeModalSub: "登录或使用公司邀请码注册", companyModalSub: "登录已有公司,或注册一家新公司入驻",
     platformEntranceTitle: "平台管理员", platformModalSub: "仅限 WorkTrack AI 运营团队使用",
     platformLoginError: "邮箱或密码不正确",
+    employeeLoginError: "员工编号或密码不正确",
+    companyLoginError: "邮箱或密码不正确",
+    employeeRegisterMissingFields: "请填写姓名、员工编号和密码",
+    employeeRegisterInviteCodeError: "未识别该邀请码,请向公司管理员确认",
+    employeeRegisterIdTaken: "该员工编号已被使用,请换一个",
+    companyRegisterMissingFields: "请填写公司名称、邮箱和密码",
+    companyRegisterInvalidEmail: "邮箱格式不正确",
     fieldEmployeeCode: "员工编号 / 手机号", fieldPassword: "密码", fieldFullName: "姓名", fieldPhone: "电话号码",
     fieldEmployeeId: "员工编号", fieldInviteCode: "公司邀请码", fieldEmail: "邮箱", fieldLogo: "公司 Logo",
     uploadLogo: "点击上传 Logo", fieldCompanyName: "公司名称", fieldSlogan: "公司口号", fieldCountry: "国家",
@@ -1084,11 +1087,16 @@ const i18n = {
     employeeEntranceTitle: "Employees", employeeEntranceSub: "Clock in, check pay, request leave and read announcements in one place",
     adminEntranceTitle: "Company admin", adminEntranceSub: "Manage staff, approve leave, monitor GPS and payroll",
     login: "Log in", register: "Register", registerCompany: "Register my company",
-    quickEnterEmployee: "Skip login, jump straight into the employee test account →",
-    quickEnterCompany: "Skip login, jump straight into the company test dashboard →",
     employeeModalSub: "Log in, or register with your company invitation code", companyModalSub: "Log in to your company, or onboard a new one",
     platformEntranceTitle: "Platform admin", platformModalSub: "For the WorkTrack AI operations team only",
     platformLoginError: "Incorrect email or password",
+    employeeLoginError: "Incorrect employee ID or password",
+    companyLoginError: "Incorrect email or password",
+    employeeRegisterMissingFields: "Please fill in your name, employee ID, and password",
+    employeeRegisterInviteCodeError: "Invitation code not recognized — check with your company admin",
+    employeeRegisterIdTaken: "That employee ID is already in use — please pick another one",
+    companyRegisterMissingFields: "Please fill in the company name, email, and password",
+    companyRegisterInvalidEmail: "That doesn't look like a valid email address",
     fieldEmployeeCode: "Employee ID / phone", fieldPassword: "Password", fieldFullName: "Full name", fieldPhone: "Phone number",
     fieldEmployeeId: "Employee ID", fieldInviteCode: "Company invitation code", fieldEmail: "Email", fieldLogo: "Company logo",
     uploadLogo: "Click to upload logo", fieldCompanyName: "Company name", fieldSlogan: "Company slogan", fieldCountry: "Country",
@@ -1259,6 +1267,10 @@ async function sha256Hex(text) {
 // 只是把明文换成了哈希,行为和之前完全一致。
 let employeeDemoPasswordHash = "bc7b8851671f2fda237a53f5057a0376037b6d062e65f965c62aa1d047498759";
 let companyAdminDemoPasswordHash = "6e21a761014430d5e639ea2cdfec986c8ca1cbfb571634be3a02f936c90a4eb5";
+// 公司管理员的登录邮箱哈希,和密码哈希一样是 let(可变):这份演示只支持单一公司/单一后台工作区,
+// "注册我的公司"实际上是在设置这个唯一工作区的登录邮箱+密码(见 form-company-register 提交逻辑),
+// 不是真正创建了一个隔离的新公司——员工管理、库存、请假等数据始终是同一份。
+let companyAdminEmailHash = "459d753cb7cad40693b2e8dbaf6cf7786c0060436af97e6fbcecfee6f0f7ff61"; // 对应 admin@yourcompany.com
 let platformAdminPasswordHash = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9"; // 平台管理员演示默认密码的哈希,登录后可在"账号设置"里修改
 
 function applyI18n() {
@@ -1301,22 +1313,21 @@ function showView(id) {
 }
 document.querySelectorAll("[data-back-home]").forEach(btn => btn.addEventListener("click", () => showView("view-home")));
 
-/* ---------- 测试用快捷入口("跳过登录,直接进入…") ----------
-   故意绑定在文件最靠前、逻辑最简单的位置(只依赖 showView,不依赖表单校验、
-   密码哈希、异步请求等任何后面的代码),用来实测功能时不用每次都填表单登录,
-   也能在怀疑登录/注册流程本身有问题时,作为一个独立的兜底入口来验证界面本身能不能打开。 */
-document.getElementById("btnQuickEnterEmployee").addEventListener("click", () => showView("view-employeeApp"));
-document.getElementById("btnQuickEnterCompany").addEventListener("click", () => showView("view-companyAdminApp"));
-
 /* ---------- 员工管理:添加 / 删除 ----------
    对应权限文档:公司管理员有权直接添加新员工(生成邀请码,员工自行完成注册与设置密码),
-   也有权删除员工的全部记录(个人信息清除,财务类记录做匿名化保留以满足合规要求)。 */
+   也有权删除员工的全部记录(个人信息清除,财务类记录做匿名化保留以满足合规要求)。
+
+   employeeId / passwordHash 这两个字段就是"登录凭证"本身:管理员手动添加的新员工
+   (btnAddEmployee 那条路径)status 是 pending,且没有 employeeId/passwordHash——
+   要等他们自己走"员工注册"流程,拿邀请码 + 自己设置密码之后,这两个字段才会被填上,
+   之后才能真正登录。Alex Chen 这条预置了 employeeId/passwordHash,对应演示密码
+   MyPassword123,方便直接测试登录。 */
 let employeeIdCounter = 1000;
 const employees = [
-  { id: employeeIdCounter++, name: "Alex Chen",    role: "employee", status: "active",  hours: "32.5h", employmentType: "full_time", monthHours: "128h" },
-  { id: employeeIdCounter++, name: "Maria Santos", role: "employee", status: "active",  hours: "28.0h", employmentType: "full_time", monthHours: "112h" },
-  { id: employeeIdCounter++, name: "Jonas Weber",  role: "employee", status: "pending", hours: "—",     employmentType: "full_time", monthHours: "—" },
-  { id: employeeIdCounter++, name: "Sam Park",     role: "employee", status: "active",  hours: "14.0h", employmentType: "temporary",  monthHours: "56h" }
+  { id: employeeIdCounter++, name: "Alex Chen",    role: "employee", status: "active",  hours: "32.5h", employmentType: "full_time", monthHours: "128h", employeeId: "EMP-1024", passwordHash: employeeDemoPasswordHash },
+  { id: employeeIdCounter++, name: "Maria Santos", role: "employee", status: "active",  hours: "28.0h", employmentType: "full_time", monthHours: "112h", employeeId: null, passwordHash: null },
+  { id: employeeIdCounter++, name: "Jonas Weber",  role: "employee", status: "pending", hours: "—",     employmentType: "full_time", monthHours: "—", employeeId: null, passwordHash: null },
+  { id: employeeIdCounter++, name: "Sam Park",     role: "employee", status: "active",  hours: "14.0h", employmentType: "temporary",  monthHours: "56h", employeeId: null, passwordHash: null }
 ];
 
 function employmentTypeLabel(dict, type) {
@@ -1424,7 +1435,7 @@ document.getElementById("form-add-employee").addEventListener("submit", e => {
   const name = document.getElementById("newEmployeeName").value.trim();
   const role = document.getElementById("newEmployeeRole").value;
   if (!name) return;
-  employees.push({ id: employeeIdCounter++, name, role, status: "pending", hours: "—", employmentType: "full_time", monthHours: "—" });
+  employees.push({ id: employeeIdCounter++, name, role, status: "pending", hours: "—", employmentType: "full_time", monthHours: "—", employeeId: null, passwordHash: null });
   renderEmployeeTable();
   renderEmployeeOverviewList();
   e.target.reset();
@@ -1454,29 +1465,138 @@ function wireModalTabs(modalId) {
 wireModalTabs("modal-employee");
 wireModalTabs("modal-company");
 
-document.getElementById("btnEmployeeLogin").addEventListener("click", () => openModal("modal-employee"));
+document.getElementById("btnEmployeeLogin").addEventListener("click", () => {
+  openModal("modal-employee");
+  document.querySelector('#modal-employee [data-tab="login"]').click();
+});
 document.getElementById("btnEmployeeRegister").addEventListener("click", () => {
   openModal("modal-employee");
   document.querySelector('#modal-employee [data-tab="register"]').click();
 });
-document.getElementById("btnCompanyLogin").addEventListener("click", () => openModal("modal-company"));
+document.getElementById("btnCompanyLogin").addEventListener("click", () => {
+  openModal("modal-company");
+  document.querySelector('#modal-company [data-tab="login"]').click();
+});
 document.getElementById("btnCompanyRegister").addEventListener("click", () => {
   openModal("modal-company");
   document.querySelector('#modal-company [data-tab="register"]').click();
 });
 document.getElementById("platformSecretMark").addEventListener("click", () => openModal("modal-platform"));
 
-document.getElementById("form-employee-login").addEventListener("submit", e => {
-  e.preventDefault(); closeModal(document.getElementById("modal-employee")); showView("view-employeeApp");
+document.getElementById("form-employee-login").addEventListener("submit", async e => {
+  e.preventDefault();
+  const code = document.getElementById("empLoginCode").value.trim().toUpperCase();
+  const password = document.getElementById("empLoginPassword").value;
+  const errorEl = document.getElementById("employeeLoginError");
+  const match = employees.find(emp => emp.employeeId && emp.employeeId.toUpperCase() === code);
+  const passwordHash = await sha256Hex(password);
+  if (match && match.passwordHash && passwordHash === match.passwordHash) {
+    errorEl.classList.add("hidden");
+    e.target.reset();
+    closeModal(document.getElementById("modal-employee"));
+    showView("view-employeeApp");
+  } else {
+    errorEl.classList.remove("hidden");
+  }
 });
-document.getElementById("form-employee-register").addEventListener("submit", e => {
-  e.preventDefault(); closeModal(document.getElementById("modal-employee")); showView("view-employeeApp");
+
+document.getElementById("form-employee-register").addEventListener("submit", async e => {
+  e.preventDefault();
+  const name = document.getElementById("empRegName").value.trim();
+  const newEmployeeId = document.getElementById("empRegEmployeeId").value.trim();
+  const inviteCode = document.getElementById("inviteCodeInput").value.trim().toUpperCase();
+  const password = document.getElementById("empRegPassword").value;
+  const errorEl = document.getElementById("employeeRegisterError");
+  const dict = i18n[currentLang];
+  errorEl.classList.add("hidden");
+
+  if (!name || !newEmployeeId || !password) {
+    errorEl.textContent = dict.employeeRegisterMissingFields;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  // 邀请码必须能在公司目录里查到,才知道这个员工归属哪家公司(和首页那个实时预览用的
+  // 是同一份 inviteCodeDirectory,规则保持一致)。
+  if (!inviteCodeDirectory[inviteCode]) {
+    errorEl.textContent = dict.employeeRegisterInviteCodeError;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  if (employees.some(emp => emp.employeeId && emp.employeeId.toUpperCase() === newEmployeeId.toUpperCase())) {
+    errorEl.textContent = dict.employeeRegisterIdTaken;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  if (!isPasswordStrongEnough(password)) {
+    errorEl.textContent = dict.passwordStrengthError;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+
+  employees.push({
+    id: employeeIdCounter++, name, role: "employee", status: "active", hours: "—", employmentType: "full_time", monthHours: "—",
+    employeeId: newEmployeeId.toUpperCase(), passwordHash: await sha256Hex(password)
+  });
+  renderEmployeeTable();
+  renderEmployeeOverviewList();
+  renderEmployeeBalanceOverrideForm();
+
+  e.target.reset();
+  closeModal(document.getElementById("modal-employee"));
+  showView("view-employeeApp");
 });
-document.getElementById("form-company-login").addEventListener("submit", e => {
-  e.preventDefault(); closeModal(document.getElementById("modal-company")); showView("view-companyAdminApp");
+
+document.getElementById("form-company-login").addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = document.getElementById("companyLoginEmail").value.trim().toLowerCase();
+  const password = document.getElementById("companyLoginPassword").value;
+  const errorEl = document.getElementById("companyLoginError");
+  const emailHash = await sha256Hex(email);
+  const passwordHash = await sha256Hex(password);
+  if (emailHash === companyAdminEmailHash && passwordHash === companyAdminDemoPasswordHash) {
+    errorEl.classList.add("hidden");
+    e.target.reset();
+    closeModal(document.getElementById("modal-company"));
+    showView("view-companyAdminApp");
+  } else {
+    errorEl.classList.remove("hidden");
+  }
 });
-document.getElementById("form-company-register").addEventListener("submit", e => {
-  e.preventDefault(); closeModal(document.getElementById("modal-company")); showView("view-companyAdminApp");
+
+document.getElementById("form-company-register").addEventListener("submit", async e => {
+  e.preventDefault();
+  const companyName = document.getElementById("regCompanyName").value.trim();
+  const email = document.getElementById("regCompanyEmail").value.trim().toLowerCase();
+  const password = document.getElementById("regCompanyPassword").value;
+  const errorEl = document.getElementById("companyRegisterError");
+  const dict = i18n[currentLang];
+  errorEl.classList.add("hidden");
+
+  if (!companyName || !email || !password) {
+    errorEl.textContent = dict.companyRegisterMissingFields;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errorEl.textContent = dict.companyRegisterInvalidEmail;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  if (!isPasswordStrongEnough(password)) {
+    errorEl.textContent = dict.passwordStrengthError;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+
+  // 这份演示只有一个公司工作区(见 companyAdminEmailHash 声明处的说明),注册相当于
+  // 把这个工作区的登录邮箱/密码设置成刚填的这一组,方便注册完立刻就能用同一组信息登录。
+  companyAdminEmailHash = await sha256Hex(email);
+  companyAdminDemoPasswordHash = await sha256Hex(password);
+  document.getElementById("settingsCompanyName").value = companyName;
+
+  e.target.reset();
+  closeModal(document.getElementById("modal-company"));
+  showView("view-companyAdminApp");
 });
 const PLATFORM_ADMIN_EMAIL_HASH = "c20efd7c489620b99ac71ddcba125b016ea8aa890a0190cebc8103577307aeba"; // 哈希对应 vavgrace@gmail.com,源码里不再出现明文邮箱
 
