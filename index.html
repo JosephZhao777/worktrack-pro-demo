@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>WorkTrack Pro</title>
+<title>WorkTrack AI</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 <style>
   :root {
@@ -218,6 +218,15 @@
   .msg-input-row { display: flex; gap: 8px; margin-top: 8px; }
   .msg-input-row input { flex: 1; height: 36px; border-radius: 999px; border: 1px solid var(--border-c); background: rgba(120,130,160,.06); padding: 0 14px; font-size: 12.5px; color: var(--text-1); }
   .msg-toggle { background: none; border: none; color: var(--brand-blue); font-size: 12px; cursor: pointer; padding: 0; font-family: inherit; }
+  .leave-card.voided { opacity: .6; background: rgba(178,58,78,.04); }
+  .edit-history-item { font-size: 12px; color: var(--text-2); padding: 6px 0; border-bottom: 1px solid var(--border-c); }
+  .edit-history-item:last-child { border-bottom: none; }
+  .corrected-value { text-decoration: line-through; opacity: .55; margin-right: 6px; }
+  .insight-card { border-radius: var(--radius-md); border: 1px solid var(--border-c); border-left: 4px solid var(--success); padding: 10px 14px; margin-bottom: 8px; font-size: 13px; background: rgba(76,122,90,.06); }
+  .insight-card.low-stock { border-left-color: var(--danger); background: rgba(178,58,78,.06); }
+  .insight-card.overstock { border-left-color: var(--warning); background: rgba(184,134,60,.07); }
+  .insight-card.waste { border-left-color: var(--brand-amber); background: rgba(198,138,61,.07); }
+  .insight-empty { font-size: 12.5px; color: var(--text-2); }
   table.data-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
   table.data-table th { text-align: left; padding: 10px 8px; color: var(--text-2); font-weight: 600; font-size: 12px; }
   table.data-table td { padding: 10px 8px; border-top: 1px solid var(--border-c); }
@@ -247,7 +256,7 @@
 
 <div class="view active" id="view-home">
   <div class="hero">
-    <div class="hero-brand"><span class="hero-dot"></span><span data-i18n="brand">WorkTrack Pro</span></div>
+    <div class="hero-brand"><span class="hero-dot"></span><span data-i18n="brand">WorkTrack AI</span><span style="font-size:11px;font-weight:700;color:#fff;background:var(--brand-blue);padding:2px 8px;border-radius:999px;margin-left:2px;letter-spacing:.03em;">V1.0</span></div>
     <h1 data-i18n="heroTitle">智能劳动力管理平台</h1>
     <p data-i18n="heroSub">面向餐厅、外卖、咖啡店与配送团队的一站式考勤、GPS、工资与请假管理</p>
   </div>
@@ -265,6 +274,9 @@
           <button class="btn btn-primary" id="btnEmployeeLogin" data-i18n="login">登录</button>
         </div>
       </div>
+      <div style="text-align:center;margin:-8px 0 20px;">
+        <button class="msg-toggle" id="btnQuickEnterEmployee" data-i18n="quickEnterEmployee">跳过登录,直接进入员工测试账号 →</button>
+      </div>
 
       <div class="entrance-panel">
         <div class="entrance-icon admin">🏢</div>
@@ -277,18 +289,21 @@
           <button class="btn btn-primary" id="btnCompanyLogin" data-i18n="login">登录</button>
         </div>
       </div>
+      <div style="text-align:center;margin:-8px 0 20px;">
+        <button class="msg-toggle" id="btnQuickEnterCompany" data-i18n="quickEnterCompany">跳过登录,直接进入公司测试后台 →</button>
+      </div>
     </section>
   </div>
 
   <footer>
-    <span class="footer-text" data-i18n="footerText">© 2026 WorkTrack Pro</span>
+    <span class="footer-text" data-i18n="footerText">© 2026 WorkTrack AI</span>
     <button class="secret-mark" id="platformSecretMark"><span class="dot"></span><span data-i18n="platformEntranceTitle">平台管理员</span></button>
   </footer>
 </div>
 
 <div class="view" id="view-employeeApp">
   <div class="app-topbar">
-    <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack Pro</span></button>
+    <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack AI</span></button>
   </div>
   <div class="app-body">
     <div class="phone-frame">
@@ -320,9 +335,17 @@
             <div style="font-weight:600;" data-i18n="leaveBalance">请假余额</div>
             <span style="font-size:12px;opacity:.7;" data-i18n="leaveCenterOpen">请假中心 →</span>
           </div>
-          <div class="list-item"><span class="badge success" data-i18n="annual">年假</span><span style="margin-left:auto;" id="empAnnualBalance">14 / 21 <span data-i18n="days">天</span></span></div>
-          <div class="list-item"><span class="badge warning" data-i18n="sick">病假</span><span style="margin-left:auto;">5 <span data-i18n="days">天</span></span></div>
-          <div class="list-item" style="border-bottom:none;"><span class="badge danger" data-i18n="personal">事假</span><span style="margin-left:auto;">2 <span data-i18n="days">天</span></span></div>
+          <div class="list-item"><span class="badge success" data-i18n="annual">年假</span><span style="margin-left:auto;" id="empAnnualBalance">14 / 21 天</span></div>
+          <div class="list-item"><span class="badge warning" data-i18n="sick">病假</span><span style="margin-left:auto;" id="empSickBalance">5 天</span></div>
+          <div class="list-item" style="border-bottom:none;"><span class="badge danger" data-i18n="personal">事假</span><span style="margin-left:auto;" id="empPersonalBalance">2 天</span></div>
+        </div>
+
+        <div class="glass" style="padding:14px;margin-top:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);cursor:pointer;" id="btnOpenInventoryWithdraw">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div style="font-weight:600;" data-i18n="empInventoryTitle">仓库领用</div>
+            <span style="font-size:12px;opacity:.7;" data-i18n="empInventoryOpen">领用清单 →</span>
+          </div>
+          <div style="font-size:13px;opacity:.85;" id="empInventoryLowStockNote" data-i18n="empInventoryNote">从仓库/操作间取用产品时点这里记一笔,库存会实时同步给公司后台</div>
         </div>
 
         <div class="glass" style="padding:14px;margin-top:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);">
@@ -334,6 +357,11 @@
           <div style="font-weight:600;margin-bottom:6px;" data-i18n="announcements">公司公告</div>
           <div style="font-size:13px;opacity:.85;" data-i18n="announcementSample">下周三全员培训,请准时参加。</div>
         </div>
+
+        <div class="glass" style="padding:14px;margin-top:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);">
+          <div style="font-weight:600;margin-bottom:6px;" data-i18n="accountSecurity">账号安全</div>
+          <button class="btn btn-outline" style="width:100%;" data-open-change-password="employee" data-i18n="changePassword">修改密码</button>
+        </div>
       </div>
     </div>
   </div>
@@ -341,14 +369,18 @@
 
 <div class="view" id="view-companyAdminApp">
   <div class="app-topbar">
-    <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack Pro</span></button>
+    <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack AI</span></button>
   </div>
   <div class="app-body">
     <div class="admin-layout">
       <div class="nav-rail glass">
         <div class="nav-item active" data-section="ca-dashboard"><span data-i18n="navDashboard">首页</span></div>
+        <div class="nav-item" data-section="ca-daily-report"><span data-i18n="navDailyReport">每日经营报告</span></div>
         <div class="nav-item" data-section="ca-employees"><span data-i18n="navEmployees">员工管理</span></div>
+        <div class="nav-item" data-section="ca-employee-overview"><span data-i18n="navEmployeeOverview">员工总览</span></div>
         <div class="nav-item" data-section="ca-gps"><span data-i18n="navGps">GPS 看板</span></div>
+        <div class="nav-item" data-section="ca-attendance"><span data-i18n="navAttendance">考勤记录</span></div>
+        <div class="nav-item" data-section="ca-inventory"><span data-i18n="navInventory">智能库存</span></div>
         <div class="nav-item" data-section="ca-payroll"><span data-i18n="navPayroll">工资管理</span></div>
         <div class="nav-item" data-section="ca-leave"><span data-i18n="navLeave">请假审批</span></div>
         <div class="nav-item" data-section="ca-settings"><span data-i18n="navSettings">设置</span></div>
@@ -363,6 +395,20 @@
             <div class="metric-card"><div class="metric-label" data-i18n="pendingLeave">待审批请假</div><div class="metric-value">3</div></div>
             <div class="metric-card"><div class="metric-label" data-i18n="attendanceRate">出勤率</div><div class="metric-value">94%</div></div>
           </div>
+        </div>
+        <div class="glass ca-section" id="ca-daily-report" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navDailyReport">每日经营报告</h2>
+          <p class="section-sub" data-i18n="dailyReportSub">整合当天的 GPS 异常停留、员工工时与工资成本、库存预警,老板打开 App 30 秒内就能看到今天需要关注什么。以下算法与后端 ReportsModule/GpsModule/PayrollModule 完全一致,只是用的是演示假数据。</p>
+
+          <div style="font-weight:700;margin:18px 0 8px;" data-i18n="dailyReportGpsTitle">GPS 异常停留</div>
+          <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportGpsSub">连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)</p>
+          <div id="dailyReportGpsList"></div>
+
+          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportWageTitle">今日工时与工资成本</div>
+          <table class="data-table" id="dailyReportWageTable"></table>
+
+          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportInventoryTitle">库存提醒</div>
+          <div id="dailyReportInventoryList"></div>
         </div>
         <div class="glass ca-section" id="ca-employees" style="display:none;margin-top:20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -382,6 +428,17 @@
             <tbody id="employeeTableBody"></tbody>
           </table>
         </div>
+        <div class="glass ca-section" id="ca-employee-overview" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navEmployeeOverview">员工总览</h2>
+          <p class="section-sub" data-i18n="employeeOverviewSub">每位员工的年假使用、事假/病假次数、早退次数汇总在一张卡片里,不用再去考勤记录和请假审批里分别翻找。早退的判定标准可以在下面调整。</p>
+          <div class="form-grid" style="max-width:420px;margin-bottom:16px;">
+            <div class="field full">
+              <label data-i18n="fieldEarlyLeaveThreshold">早退判定:单日工时低于多少小时算一次早退</label>
+              <input type="number" id="settingsEarlyLeaveThreshold" min="0" max="24" step="0.5" value="7" />
+            </div>
+          </div>
+          <div id="employeeOverviewList"></div>
+        </div>
         <div class="glass ca-section" id="ca-gps" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navGps">实时 GPS 看板</h2>
           <p class="section-sub" data-i18n="gpsSub">仅在员工"上班打卡"到"下班打卡"期间追踪,地图数据来自 OpenStreetMap</p>
@@ -391,6 +448,20 @@
             <span><span class="dot" style="background:#B8863C;"></span><span data-i18n="gpsLegendStopped">短暂停留</span></span>
             <span><span class="dot" style="background:#B23A4E;"></span><span data-i18n="gpsLegendFlagged">异常停留(仅提示,非自动判违规)</span></span>
           </div>
+        </div>
+        <div class="glass ca-section" id="ca-attendance" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navAttendance">考勤记录</h2>
+          <p class="section-sub" data-i18n="attendanceSub">发现打卡时间有误可以"更正"(保留原始记录与修改留痕);明显重复/错误的记录可以"作废"(不计入工资,但不会被物理删除,可随时恢复)。系统不提供真正删除历史打卡记录的功能——工时记录属于工资凭证,随意删除对企业和员工都没有保护作用。</p>
+          <div id="attendanceList"></div>
+        </div>
+        <div class="glass ca-section" id="ca-inventory" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navInventory">智能库存</h2>
+          <p class="section-sub" data-i18n="inventorySub">系统按近 14 天的消耗速率自动预测断货天数与建议采购量,近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过"记录流水"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。</p>
+          <div id="inventoryInsights"></div>
+          <div style="display:flex;justify-content:flex-end;margin:14px 0;">
+            <button class="btn btn-primary" id="btnAddInventoryItem" data-i18n="addInventoryItem">+ 新增库存商品</button>
+          </div>
+          <div id="inventoryList"></div>
         </div>
         <div class="glass ca-section" id="ca-payroll" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navPayroll">本月工资</h2>
@@ -403,6 +474,49 @@
         <div class="glass ca-section" id="ca-leave" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navLeave">请假审批</h2>
           <p class="section-sub" data-i18n="caLeaveSub">年假 / 病假 / 事假 / 培训 / 出差统一在这里审批,每条请求都有留言板可与员工沟通</p>
+
+          <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;">
+            <div style="font-weight:700;margin-bottom:4px;" data-i18n="leaveTypeConfigTitle">请假类型与额度设置</div>
+            <p class="section-sub" style="margin:0 0 12px;" data-i18n="leaveTypeConfigSub">每种请假类型的默认天数、工资比例、是否需要审批/凭证均由公司自行配置,不是系统写死的固定值;留空天数表示不限额。</p>
+            <table class="data-table" id="leaveTypeConfigTable">
+              <tr>
+                <th data-i18n="colLeaveType">类型</th>
+                <th data-i18n="colQuotaDays">默认天数/年</th>
+                <th data-i18n="colPayRate">工资比例(%)</th>
+                <th data-i18n="colRequiresApproval">需要审批</th>
+                <th data-i18n="colRequiresAttachment">需要凭证</th>
+                <th data-i18n="colActions">操作</th>
+              </tr>
+              <tbody id="leaveTypeConfigBody"></tbody>
+            </table>
+            <span class="field-hint hidden" id="leaveTypeConfigSavedNotice" style="color:var(--success);" data-i18n="leaveTypeConfigSaved">已保存</span>
+          </div>
+
+          <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;">
+            <div style="font-weight:700;margin-bottom:4px;" data-i18n="employeeBalanceOverrideTitle">单个员工额度调整</div>
+            <p class="section-sub" style="margin:0 0 12px;" data-i18n="employeeBalanceOverrideSub">例如工龄较久的员工年假天数高于公司默认值,或需要为某位员工单独补发/扣减某类请假额度。</p>
+            <div class="form-grid">
+              <div class="field">
+                <label data-i18n="fieldSelectEmployee">员工</label>
+                <select id="balanceOverrideEmployee"></select>
+              </div>
+              <div class="field">
+                <label data-i18n="fieldSelectLeaveType">请假类型</label>
+                <select id="balanceOverrideType">
+                  <option value="ANNUAL" data-i18n="annual">年假</option>
+                  <option value="SICK" data-i18n="sick">病假</option>
+                  <option value="PERSONAL" data-i18n="personal">事假</option>
+                </select>
+              </div>
+              <div class="field">
+                <label data-i18n="fieldAllocatedDays">这一年可休天数</label>
+                <input type="number" id="balanceOverrideDays" min="0" max="365" value="21" />
+              </div>
+            </div>
+            <button class="btn btn-outline" id="btnSaveEmployeeBalance" data-i18n="saveEmployeeBalance">保存额度</button>
+            <span class="field-hint hidden" id="employeeBalanceSavedNotice" style="color:var(--success);margin-left:10px;" data-i18n="employeeBalanceSaved">已保存</span>
+          </div>
+
           <div id="leaveRequestList"></div>
         </div>
         <div class="glass ca-section" id="ca-settings" style="display:none;margin-top:20px;">
@@ -435,6 +549,12 @@
             </div>
             <div class="field-hint" id="regenerateNotice" style="display:none;color:var(--success);"></div>
           </div>
+
+          <div class="glass" style="background:rgba(123,38,53,.05);margin-top:16px;">
+            <div style="font-weight:700;margin-bottom:4px;" data-i18n="accountSecurity">账号安全</div>
+            <p class="section-sub" style="margin:0 0 10px;" data-i18n="accountSecuritySub">您可以随时修改自己的登录密码。</p>
+            <button class="btn btn-outline" data-open-change-password="company" data-i18n="changePassword">修改密码</button>
+          </div>
         </div>
       </div>
     </div>
@@ -443,7 +563,7 @@
 
 <div class="view" id="view-platformAdminApp">
   <div class="app-topbar">
-    <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack Pro</span></button>
+    <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack AI</span></button>
   </div>
   <div class="app-body">
     <div class="admin-layout">
@@ -452,6 +572,7 @@
         <div class="nav-item" data-section="pa-companies"><span data-i18n="navCompanies">公司管理</span></div>
         <div class="nav-item" data-section="pa-revenue"><span data-i18n="navRevenue">收入看板</span></div>
         <div class="nav-item" data-section="pa-ads"><span data-i18n="navAds">广告管理</span></div>
+        <div class="nav-item" data-section="pa-settings"><span data-i18n="navAccountSettings">账号设置</span></div>
       </div>
       <div class="admin-main">
         <div class="glass pa-section" id="pa-dashboard">
@@ -482,6 +603,14 @@
           <h2 class="section-title" data-i18n="navAds">广告管理</h2>
           <p class="section-sub" data-i18n="adsSub">仅支持 Banner 广告,不支持弹窗或全屏广告。</p>
         </div>
+        <div class="glass pa-section" id="pa-settings" style="display:none;margin-top:20px;">
+          <h2 class="section-title" data-i18n="navAccountSettings">账号设置</h2>
+          <div class="glass" style="background:rgba(123,38,53,.05);">
+            <div style="font-weight:700;margin-bottom:4px;" data-i18n="accountSecurity">账号安全</div>
+            <p class="section-sub" style="margin:0 0 10px;" data-i18n="accountSecuritySub">您可以随时修改自己的登录密码。</p>
+            <button class="btn btn-outline" data-open-change-password="platform" data-i18n="changePassword">修改密码</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -498,20 +627,21 @@
       <button class="tab-active-toggle" data-tab="register" data-i18n="register">注册</button>
     </div>
     <form id="form-employee-login" class="auth-pane">
-      <div class="field"><label data-i18n="fieldEmployeeCode">员工编号 / 手机号</label><input type="text" placeholder="e.g. EMP-1024" /></div>
-      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" placeholder="••••••••" /></div>
+      <div class="field"><label data-i18n="fieldEmployeeCode">员工编号 / 手机号</label><input type="text" value="EMP-1024" placeholder="e.g. EMP-1024" /></div>
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" value="MyPassword123" placeholder="••••••••" /></div>
+      <button type="button" class="msg-toggle" style="margin:-4px 0 10px;" data-open-forgot-password="employee" data-i18n="forgotPasswordLink">忘记密码?</button>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="login">登录</button>
     </form>
     <form id="form-employee-register" class="auth-pane hidden">
-      <div class="field"><label data-i18n="fieldFullName">姓名</label><input type="text" placeholder="Alex Chen" /></div>
-      <div class="field"><label data-i18n="fieldPhone">电话号码</label><input type="text" placeholder="+31 6 1234 5678" /></div>
-      <div class="field"><label data-i18n="fieldEmployeeId">员工编号</label><input type="text" placeholder="EMP-1024" /></div>
+      <div class="field"><label data-i18n="fieldFullName">姓名</label><input type="text" value="Alex Chen" placeholder="Alex Chen" /></div>
+      <div class="field"><label data-i18n="fieldPhone">电话号码</label><input type="text" value="+31 6 1234 5678" placeholder="+31 6 1234 5678" /></div>
+      <div class="field"><label data-i18n="fieldEmployeeId">员工编号</label><input type="text" value="EMP-1024" placeholder="EMP-1024" /></div>
       <div class="field">
         <label data-i18n="fieldInviteCode">公司邀请码</label>
-        <input type="text" id="inviteCodeInput" placeholder="POKE-4821" autocomplete="off" />
+        <input type="text" id="inviteCodeInput" value="POKE-4821" placeholder="POKE-4821" autocomplete="off" />
         <div class="field-hint" id="inviteCodePreview"></div>
       </div>
-      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" placeholder="••••••••" />
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" value="MyPassword123" placeholder="••••••••" />
         <div class="field-hint" data-i18n="passwordHint">密码由您自行设置,注册成功后可随时在个人资料中修改。</div>
       </div>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="submitRegister">提交注册</button>
@@ -529,8 +659,9 @@
       <button class="tab-active-toggle" data-tab="register" data-i18n="registerCompany">注册我的公司</button>
     </div>
     <form id="form-company-login" class="auth-pane">
-      <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" placeholder="admin@yourcompany.com" /></div>
-      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" placeholder="••••••••" /></div>
+      <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" value="admin@yourcompany.com" placeholder="admin@yourcompany.com" /></div>
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" value="MyOwnPassword123" placeholder="••••••••" /></div>
+      <button type="button" class="msg-toggle" style="margin:-4px 0 10px;" data-open-forgot-password="company" data-i18n="forgotPasswordLink">忘记密码?</button>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="login">登录</button>
     </form>
     <form id="form-company-register" class="auth-pane hidden">
@@ -539,23 +670,36 @@
         <label class="logo-upload"><input type="file" accept="image/*" style="display:none;" /><span>📷</span><span data-i18n="uploadLogo">点击上传 Logo</span></label>
       </div>
       <div class="form-grid">
-        <div class="field full"><label data-i18n="fieldCompanyName">公司名称</label><input type="text" placeholder="Bloom Bakery" /></div>
-        <div class="field full"><label data-i18n="fieldSlogan">公司口号</label><input type="text" placeholder="手工烘焙,温暖每一天" /></div>
-        <div class="field"><label data-i18n="fieldCountry">国家</label><input type="text" placeholder="Netherlands" /></div>
-        <div class="field"><label data-i18n="fieldCity">城市</label><input type="text" placeholder="Amsterdam" /></div>
-        <div class="field"><label data-i18n="fieldPostalCode">邮编</label><input type="text" placeholder="1012 AB" /></div>
-        <div class="field"><label data-i18n="fieldGps">GPS 坐标</label><input type="text" placeholder="52.3676, 4.9041" /></div>
-        <div class="field full"><label data-i18n="fieldAddress">完整地址</label><input type="text" placeholder="Damrak 1" /></div>
-        <div class="field"><label data-i18n="fieldContactPerson">联系人</label><input type="text" placeholder="Jonas Weber" /></div>
-        <div class="field"><label data-i18n="fieldPhone">电话</label><input type="text" placeholder="+31 6 1234 5678" /></div>
-        <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" placeholder="admin@yourcompany.com" /></div>
-        <div class="field"><label data-i18n="fieldWhatsapp">WhatsApp</label><input type="text" placeholder="+31 6 1234 5678" /></div>
-        <div class="field"><label data-i18n="fieldVat">VAT 税号(可选)</label><input type="text" placeholder="NL123456789B01" /></div>
-        <div class="field"><label data-i18n="fieldCoc">商会注册号</label><input type="text" placeholder="12345678" /></div>
-        <div class="field full"><label data-i18n="fieldPassword">密码</label><input type="password" placeholder="••••••••" />
+        <div class="field full"><label data-i18n="fieldCompanyName">公司名称</label><input type="text" value="Bloom Bakery" placeholder="Bloom Bakery" /></div>
+        <div class="field full"><label data-i18n="fieldSlogan">公司口号</label><input type="text" value="手工烘焙,温暖每一天" placeholder="手工烘焙,温暖每一天" /></div>
+        <div class="field"><label data-i18n="fieldCountry">国家</label><input type="text" id="regCountry" value="Netherlands" placeholder="Netherlands" /></div>
+        <div class="field"><label data-i18n="fieldCity">城市</label><input type="text" id="regCity" placeholder="Amsterdam" /></div>
+        <div class="field"><label data-i18n="fieldPostalCode">邮编</label><input type="text" id="regPostalCode" placeholder="1012 AB" /></div>
+        <div class="field full"><label data-i18n="fieldAddress">完整地址</label><input type="text" id="regAddress" placeholder="Damrak 1" /></div>
+        <div class="field full">
+          <label data-i18n="fieldGps">GPS 坐标</label>
+          <input type="text" id="regGps" placeholder="52.3676, 4.9041" />
+          <div class="field-hint" id="regGpsStatus" data-i18n="gpsAutoHintIdle">填写上面的地址后会自动定位,如有偏差也可以手动修改</div>
+        </div>
+        <div class="field"><label data-i18n="fieldContactPerson">联系人</label><input type="text" value="Jonas Weber" placeholder="Jonas Weber" /></div>
+        <div class="field"><label data-i18n="fieldPhone">电话</label><input type="text" value="+31 6 1234 5678" placeholder="+31 6 1234 5678" /></div>
+        <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" value="admin@yourcompany.com" placeholder="admin@yourcompany.com" /></div>
+        <div class="field"><label data-i18n="fieldWhatsapp">WhatsApp</label><input type="text" value="+31 6 1234 5678" placeholder="+31 6 1234 5678" /></div>
+        <div class="field"><label data-i18n="fieldVat">VAT 税号(可选)</label><input type="text" value="NL123456789B01" placeholder="NL123456789B01" /></div>
+        <div class="field"><label data-i18n="fieldCoc">商会注册号</label><input type="text" value="12345678" placeholder="12345678" /></div>
+        <div class="field full"><label data-i18n="fieldPassword">密码</label><input type="password" value="MyOwnPassword123" placeholder="••••••••" />
           <div class="field-hint" data-i18n="passwordHint">密码由您自行设置,注册成功后可随时在个人资料中修改。</div>
         </div>
       </div>
+
+      <div class="glass" style="background:rgba(123,38,53,.05);margin:4px 0 14px;padding:14px 16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:4px;">
+          <span style="font-weight:700;font-size:13.5px;" data-i18n="subscriptionNoticeTitle">订阅与付款</span>
+          <span style="font-weight:700;font-size:13.5px;color:var(--brand-blue);" data-i18n="subscriptionPriceLine">€12.50 / 月 · 30 天免费试用</span>
+        </div>
+        <p style="margin:0;font-size:12.5px;color:var(--text-2);line-height:1.6;" data-i18n="subscriptionNoticeBody">提交注册后会跳转到 Stripe 安全支付页面填写付款方式;30 天免费试用期内不会扣款,试用结束后按 €12.50/月自动续费,可随时在设置里取消。</p>
+      </div>
+
       <button type="submit" class="btn btn-primary btn-block" style="margin-top:6px;" data-i18n="submitRegisterCompany">提交注册,开始 30 天免费试用</button>
     </form>
   </div>
@@ -565,12 +709,53 @@
   <div class="modal-box">
     <button class="modal-close" data-close-modal>✕</button>
     <h3 class="modal-title" data-i18n="platformEntranceTitle">平台管理员</h3>
-    <p class="modal-sub" data-i18n="platformModalSub">仅限 WorkTrack Pro 运营团队使用</p>
+    <p class="modal-sub" data-i18n="platformModalSub">仅限 WorkTrack AI 运营团队使用</p>
     <form id="form-platform-login">
       <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" id="platformEmail" placeholder="ops@worktrackpro.com" /></div>
       <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" id="platformPassword" placeholder="••••••••" /></div>
+      <button type="button" class="msg-toggle" style="margin:-4px 0 10px;" data-open-forgot-password="platform" data-i18n="forgotPasswordLink">忘记密码?</button>
       <p class="field-hint hidden" id="platformLoginError" style="color:var(--brand-blue);" data-i18n="platformLoginError">邮箱或密码不正确</p>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="login">登录</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-change-password">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="changePassword">修改密码</h3>
+    <form id="form-change-password">
+      <input type="hidden" id="changePasswordContext" />
+      <div class="field"><label data-i18n="fieldCurrentPassword">当前密码</label><input type="password" id="currentPasswordInput" required /></div>
+      <div class="field"><label data-i18n="fieldNewPassword">新密码</label><input type="password" id="newPasswordInput" required />
+        <div class="field-hint" data-i18n="passwordHint">密码由您自行设置,注册成功后可随时在个人资料中修改。</div>
+      </div>
+      <div class="field"><label data-i18n="fieldConfirmPassword">确认新密码</label><input type="password" id="confirmPasswordInput" required /></div>
+      <div class="field-hint hidden" id="changePasswordError" style="color:var(--danger);"></div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="submitChangePassword">保存新密码</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-forgot-password">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="forgotPasswordTitle">找回密码</h3>
+    <form id="form-forgot-password-request" class="auth-pane">
+      <input type="hidden" id="forgotPasswordContext" />
+      <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" id="forgotPasswordEmail" required /></div>
+      <div class="field-hint" data-i18n="forgotPasswordSub">我们会给这个邮箱发送一个 6 位验证码(演示环境直接在下方显示,真实环境只会发送到邮箱,绝不会在页面上出现)。</div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="sendResetCode">发送验证码</button>
+    </form>
+    <form id="form-forgot-password-reset" class="auth-pane hidden">
+      <div class="field-hint" id="forgotPasswordCodeDisplay" style="color:var(--brand-blue);font-weight:700;"></div>
+      <div class="field"><label data-i18n="fieldResetCode">验证码</label><input type="text" id="resetCodeInput" required /></div>
+      <div class="field"><label data-i18n="fieldNewPassword">新密码</label><input type="password" id="resetNewPasswordInput" required />
+        <div class="field-hint" data-i18n="passwordHint">密码由您自行设置,注册成功后可随时在个人资料中修改。</div>
+      </div>
+      <div class="field"><label data-i18n="fieldConfirmPassword">确认新密码</label><input type="password" id="resetConfirmPasswordInput" required /></div>
+      <div class="field-hint hidden" id="forgotPasswordError" style="color:var(--danger);"></div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="submitResetPassword">重设密码</button>
     </form>
   </div>
 </div>
@@ -604,8 +789,8 @@
 
     <div class="metric-grid" style="margin-bottom:18px;">
       <div class="metric-card"><div class="metric-label" data-i18n="annual">年假</div><div class="metric-value" id="lcAnnualValue">14 / 21</div></div>
-      <div class="metric-card"><div class="metric-label" data-i18n="sick">病假</div><div class="metric-value">5</div></div>
-      <div class="metric-card"><div class="metric-label" data-i18n="personal">事假</div><div class="metric-value">2</div></div>
+      <div class="metric-card"><div class="metric-label" data-i18n="sick">病假</div><div class="metric-value" id="lcSickValue">5</div></div>
+      <div class="metric-card"><div class="metric-label" data-i18n="personal">事假</div><div class="metric-value" id="lcPersonalValue">2</div></div>
     </div>
 
     <div style="font-weight:700;margin-bottom:10px;" data-i18n="newLeaveRequest">新的请假申请</div>
@@ -625,14 +810,16 @@
         <div class="field"><label data-i18n="fieldEndDate">结束日期</label><input type="date" id="leaveEndDate" required /></div>
         <div class="field full"><label data-i18n="fieldLeaveReason">请假理由</label><input type="text" id="leaveReason" placeholder="..." required /></div>
         <div class="field full hidden" id="sickAttachmentField">
-          <label data-i18n="fieldDoctorNote">家庭医生看病通知(病假证明)</label>
-          <label class="logo-upload"><input type="file" style="display:none;" id="doctorNoteFile" /><span>📎</span><span data-i18n="uploadDoctorNote">点击上传医生证明</span></label>
+          <label><span data-i18n="fieldDoctorNote">家庭医生看病通知(病假证明)</span><span style="color:var(--danger);"> *</span></label>
+          <label class="logo-upload"><input type="file" style="display:none;" id="doctorNoteFile" /><span>📎</span><span id="doctorNoteFileLabel" data-i18n="uploadDoctorNote">点击上传医生证明</span></label>
+          <span class="field-hint hidden" id="doctorNoteRequiredHint" style="color:var(--danger);" data-i18n="doctorNoteRequiredHint">病假申请必须上传就医凭证(如医院/家庭医生短信通知截图)才能提交</span>
         </div>
         <div class="field full hidden" id="tripDetailsField">
           <label data-i18n="fieldDestination">目的地 / 行程安排</label>
           <input type="text" id="tripDestination" data-i18n-placeholder="fieldDestinationPlaceholder" placeholder="例如:柏林分公司,含往返交通与住宿安排" />
         </div>
       </div>
+      <span class="field-hint hidden" id="leaveBalanceInsufficientHint" style="color:var(--danger);display:block;margin:6px 0;" data-i18n="leaveBalanceInsufficientHint">剩余额度不足,请调整请假天数或联系公司管理员</span>
       <button type="submit" class="btn btn-primary btn-block" style="margin-top:6px;" data-i18n="submitLeaveRequest">提交申请</button>
     </form>
 
@@ -641,37 +828,133 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="modal-inventory-withdraw">
+  <div class="modal-box wide">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="empInventoryTitle">仓库领用</h3>
+    <p class="modal-sub" data-i18n="empInventoryModalSub">从仓库/中央库存取货到操作间时,在对应商品后面填写数量并点"领用",库存会立刻同步给公司后台,不需要另外通知</p>
+    <div id="empInventoryWithdrawList"></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-correct-attendance">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="correctAttendance">更正打卡记录</h3>
+    <p class="modal-sub" id="correctAttendanceContext"></p>
+    <form id="form-correct-attendance">
+      <input type="hidden" id="correctAttendanceId" />
+      <div class="field"><label data-i18n="fieldClockIn">上班打卡时间</label><input type="time" id="correctClockIn" required /></div>
+      <div class="field"><label data-i18n="fieldClockOut">下班打卡时间</label><input type="time" id="correctClockOut" required /></div>
+      <div class="field"><label data-i18n="fieldCorrectionReason">更正理由(必填,会永久记录在案)</label><input type="text" id="correctReason" placeholder="例如:员工忘记下班打卡" required /></div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="submitCorrection">保存更正(留痕)</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-inventory-item">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" id="inventoryItemModalTitle" data-i18n="addInventoryItem">+ 新增库存商品</h3>
+    <form id="form-inventory-item">
+      <input type="hidden" id="inventoryItemId" />
+      <div class="form-grid">
+        <div class="field"><label data-i18n="fieldSku">SKU 编号</label><input type="text" id="invFieldSku" required /></div>
+        <div class="field"><label data-i18n="fieldItemName">商品名称</label><input type="text" id="invFieldName" required /></div>
+        <div class="field"><label data-i18n="fieldCategory">分类(可选)</label><input type="text" id="invFieldCategory" /></div>
+        <div class="field">
+          <label data-i18n="fieldUnit">计量单位</label>
+          <select id="invFieldUnit">
+            <option value="kg">kg</option>
+            <option value="g">g</option>
+            <option value="l">l</option>
+            <option value="ml">ml</option>
+            <option value="piece" data-i18n="unitPiece">件</option>
+            <option value="box" data-i18n="unitBox">箱</option>
+            <option value="pack" data-i18n="unitPack">包</option>
+          </select>
+        </div>
+        <div class="field"><label data-i18n="fieldReorderThreshold">补货阈值(可选)</label><input type="number" min="0" step="0.01" id="invFieldReorderThreshold" /></div>
+        <div class="field"><label data-i18n="fieldReorderQuantity">建议采购量(可选)</label><input type="number" min="0" step="0.01" id="invFieldReorderQuantity" /></div>
+        <div class="field"><label data-i18n="fieldLeadTimeDays">采购提前期(天)</label><input type="number" min="0" max="90" step="1" id="invFieldLeadTimeDays" value="2" /></div>
+      </div>
+      <div class="field-hint" data-i18n="inventoryItemHint">库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过"记录流水"入库。</div>
+      <button type="submit" class="btn btn-primary btn-block" id="btnSubmitInventoryItem" data-i18n="submitAddItem">保存</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-inventory-transaction">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="recordTransaction">记录库存流水</h3>
+    <p class="modal-sub" id="inventoryTransactionContext"></p>
+    <form id="form-inventory-transaction">
+      <input type="hidden" id="transactionItemId" />
+      <div class="field">
+        <label data-i18n="fieldTransactionType">流水类型</label>
+        <select id="invFieldTransactionType">
+          <option value="RECEIPT" data-i18n="typeReceipt">入库(采购到货)</option>
+          <option value="CONSUMPTION" data-i18n="typeConsumption">消耗(正常使用)</option>
+          <option value="WASTE" data-i18n="typeWaste">浪费/报废</option>
+          <option value="ADJUSTMENT" data-i18n="typeAdjustment">盘点调整</option>
+        </select>
+      </div>
+      <div class="field">
+        <label id="invQuantityLabel" data-i18n="fieldQuantity">数量(本次变化量)</label>
+        <input type="number" min="0" step="0.01" id="invFieldQuantity" required />
+      </div>
+      <div class="field-hint" id="invQuantityHint" data-i18n="fieldQuantityHint">入库/消耗/浪费请填写本次变化量(正数);盘点调整请填写盘点后的实际库存数量。</div>
+      <div class="field"><label data-i18n="fieldTransactionNote">备注(可选)</label><input type="text" id="invFieldNote" /></div>
+      <div class="field-hint hidden" id="invStockError" style="color:var(--danger);"></div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="submitTransaction">保存流水</button>
+    </form>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
 const i18n = {
   zh: {
-    brand: "WorkTrack Pro",
-    heroTitle: "智能劳动力管理平台",
-    heroSub: "面向餐厅、外卖、咖啡店与配送团队的一站式考勤、GPS、工资与请假管理",
+    brand: "WorkTrack AI",
+    heroTitle: "智能经营管理平台",
+    heroSub: "面向中小企业的一站式考勤、GPS、工资、库存与请假等智能化管理",
     companySloganSample1: "新鲜每一天", companySloganSample2: "慢下来,喝杯咖啡", companySloganSample3: "极速送达",
     companySloganSample4: "地道风味", companySloganSample5: "手工烘焙,温暖每一天", companySloganSample6: "最后一公里配送专家",
     companySloganSample7: "北欧简餐,简单美味", companySloganSample8: "社区好邻居",
     employeeEntranceTitle: "员工", employeeEntranceSub: "打卡、查看工资、请假申请、公司公告一站搞定",
     adminEntranceTitle: "公司管理员", adminEntranceSub: "管理员工、审批请假、查看 GPS 与工资统计",
     login: "登录", register: "注册", registerCompany: "注册我的公司",
+    quickEnterEmployee: "跳过登录,直接进入员工测试账号 →",
+    quickEnterCompany: "跳过登录,直接进入公司测试后台 →",
     employeeModalSub: "登录或使用公司邀请码注册", companyModalSub: "登录已有公司,或注册一家新公司入驻",
-    platformEntranceTitle: "平台管理员", platformModalSub: "仅限 WorkTrack Pro 运营团队使用",
+    platformEntranceTitle: "平台管理员", platformModalSub: "仅限 WorkTrack AI 运营团队使用",
     platformLoginError: "邮箱或密码不正确",
     fieldEmployeeCode: "员工编号 / 手机号", fieldPassword: "密码", fieldFullName: "姓名", fieldPhone: "电话号码",
     fieldEmployeeId: "员工编号", fieldInviteCode: "公司邀请码", fieldEmail: "邮箱", fieldLogo: "公司 Logo",
     uploadLogo: "点击上传 Logo", fieldCompanyName: "公司名称", fieldSlogan: "公司口号", fieldCountry: "国家",
     fieldCity: "城市", fieldPostalCode: "邮编", fieldGps: "GPS 坐标", fieldAddress: "完整地址",
+    gpsAutoHintIdle: "填写上面的地址后会自动定位,如有偏差也可以手动修改",
+    gpsAutoHintLoading: "正在根据地址自动定位…",
+    gpsAutoHintFound: "已根据地址自动定位,如有偏差可以手动修改",
+    gpsAutoHintNotFound: "未能根据地址自动定位,请手动填写 GPS 坐标",
+    gpsAutoHintError: "自动定位服务暂时无法访问,请手动填写 GPS 坐标",
     fieldContactPerson: "联系人", fieldWhatsapp: "WhatsApp", fieldVat: "VAT 税号(可选)", fieldCoc: "商会注册号",
     passwordHint: "密码由您自行设置,注册成功后可随时在个人资料中修改。",
     submitRegister: "提交注册", submitRegisterCompany: "提交注册,开始 30 天免费试用",
-    footerText: "© 2026 WorkTrack Pro",
+    footerText: "© 2026 WorkTrack AI",
     companyName: "Delicious Poke Co.", welcomeTitle: "欢迎回来,Alex", clockIn: "上班打卡", clockOut: "下班打卡",
     todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "工资摘要", attendanceRate: "出勤率",
     leaveBalance: "请假余额", annual: "年假", sick: "病假", personal: "事假", days: "天",
     announcements: "公司公告", announcementSample: "下周三全员培训,请准时参加。",
-    navDashboard: "首页", navEmployees: "员工管理", navGps: "GPS 看板", navPayroll: "工资管理", navLeave: "请假审批",
+    navDashboard: "首页", navEmployees: "员工管理", navEmployeeOverview: "员工总览", navGps: "GPS 看板", navPayroll: "工资管理", navLeave: "请假审批",
+    employeeOverviewSub: "每位员工的年假使用、事假/病假次数、早退次数汇总在一张卡片里,不用再去考勤记录和请假审批里分别翻找。早退的判定标准可以在下面调整。",
+    fieldEarlyLeaveThreshold: "早退判定:单日工时低于多少小时算一次早退",
+    overviewAnnualUsed: "年假已用", overviewSickCount: "病假次数", overviewPersonalCount: "事假次数", overviewEarlyLeaveCount: "早退次数",
+    overviewTimesUnit: "次", overviewNoAttendanceYet: "暂无考勤记录",
     gpsSub: "仅在员工\"上班打卡\"到\"下班打卡\"期间追踪,地图数据来自 OpenStreetMap",
     gpsLegendMoving: "配送中", gpsLegendStopped: "短暂停留", gpsLegendFlagged: "异常停留(仅提示,非自动判违规)",
+    gpsFlaggedStopPopup: function (minutes) { return "停留 " + minutes + " 分钟 · 建议管理员核实"; },
     inviteCodeMatch: "即将加入:", inviteCodeNoMatch: "未识别该邀请码,请向公司管理员确认",
     caDashboardTitle: "公司概览", caDashboardSub: "关键运营指标一览",
     headcount: "在职员工", onDuty: "当前在岗", pendingLeave: "待审批请假",
@@ -710,36 +993,127 @@ const i18n = {
     statusApproved: "已批准", statusRejected: "已拒绝", statusPending2: "待审批",
     payRateNote: "工资按比例发放", writeMessage: "发送留言", messagePlaceholder: "给经理留言...",
     viewMessages: "查看留言", hideMessages: "收起留言", noMessagesYet: "暂无留言",
-    doctorNoteAttached: "已附医生证明", managerName: "经理"
+    doctorNoteAttached: "已附医生证明", managerName: "经理",
+    doctorNoteRequiredHint: "病假申请必须上传就医凭证(如医院/家庭医生短信通知截图)才能提交",
+    leaveBalanceInsufficientHint: "剩余额度不足,请调整请假天数或联系公司管理员",
+    leaveUsedLabel: "已请", unlimitedQuota: "不限额",
+    leaveTypeConfigTitle: "请假类型与额度设置",
+    leaveTypeConfigSub: "每种请假类型的默认天数、工资比例、是否需要审批/凭证均由公司自行配置,不是系统写死的固定值;留空天数表示不限额。",
+    colLeaveType: "类型", colQuotaDays: "默认天数/年", colPayRate: "工资比例(%)",
+    colRequiresApproval: "需要审批", colRequiresAttachment: "需要凭证", colActions: "操作",
+    saveRow: "保存", leaveTypeConfigSaved: "已保存",
+    employeeBalanceOverrideTitle: "单个员工额度调整",
+    employeeBalanceOverrideSub: "例如工龄较久的员工年假天数高于公司默认值,或需要为某位员工单独补发/扣减某类请假额度。",
+    fieldSelectEmployee: "员工", fieldSelectLeaveType: "请假类型", fieldAllocatedDays: "这一年可休天数",
+    saveEmployeeBalance: "保存额度", employeeBalanceSaved: "已保存",
+    subscriptionNoticeTitle: "订阅与付款",
+    subscriptionNoticeBody: "提交注册后会跳转到 Stripe 安全支付页面填写付款方式;30 天免费试用期内不会扣款,试用结束后按 €12.50/月自动续费,可随时在设置里取消。",
+    subscriptionPriceLine: "€12.50 / 月 · 30 天免费试用",
+    navAttendance: "考勤记录",
+    attendanceSub: "发现打卡时间有误可以\"更正\"(保留原始记录与修改留痕);明显重复/错误的记录可以\"作废\"(不计入工资,但不会被物理删除,可随时恢复)。系统不提供真正删除历史打卡记录的功能——工时记录属于工资凭证,随意删除对企业和员工都没有保护作用。",
+    statusNormal: "正常", statusVoided: "已作废",
+    correctAttendance: "更正打卡记录", fieldClockIn: "上班打卡时间", fieldClockOut: "下班打卡时间",
+    fieldCorrectionReason: "更正理由(必填,会永久记录在案)", submitCorrection: "保存更正(留痕)",
+    correctRecord: "更正", voidRecord: "作废", restoreRecord: "恢复",
+    voidReasonPrompt: "请输入作废理由(必填,会记录在案,系统不会删除底层数据):",
+    restoreConfirm: "确定要恢复这条记录吗?恢复后会重新计入工资计算。",
+    voidedByLabel: "作废原因", editedByLabel: "更正",
+    viewEditHistory: "查看修改记录", hideEditHistory: "收起修改记录", noEditsYet: "暂无修改记录",
+    totalHours: "工时", clockInTime: "上班", clockOutTime: "下班",
+    navInventory: "智能库存",
+    inventorySub: "系统按近 14 天的消耗速率自动预测断货天数与建议采购量,近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过\"记录流水\"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。",
+    addInventoryItem: "+ 新增库存商品", editItem: "编辑商品资料", submitAddItem: "保存",
+    fieldSku: "SKU 编号", fieldItemName: "商品名称", fieldCategory: "分类(可选)", fieldUnit: "计量单位",
+    fieldReorderThreshold: "补货阈值(可选)", fieldReorderQuantity: "建议采购量(可选)", fieldLeadTimeDays: "采购提前期(天)",
+    inventoryItemHint: "库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过\"记录流水\"入库。",
+    unitPiece: "件", unitBox: "箱", unitPack: "包",
+    recordTransaction: "记录流水", fieldTransactionType: "流水类型",
+    typeReceipt: "入库(采购到货)", typeConsumption: "消耗(正常使用)", typeWaste: "浪费/报废", typeAdjustment: "盘点调整",
+    fieldQuantity: "数量(本次变化量)", fieldQuantityAdjustment: "盘点后的实际库存数量",
+    fieldQuantityHint: "入库/消耗/浪费请填写本次变化量(正数);盘点调整请填写盘点后的实际库存数量。",
+    fieldTransactionNote: "备注(可选)", submitTransaction: "保存流水",
+    insufficientStockError: "这次操作会让库存变成负数,系统不允许——请检查填写的数量是否正确。",
+    duplicateSkuError: "这个 SKU 编号在本公司已经存在,请换一个。",
+    colCurrentQty: "当前库存", colDaysLeft: "预计断货天数", colSuggestedReorder: "建议采购量", daysUnit: "天",
+    statusLowStock: "库存不足", statusOverstock: "库存积压", statusNormalStock: "正常",
+    viewTransactionHistory: "查看流水记录", hideTransactionHistory: "收起流水记录", noTransactionsYet: "暂无流水记录",
+    empInventoryTitle: "仓库领用", empInventoryOpen: "领用清单 →",
+    empInventoryNote: "从仓库/操作间取用产品时点这里记一笔,库存会实时同步给公司后台",
+    empInventoryNoteWithLowStock: function (count) { return "有 " + count + " 项库存已低于警戒线,点这里查看并及时通知管理员进货"; },
+    empInventoryModalSub: "从仓库/中央库存取货到操作间时,在对应商品后面填写数量并点\"领用\",库存会立刻同步给公司后台,不需要另外通知",
+    empInventoryWithdrawBtn: "领用", empInventoryQtyPlaceholder: "数量",
+    empInventoryInsufficientStock: "仓库里没有这么多了,请检查数量",
+    empInventoryLowStockAfter: "领用后库存已低于警戒线,请提醒管理员及时进货",
+    empInventoryWithdrawnNote: function (qty, unit) { return "已领用 " + qty + " " + unit; },
+    empInventoryNoItems: "暂无库存商品,请先请管理员在后台新增",
+    noInsights: "暂无需要关注的库存提醒,一切正常。",
+    insightLowStockWithQty: function (name, days, qty, unit) { return name + "库存预计 " + days + " 天后不足,建议采购 " + qty + " " + unit + "。"; },
+    insightLowStockDaysOnly: function (name, days) { return name + "库存预计 " + days + " 天后不足,历史消耗数据不足,暂无法给出具体建议采购量。"; },
+    insightLowStockThresholdOnly: function (name, qty, unit) { return name + "库存(" + qty + " " + unit + ")已低于设定的补货阈值,建议尽快采购。"; },
+    insightOverstock: function (name, days, pauseDays) { return name + "目前库存可支撑约 " + days + " 天,明显高于正常水位,建议暂停采购约 " + pauseDays + " 天(或用促销/内部消耗加快周转),以减少资金占用。"; },
+    insightWaste: function (name, ratioPct) { return name + "最近 30 天的浪费占消耗量的 " + ratioPct + "%,建议排查储存或采购批量是否合理。"; },
+    navDailyReport: "每日经营报告",
+    dailyReportSub: "整合当天的 GPS 异常停留、员工工时与工资成本、库存预警,老板打开 App 30 秒内就能看到今天需要关注什么。以下算法与后端 ReportsModule/GpsModule/PayrollModule 完全一致,只是用的是演示假数据。",
+    dailyReportGpsTitle: "GPS 异常停留", dailyReportGpsSub: "连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)",
+    dailyReportWageTitle: "今日工时与工资成本", dailyReportInventoryTitle: "库存提醒",
+    noGpsAnomalies: "今天没有检测到异常停留,配送情况正常。",
+    gpsAnomalyMessage: function (name, start, end, minutes) { return name + " 在 " + start + " 至 " + end + "(共 " + minutes + " 分钟)几乎没有移动,存在异常停留,建议核实是否配送延误或其他情况。"; },
+    colWageCost: "工资成本", totalRow: "合计",
+    navAccountSettings: "账号设置",
+    accountSecurity: "账号安全", accountSecuritySub: "您可以随时修改自己的登录密码。",
+    changePassword: "修改密码", submitChangePassword: "保存新密码",
+    fieldCurrentPassword: "当前密码", fieldNewPassword: "新密码", fieldConfirmPassword: "确认新密码",
+    forgotPasswordLink: "忘记密码?", forgotPasswordTitle: "找回密码",
+    forgotPasswordSub: "我们会给这个邮箱发送一个 6 位验证码(演示环境直接在下方显示,真实环境只会发送到邮箱,绝不会在页面上出现)。",
+    sendResetCode: "发送验证码", fieldResetCode: "验证码", submitResetPassword: "重设密码",
+    demoCodeLabel: "演示验证码",
+    currentPasswordWrong: "当前密码不正确。",
+    passwordStrengthError: "密码长度至少 8 位,且必须同时包含字母和数字。",
+    passwordMismatch: "两次输入的新密码不一致。",
+    passwordChanged: "密码修改成功。",
+    resetCodeWrong: "验证码不正确,请重新输入。",
+    passwordResetSuccess: "密码重设成功,请使用新密码登录。"
   },
   en: {
-    brand: "WorkTrack Pro",
-    heroTitle: "Smart workforce management platform",
-    heroSub: "One place for attendance, GPS, payroll and leave — built for restaurants, takeaway, cafés and delivery teams",
+    brand: "WorkTrack AI",
+    heroTitle: "Intelligent Business Management Platform",
+    heroSub: "One-stop intelligent management for small and medium businesses — attendance, GPS, payroll, inventory and leave",
     companySloganSample1: "Fresh every day", companySloganSample2: "Slow down, grab a coffee", companySloganSample3: "Delivered at speed",
     companySloganSample4: "Authentic flavor", companySloganSample5: "Handcrafted, warm every day", companySloganSample6: "Last-mile delivery experts",
     companySloganSample7: "Simple, delicious Nordic food", companySloganSample8: "Your friendly neighborhood market",
     employeeEntranceTitle: "Employees", employeeEntranceSub: "Clock in, check pay, request leave and read announcements in one place",
     adminEntranceTitle: "Company admin", adminEntranceSub: "Manage staff, approve leave, monitor GPS and payroll",
     login: "Log in", register: "Register", registerCompany: "Register my company",
+    quickEnterEmployee: "Skip login, jump straight into the employee test account →",
+    quickEnterCompany: "Skip login, jump straight into the company test dashboard →",
     employeeModalSub: "Log in, or register with your company invitation code", companyModalSub: "Log in to your company, or onboard a new one",
-    platformEntranceTitle: "Platform admin", platformModalSub: "For the WorkTrack Pro operations team only",
+    platformEntranceTitle: "Platform admin", platformModalSub: "For the WorkTrack AI operations team only",
     platformLoginError: "Incorrect email or password",
     fieldEmployeeCode: "Employee ID / phone", fieldPassword: "Password", fieldFullName: "Full name", fieldPhone: "Phone number",
     fieldEmployeeId: "Employee ID", fieldInviteCode: "Company invitation code", fieldEmail: "Email", fieldLogo: "Company logo",
     uploadLogo: "Click to upload logo", fieldCompanyName: "Company name", fieldSlogan: "Company slogan", fieldCountry: "Country",
     fieldCity: "City", fieldPostalCode: "Postal code", fieldGps: "GPS coordinate", fieldAddress: "Full address",
+    gpsAutoHintIdle: "This fills in automatically once you enter the address above — you can still edit it manually.",
+    gpsAutoHintLoading: "Looking up coordinates from the address…",
+    gpsAutoHintFound: "Auto-located from the address — adjust manually if it's off.",
+    gpsAutoHintNotFound: "Couldn't auto-locate this address — please enter GPS coordinates manually.",
+    gpsAutoHintError: "The auto-location service isn't reachable right now — please enter GPS coordinates manually.",
     fieldContactPerson: "Contact person", fieldWhatsapp: "WhatsApp", fieldVat: "VAT number (optional)", fieldCoc: "Chamber of commerce no.",
     passwordHint: "You set this password yourself — change it anytime from your profile after registering.",
     submitRegister: "Submit registration", submitRegisterCompany: "Submit and start your 30-day free trial",
-    footerText: "© 2026 WorkTrack Pro",
+    footerText: "© 2026 WorkTrack AI",
     companyName: "Delicious Poke Co.", welcomeTitle: "Welcome back, Alex", clockIn: "Clock in", clockOut: "Clock out",
     todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "Salary summary", attendanceRate: "Attendance rate",
     leaveBalance: "Leave balance", annual: "Annual", sick: "Sick", personal: "Personal", days: "days",
     announcements: "Announcements", announcementSample: "Company-wide training next Wednesday, please attend on time.",
-    navDashboard: "Dashboard", navEmployees: "Employees", navGps: "GPS dashboard", navPayroll: "Payroll", navLeave: "Leave approval",
+    navDashboard: "Dashboard", navEmployees: "Employees", navEmployeeOverview: "Employee overview", navGps: "GPS dashboard", navPayroll: "Payroll", navLeave: "Leave approval",
+    employeeOverviewSub: "Annual leave used, sick/personal leave counts, and early-leave counts for every employee in one card — no more digging through attendance records and leave approvals separately. Adjust the early-leave rule below.",
+    fieldEarlyLeaveThreshold: "Early-leave rule: count a day as early leave if worked hours fall below",
+    overviewAnnualUsed: "Annual used", overviewSickCount: "Sick leave count", overviewPersonalCount: "Personal leave count", overviewEarlyLeaveCount: "Early-leave count",
+    overviewTimesUnit: "", overviewNoAttendanceYet: "No attendance records yet",
     gpsSub: "Tracking only runs from clock-in to clock-out. Map data © OpenStreetMap contributors.",
     gpsLegendMoving: "En route", gpsLegendStopped: "Brief stop", gpsLegendFlagged: "Flagged long stop (hint only, not automatic)",
+    gpsFlaggedStopPopup: function (minutes) { return "Stopped for " + minutes + " min · worth a manager's review"; },
     inviteCodeMatch: "You're about to join:", inviteCodeNoMatch: "Code not recognized — check with your company admin",
     caDashboardTitle: "Company overview", caDashboardSub: "Key operating metrics at a glance",
     headcount: "Headcount", onDuty: "Currently on duty", pendingLeave: "Pending leave requests",
@@ -778,11 +1152,114 @@ const i18n = {
     statusApproved: "Approved", statusRejected: "Rejected", statusPending2: "Pending",
     payRateNote: "Pay rate for this leave type", writeMessage: "Send", messagePlaceholder: "Message your manager...",
     viewMessages: "View messages", hideMessages: "Hide messages", noMessagesYet: "No messages yet",
-    doctorNoteAttached: "Doctor's note attached", managerName: "Manager"
+    doctorNoteAttached: "Doctor's note attached", managerName: "Manager",
+    doctorNoteRequiredHint: "Sick leave requires an uploaded proof of visit (e.g. hospital / family doctor SMS notice) before submitting",
+    leaveBalanceInsufficientHint: "Not enough days remaining — adjust the dates or contact your company admin",
+    leaveUsedLabel: "Used", unlimitedQuota: "Unlimited",
+    leaveTypeConfigTitle: "Leave Types & Quotas",
+    leaveTypeConfigSub: "Each leave type's default days, pay rate, and approval/attachment requirement are configured by the company, not hardcoded; leave the days field blank for unlimited.",
+    colLeaveType: "Type", colQuotaDays: "Default days/year", colPayRate: "Pay rate (%)",
+    colRequiresApproval: "Needs approval", colRequiresAttachment: "Needs attachment", colActions: "Actions",
+    saveRow: "Save", leaveTypeConfigSaved: "Saved",
+    employeeBalanceOverrideTitle: "Per-Employee Balance Adjustment",
+    employeeBalanceOverrideSub: "E.g. a senior employee gets more annual days than the company default, or you need to grant/deduct a specific employee's balance.",
+    fieldSelectEmployee: "Employee", fieldSelectLeaveType: "Leave type", fieldAllocatedDays: "Days allocated this year",
+    saveEmployeeBalance: "Save balance", employeeBalanceSaved: "Saved",
+    subscriptionNoticeTitle: "Subscription & payment",
+    subscriptionNoticeBody: "After you submit, you'll be redirected to a secure Stripe Checkout page to add a payment method. You won't be charged during the 30-day free trial; billing starts automatically afterward at €12.50/month, and you can cancel anytime from Settings.",
+    subscriptionPriceLine: "€12.50 / month · 30-day free trial",
+    navAttendance: "Attendance records",
+    attendanceSub: "Found a wrong clock-in/out time? Use \"Correct\" — the original value and the change are both kept on record. Clearly duplicate or erroneous entries can be \"Voided\" (excluded from payroll, never physically deleted, reversible anytime). There is no real delete for past attendance records — working-time records are payroll evidence, and deleting them doesn't actually protect the company or the employee.",
+    statusNormal: "Normal", statusVoided: "Voided",
+    correctAttendance: "Correct attendance record", fieldClockIn: "Clock-in time", fieldClockOut: "Clock-out time",
+    fieldCorrectionReason: "Reason for correction (required, kept on permanent record)", submitCorrection: "Save correction (tracked)",
+    correctRecord: "Correct", voidRecord: "Void", restoreRecord: "Restore",
+    voidReasonPrompt: "Enter a reason for voiding this record (required, will be logged — the underlying data is never deleted):",
+    restoreConfirm: "Restore this record? It will count toward payroll again.",
+    voidedByLabel: "Void reason", editedByLabel: "Corrected",
+    viewEditHistory: "View edit history", hideEditHistory: "Hide edit history", noEditsYet: "No edits yet",
+    totalHours: "Hours", clockInTime: "Clock in", clockOutTime: "Clock out",
+    navInventory: "Smart Inventory",
+    inventorySub: "The system predicts days-until-stockout and a suggested reorder quantity from the last 14 days of consumption, and flags waste separately when it exceeds 10% of consumption over the last 30 days. Stock quantity only changes via \"Record transaction\" (receipt/consumption/waste/adjustment) — there's no way to edit the number directly, so every change stays traceable.",
+    addInventoryItem: "+ Add inventory item", editItem: "Edit item", submitAddItem: "Save",
+    fieldSku: "SKU", fieldItemName: "Item name", fieldCategory: "Category (optional)", fieldUnit: "Unit",
+    fieldReorderThreshold: "Reorder threshold (optional)", fieldReorderQuantity: "Suggested reorder quantity (optional)", fieldLeadTimeDays: "Lead time (days)",
+    inventoryItemHint: "Stock quantity can't be set here directly — a new item always starts at 0, then goes up via \"Record transaction\".",
+    unitPiece: "piece", unitBox: "box", unitPack: "pack",
+    recordTransaction: "Record transaction", fieldTransactionType: "Transaction type",
+    typeReceipt: "Receipt (purchase arrived)", typeConsumption: "Consumption (used in operations)", typeWaste: "Waste / spoilage", typeAdjustment: "Stock count adjustment",
+    fieldQuantity: "Quantity (change this time)", fieldQuantityAdjustment: "Actual counted quantity",
+    fieldQuantityHint: "For receipt/consumption/waste, enter the change amount (positive). For an adjustment, enter the actual counted quantity after the stock count.",
+    fieldTransactionNote: "Note (optional)", submitTransaction: "Save transaction",
+    insufficientStockError: "This would make stock go negative, which isn't allowed — please check the quantity you entered.",
+    duplicateSkuError: "This SKU already exists for your company — please use a different one.",
+    colCurrentQty: "Current stock", colDaysLeft: "Days until stockout", colSuggestedReorder: "Suggested reorder", daysUnit: "days",
+    statusLowStock: "Low stock", statusOverstock: "Overstocked", statusNormalStock: "Normal",
+    viewTransactionHistory: "View transaction history", hideTransactionHistory: "Hide transaction history", noTransactionsYet: "No transactions yet",
+    empInventoryTitle: "Warehouse withdrawal", empInventoryOpen: "Withdrawal list →",
+    empInventoryNote: "Log it here when you take stock from the warehouse to the kitchen — it syncs to the company backend instantly",
+    empInventoryNoteWithLowStock: function (count) { return count + " item(s) are below their alert line — tap here to check and let a manager know."; },
+    empInventoryModalSub: "When you take stock from the warehouse to the kitchen, enter the quantity next to the item and tap \"Withdraw\" — it updates the company backend right away, no need to tell anyone separately.",
+    empInventoryWithdrawBtn: "Withdraw", empInventoryQtyPlaceholder: "Qty",
+    empInventoryInsufficientStock: "Not enough left in stock — please check the quantity",
+    empInventoryLowStockAfter: "Stock is now below the alert line — please let a manager know so they can reorder",
+    empInventoryWithdrawnNote: function (qty, unit) { return "Withdrew " + qty + " " + unit; },
+    empInventoryNoItems: "No inventory items yet — ask an admin to add some first",
+    noInsights: "No inventory alerts right now — everything looks fine.",
+    insightLowStockWithQty: function (name, days, qty, unit) { return name + " is projected to run out in " + days + " day(s) — suggest ordering " + qty + " " + unit + "."; },
+    insightLowStockDaysOnly: function (name, days) { return name + " is projected to run out in " + days + " day(s), but there isn't enough consumption history yet to suggest a specific reorder quantity."; },
+    insightLowStockThresholdOnly: function (name, qty, unit) { return name + " stock (" + qty + " " + unit + ") is below its reorder threshold — suggest ordering soon."; },
+    insightOverstock: function (name, days, pauseDays) { return name + " currently has about " + days + " day(s) of supply on hand, well above the normal level — suggest pausing purchases for about " + pauseDays + " day(s) (or use a promotion/internal use to speed up turnover) to free up cash."; },
+    insightWaste: function (name, ratioPct) { return "Waste for " + name + " over the last 30 days is " + ratioPct + "% of consumption — worth checking storage or order batch sizes."; },
+    navDailyReport: "Daily Report",
+    dailyReportSub: "Rolls up today's GPS dwell anomalies, employee hours and wage cost, and inventory alerts — the owner can see what needs attention within 30 seconds of opening the app. The logic below matches the backend ReportsModule/GpsModule/PayrollModule exactly, just with demo data.",
+    dailyReportGpsTitle: "GPS dwell anomalies", dailyReportGpsSub: "20+ consecutive minutes below 3 km/h counts as one dwell anomaly (advisory only, never an automatic violation)",
+    dailyReportWageTitle: "Today's hours & wage cost", dailyReportInventoryTitle: "Inventory alerts",
+    noGpsAnomalies: "No dwell anomalies detected today — deliveries look normal.",
+    gpsAnomalyMessage: function (name, start, end, minutes) { return name + " barely moved from " + start + " to " + end + " (" + minutes + " minutes) — worth checking whether this was a delivery delay or something else."; },
+    colWageCost: "Wage cost", totalRow: "Total",
+    navAccountSettings: "Account settings",
+    accountSecurity: "Account security", accountSecuritySub: "You can change your own login password anytime.",
+    changePassword: "Change password", submitChangePassword: "Save new password",
+    fieldCurrentPassword: "Current password", fieldNewPassword: "New password", fieldConfirmPassword: "Confirm new password",
+    forgotPasswordLink: "Forgot password?", forgotPasswordTitle: "Reset password",
+    forgotPasswordSub: "We'll send a 6-digit code to this email (shown directly below in this demo; in production it would only ever be emailed, never shown on screen).",
+    sendResetCode: "Send reset code", fieldResetCode: "Verification code", submitResetPassword: "Reset password",
+    demoCodeLabel: "Demo verification code",
+    currentPasswordWrong: "Current password is incorrect.",
+    passwordStrengthError: "Password must be at least 8 characters and include both letters and numbers.",
+    passwordMismatch: "The new passwords don't match.",
+    passwordChanged: "Password changed successfully.",
+    resetCodeWrong: "Incorrect verification code — please try again.",
+    passwordResetSuccess: "Password reset — please log in with your new password."
   }
 };
 
 let currentLang = "zh";
+
+/* ---------- 密码自助修改 + 忘记密码找回(演示环境用内存变量模拟三类账号各自的密码) ----------
+   硬性规则贯穿这里的每一行代码:不管是"修改密码"还是"找回密码",新密码永远是
+   用户自己在表单里输入的明文,页面/后端都不会替用户生成或展示一个"新密码"。
+   "找回密码"的验证码只用来证明"是不是本人",和后端 AuthService 的一次性
+   reset token 是同一个思路,只是演示环境里用 6 位数字验证码代替邮件链接。
+
+   Bug 修复/安全加固:这三个密码之前是明文变量(如 "admin123"),打开浏览器
+   "查看源代码"就能直接看到。现在改成只存 SHA-256 哈希,登录/改密码/找回密码
+   都通过哈希比对,源码里不再出现任何一个真实密码的明文。
+   ⚠️ 但必须说明:这仍然是纯前端演示——所有校验逻辑都在客户端 JS 里跑,任何人
+   一样可以打开控制台绕过校验、伪造哈希比对结果。真正上线时,登录/改密码/找回
+   密码的校验必须整个搬到后端(AuthService),前端永远不能是唯一的防线。 */
+async function sha256Hex(text) {
+  const data = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// 下面三个哈希分别对应演示密码 MyPassword123 / MyOwnPassword123 / admin123,
+// 只是把明文换成了哈希,行为和之前完全一致。
+let employeeDemoPasswordHash = "bc7b8851671f2fda237a53f5057a0376037b6d062e65f965c62aa1d047498759";
+let companyAdminDemoPasswordHash = "6e21a761014430d5e639ea2cdfec986c8ca1cbfb571634be3a02f936c90a4eb5";
+let platformAdminPasswordHash = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9"; // 平台管理员演示默认密码的哈希,登录后可在"账号设置"里修改
 
 function applyI18n() {
   const dict = i18n[currentLang];
@@ -798,8 +1275,18 @@ function applyI18n() {
   clockBtn.textContent = clockBtn.classList.contains("clocked-in") ? dict.clockOut : dict.clockIn;
   document.documentElement.lang = currentLang;
   renderEmployeeTable();
+  renderEmployeeOverviewList();
   renderLeaveRequests();
   renderLeaveHistory();
+  renderAttendanceTable();
+  renderInventoryTable();
+  renderDailyReport();
+  updateLeaveBalanceDisplays("Alex Chen");
+  renderLeaveTypeConfigPanel();
+  renderEmployeeBalanceOverrideForm();
+  syncSettingsAnnualQuotaInput();
+  refreshGpsFlaggedPopups();
+  setRegGpsStatus(regGpsStatusKey);
 }
 
 document.getElementById("langSelect").addEventListener("change", e => {
@@ -813,6 +1300,13 @@ function showView(id) {
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 document.querySelectorAll("[data-back-home]").forEach(btn => btn.addEventListener("click", () => showView("view-home")));
+
+/* ---------- 测试用快捷入口("跳过登录,直接进入…") ----------
+   故意绑定在文件最靠前、逻辑最简单的位置(只依赖 showView,不依赖表单校验、
+   密码哈希、异步请求等任何后面的代码),用来实测功能时不用每次都填表单登录,
+   也能在怀疑登录/注册流程本身有问题时,作为一个独立的兜底入口来验证界面本身能不能打开。 */
+document.getElementById("btnQuickEnterEmployee").addEventListener("click", () => showView("view-employeeApp"));
+document.getElementById("btnQuickEnterCompany").addEventListener("click", () => showView("view-companyAdminApp"));
 
 /* ---------- 员工管理:添加 / 删除 ----------
    对应权限文档:公司管理员有权直接添加新员工(生成邀请码,员工自行完成注册与设置密码),
@@ -862,10 +1356,66 @@ function renderEmployeeTable() {
         const idx = employees.findIndex(e => e.id === targetId);
         if (idx !== -1) employees.splice(idx, 1);
         renderEmployeeTable();
+        renderEmployeeOverviewList();
       }
     });
   });
 }
+
+/* ---------- 员工总览("考勤记录"里"看不清楚一个员工假期天数/事假次数/病假次数/早退次数"的需求) ----------
+   把 leaveRequests(请假审批数据)+ leaveBalancesByEmployee(年假余额)+ attendanceRecords
+   (考勤打卡数据)三处已有数据聚合成一张卡片,不需要新的数据模型,只是换一种"以员工为中心"
+   的视角重新展示一遍。早退的判定标准(单日工时低于多少小时算一次早退)可以在页面上直接调整,
+   对应后端应该是 companies.early_leave_threshold_hours 这样一个可配置字段,不是写死的常量。 */
+let earlyLeaveThresholdHours = 7;
+
+function computeEmployeeOverview(employeeName) {
+  const annualBal = getEmployeeLeaveBalance(employeeName, "ANNUAL");
+  const annualQuota = effectiveQuota(employeeName, "ANNUAL");
+  const sickCount = leaveRequests.filter(r => r.employeeName === employeeName && r.category === "SICK" && r.status === "approved").length;
+  const personalCount = leaveRequests.filter(r => r.employeeName === employeeName && r.category === "PERSONAL" && r.status === "approved").length;
+  const myAttendance = attendanceRecords.filter(r => r.employeeName === employeeName && !r.voided);
+  const earlyLeaveCount = myAttendance.filter(r => parseFloat(r.hours) < earlyLeaveThresholdHours).length;
+  return {
+    annualUsed: annualBal.used,
+    annualQuota: annualQuota,
+    sickCount: sickCount,
+    personalCount: personalCount,
+    earlyLeaveCount: earlyLeaveCount,
+    hasAttendance: myAttendance.length > 0
+  };
+}
+
+function buildEmployeeOverviewCardHtml(emp) {
+  const dict = i18n[currentLang];
+  const overview = computeEmployeeOverview(emp.name);
+  const annualText = (overview.annualQuota === null || overview.annualQuota === undefined)
+    ? overview.annualUsed + " " + dict.days
+    : overview.annualUsed + " / " + overview.annualQuota + " " + dict.days;
+  const earlyLeaveBadgeClass = overview.earlyLeaveCount > 0 ? "warning" : "success";
+  return '<div class="glass" style="margin-bottom:12px;">' +
+    '<div style="font-weight:700;font-size:15px;margin-bottom:10px;">' + emp.name + '</div>' +
+    '<div class="metric-grid" style="margin:0;">' +
+      '<div class="metric-card"><div class="metric-label">' + dict.overviewAnnualUsed + '</div><div class="metric-value" style="font-size:16px;">' + annualText + '</div></div>' +
+      '<div class="metric-card"><div class="metric-label">' + dict.overviewSickCount + '</div><div class="metric-value" style="font-size:16px;">' + overview.sickCount + ' ' + dict.overviewTimesUnit + '</div></div>' +
+      '<div class="metric-card"><div class="metric-label">' + dict.overviewPersonalCount + '</div><div class="metric-value" style="font-size:16px;">' + overview.personalCount + ' ' + dict.overviewTimesUnit + '</div></div>' +
+      '<div class="metric-card"><div class="metric-label">' + dict.overviewEarlyLeaveCount + '</div><div class="metric-value" style="font-size:16px;"><span class="badge ' + earlyLeaveBadgeClass + '">' + overview.earlyLeaveCount + ' ' + dict.overviewTimesUnit + '</span></div></div>' +
+    '</div>' +
+    (overview.hasAttendance ? '' : '<div style="font-size:12px;color:var(--text-2);margin-top:6px;">' + dict.overviewNoAttendanceYet + '</div>') +
+  '</div>';
+}
+
+function renderEmployeeOverviewList() {
+  const container = document.getElementById("employeeOverviewList");
+  if (!container) return;
+  container.innerHTML = employees.map(emp => buildEmployeeOverviewCardHtml(emp)).join("");
+}
+
+document.getElementById("settingsEarlyLeaveThreshold").addEventListener("input", e => {
+  const val = Number(e.target.value);
+  earlyLeaveThresholdHours = val >= 0 ? val : 0;
+  renderEmployeeOverviewList();
+});
 
 document.getElementById("btnAddEmployee").addEventListener("click", () => openModal("modal-add-employee"));
 
@@ -876,6 +1426,7 @@ document.getElementById("form-add-employee").addEventListener("submit", e => {
   if (!name) return;
   employees.push({ id: employeeIdCounter++, name, role, status: "pending", hours: "—", employmentType: "full_time", monthHours: "—" });
   renderEmployeeTable();
+  renderEmployeeOverviewList();
   e.target.reset();
   closeModal(document.getElementById("modal-add-employee"));
 });
@@ -927,12 +1478,16 @@ document.getElementById("form-company-login").addEventListener("submit", e => {
 document.getElementById("form-company-register").addEventListener("submit", e => {
   e.preventDefault(); closeModal(document.getElementById("modal-company")); showView("view-companyAdminApp");
 });
-document.getElementById("form-platform-login").addEventListener("submit", e => {
+const PLATFORM_ADMIN_EMAIL_HASH = "c20efd7c489620b99ac71ddcba125b016ea8aa890a0190cebc8103577307aeba"; // 哈希对应 vavgrace@gmail.com,源码里不再出现明文邮箱
+
+document.getElementById("form-platform-login").addEventListener("submit", async e => {
   e.preventDefault();
   const email = document.getElementById("platformEmail").value.trim().toLowerCase();
   const password = document.getElementById("platformPassword").value;
   const errorEl = document.getElementById("platformLoginError");
-  if (email === "vavgrace@gmail.com" && password === "Almere@1992") {
+  const emailHash = await sha256Hex(email);
+  const passwordHash = await sha256Hex(password);
+  if (emailHash === PLATFORM_ADMIN_EMAIL_HASH && passwordHash === platformAdminPasswordHash) {
     errorEl.classList.add("hidden");
     e.target.reset();
     closeModal(document.getElementById("modal-platform"));
@@ -993,7 +1548,9 @@ const gpsRoutes = [
   {
     name: "Alex Chen", color: "#3E7D5C",
     path: [[52.3731,4.8926],[52.3712,4.8952],[52.3695,4.8981],[52.3676,4.8963],[52.3654,4.8952],[52.3644,4.8920],[52.3612,4.8901],[52.3557,4.8930]],
-    flaggedStopIndex: 5, flaggedLabel: "停留 18 分钟 · 建议管理员核实"
+    // Bug 修复:原来这里写死了中文字符串"停留 18 分钟 · 建议管理员核实",切换到英文界面
+    // 时不会跟着变。改成只存分钟数,弹窗文案通过 i18n.gpsFlaggedStopPopup(minutes) 生成。
+    flaggedStopIndex: 5, flaggedStopMinutes: 18
   },
   {
     name: "Maria Santos", color: "#54606B",
@@ -1007,6 +1564,20 @@ const gpsRoutes = [
 
 let gpsMap = null;
 let gpsAnimHandle = null;
+const gpsFlaggedCircles = []; // 记录异常停留圆圈,语言切换时用来重绑弹窗文案(见 refreshGpsFlaggedPopups)
+
+function buildGpsFlaggedPopupHtml(route) {
+  const dict = i18n[currentLang];
+  return "<b>" + route.name + "</b><br/>" + dict.gpsFlaggedStopPopup(route.flaggedStopMinutes);
+}
+
+/** 语言切换后重绑异常停留弹窗的文案(地图只初始化一次,弹窗内容需要单独刷新)。 */
+function refreshGpsFlaggedPopups() {
+  gpsFlaggedCircles.forEach((circle, i) => {
+    const route = gpsRoutes.filter(r => r.flaggedStopIndex !== undefined)[i];
+    if (route) circle.setPopupContent(buildGpsFlaggedPopupHtml(route));
+  });
+}
 
 function initGpsMap() {
   if (gpsMap) { gpsMap.invalidateSize(); return; }
@@ -1023,9 +1594,10 @@ function initGpsMap() {
 
     if (route.flaggedStopIndex !== undefined) {
       const stopPoint = route.path[route.flaggedStopIndex];
-      L.circle(stopPoint, { radius: 60, color: "#B23A4E", fillColor: "#B23A4E", fillOpacity: .18, weight: 1 })
+      const circle = L.circle(stopPoint, { radius: 60, color: "#B23A4E", fillColor: "#B23A4E", fillOpacity: .18, weight: 1 })
         .addTo(gpsMap)
-        .bindPopup("<b>" + route.name + "</b><br/>" + route.flaggedLabel);
+        .bindPopup(buildGpsFlaggedPopupHtml(route));
+      gpsFlaggedCircles.push(circle);
     }
 
     const icon = L.divIcon({
@@ -1073,6 +1645,71 @@ inviteInput.addEventListener("input", () => {
   }
 });
 
+/* ---------- 公司注册:地址 → GPS 坐标自动定位(需求:填完地址不用去地图上找坐标) ----------
+   国家/城市/邮编/完整地址任意一项变化(带防抖),就把这几项拼成一个查询串,调用
+   OpenStreetMap 的免费地理编码接口 Nominatim,取第一条匹配结果的经纬度自动填进
+   "GPS 坐标"输入框。这个输入框本身不设只读——查得不准时用户仍然可以手动改。
+   ⚠️ Nominatim 的公共接口有使用限制(建议低频调用、附带可识别的来源标识),真正
+   上线后建议换成自己后端代理的地理编码服务,不要让前端直接高频访问这个公共接口。 */
+const REG_GEOCODE_FIELD_IDS = ["regCountry", "regCity", "regPostalCode", "regAddress"];
+let regGeocodeDebounceHandle = null;
+let regGeocodeRequestSeq = 0; // 请求序号:防止慢响应的旧请求在新请求之后才返回,把新结果覆盖掉
+let regGpsStatusKey = "gpsAutoHintIdle";
+
+function setRegGpsStatus(key) {
+  regGpsStatusKey = key;
+  const el = document.getElementById("regGpsStatus");
+  if (el) el.textContent = i18n[currentLang][key];
+}
+
+function buildRegGeocodeQuery() {
+  const address = document.getElementById("regAddress").value.trim();
+  const city = document.getElementById("regCity").value.trim();
+  const postalCode = document.getElementById("regPostalCode").value.trim();
+  const country = document.getElementById("regCountry").value.trim();
+  return [address, postalCode, city, country].filter(Boolean).join(", ");
+}
+
+async function autoGeocodeRegisterAddress() {
+  const query = buildRegGeocodeQuery();
+  if (!query) { setRegGpsStatus("gpsAutoHintIdle"); return; }
+  const mySeq = ++regGeocodeRequestSeq;
+  setRegGpsStatus("gpsAutoHintLoading");
+  try {
+    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(query);
+    const res = await fetch(url);
+    const results = await res.json();
+    if (mySeq !== regGeocodeRequestSeq) return; // 用户输入过程中触发了更新的请求,这条已经过时,丢弃
+    const gpsInput = document.getElementById("regGps");
+    if (results && results.length > 0) {
+      gpsInput.value = Number(results[0].lat).toFixed(4) + ", " + Number(results[0].lon).toFixed(4);
+      setRegGpsStatus("gpsAutoHintFound");
+    } else {
+      setRegGpsStatus("gpsAutoHintNotFound");
+    }
+  } catch (err) {
+    if (mySeq !== regGeocodeRequestSeq) return;
+    setRegGpsStatus("gpsAutoHintError");
+  }
+}
+
+function scheduleRegGeocode() {
+  clearTimeout(regGeocodeDebounceHandle);
+  regGeocodeDebounceHandle = setTimeout(autoGeocodeRegisterAddress, 900); // 防抖:停止输入 0.9 秒后才真正发请求
+}
+
+REG_GEOCODE_FIELD_IDS.forEach(id => {
+  document.getElementById(id).addEventListener("input", scheduleRegGeocode);
+});
+
+// 每次重新打开"注册我的公司"的表单时,状态提示回到初始文案,避免上一次填写的
+// "已自动定位"/"未找到"等状态残留展示。
+document.getElementById("btnCompanyRegister").addEventListener("click", () => setRegGpsStatus("gpsAutoHintIdle"));
+document.querySelectorAll('#modal-company [data-tab="register"]').forEach(btn => {
+  btn.addEventListener("click", () => setRegGpsStatus("gpsAutoHintIdle"));
+});
+
+
 /* ---------- 请假中心 / 请假审批(留言板 + 病假证明 + 出差培训行程 + 21天年假扣减) ----------
    同一套 leaveRequests 数据被两处消费:员工端"请假中心"(仅显示本人记录,可提交新申请)、
    公司管理后台"请假审批"(显示全部员工记录,可批准/拒绝)。每条记录都有独立留言板
@@ -1084,26 +1721,152 @@ const leaveRequests = [
   { id: leaveRequestIdCounter++, employeeName: "Maria Santos", category: "PERSONAL", days: 1, reason: "处理个人事务 / Personal errand", status: "approved", messages: [] }
 ];
 
-let annualLeaveBalance = { allocated: 21, used: 7 };
-function updateAnnualBalanceDisplay() {
+/* ---------- 请假配额配置("变量系统",对应后端 LeaveModule 的 leave_types) ----------
+   quota=null 表示不限额(如培训假/出差)。这些值全部可以在公司后台"请假类型与额度设置"
+   面板里编辑保存,不是写死在代码里的常量——和 leaveTypeConfigTable 的渲染/保存逻辑
+   一一对应,数值改了之后,员工端的余额卡片、请假中心、请假申请表单校验都会立刻用新值。 */
+let leaveTypeConfigs = {
+  ANNUAL:        { quota: 21,   payRate: 100, requiresApproval: true,  requiresAttachment: false },
+  SICK:          { quota: null, payRate: 100, requiresApproval: false, requiresAttachment: true  },
+  PERSONAL:      { quota: 5,    payRate: 70,  requiresApproval: true,  requiresAttachment: false },
+  TRAINING:      { quota: null, payRate: 100, requiresApproval: true,  requiresAttachment: false },
+  BUSINESS_TRIP: { quota: null, payRate: 100, requiresApproval: true,  requiresAttachment: false }
+};
+
+/* ---------- 员工请假余额("变量系统",对应后端 leave_balances) ----------
+   姓名 -> 类型 -> { allocated, used }。allocated 为 null/undefined 表示"这名员工在
+   这个类型上没有被单独调整过",此时用 leaveTypeConfigs[category].quota 兜底
+   (和后端 LeaveService.listBalances() 的兜底逻辑一致)。usedDays 在批准请假时累加,
+   不会因为改额度而被清零——改额度只影响"总共能休多少天",不影响"已经休了多少天"。 */
+let leaveBalancesByEmployee = {
+  "Alex Chen": {
+    ANNUAL: { allocated: 21, used: 7 },
+    SICK: { allocated: null, used: 3 },
+    PERSONAL: { allocated: 5, used: 2 },
+  },
+};
+
+function getEmployeeLeaveBalance(employeeName, category) {
+  if (!leaveBalancesByEmployee[employeeName]) leaveBalancesByEmployee[employeeName] = {};
+  if (!leaveBalancesByEmployee[employeeName][category]) {
+    leaveBalancesByEmployee[employeeName][category] = { allocated: null, used: 0 };
+  }
+  return leaveBalancesByEmployee[employeeName][category];
+}
+
+/** 这名员工在这个类型上实际生效的总额度:员工级覆盖优先,否则回退到公司级默认配置。 */
+function effectiveQuota(employeeName, category) {
+  const bal = getEmployeeLeaveBalance(employeeName, category);
+  const config = leaveTypeConfigs[category];
+  return bal.allocated !== null && bal.allocated !== undefined ? bal.allocated : (config ? config.quota : null);
+}
+
+/** "14 / 21 天" 或(不限额类型)"已请 3 天" 这类文案,员工端卡片和请假中心共用同一套计算逻辑。 */
+function formatLeaveBalanceText(dict, employeeName, category) {
+  const bal = getEmployeeLeaveBalance(employeeName, category);
+  const quota = effectiveQuota(employeeName, category);
+  if (quota === null || quota === undefined) {
+    return dict.leaveUsedLabel + " " + bal.used + " " + dict.days;
+  }
+  const remaining = Math.max(0, quota - bal.used);
+  return remaining + " / " + quota + " " + dict.days;
+}
+
+/** 请假中心的顶部数字卡片(不带"天"字,单独一行展示)。 */
+function formatLeaveBalanceValue(dict, employeeName, category) {
+  const bal = getEmployeeLeaveBalance(employeeName, category);
+  const quota = effectiveQuota(employeeName, category);
+  if (quota === null || quota === undefined) return dict.leaveUsedLabel + " " + bal.used;
+  return Math.max(0, quota - bal.used) + " / " + quota;
+}
+
+function updateLeaveBalanceDisplays(employeeName) {
   const dict = i18n[currentLang];
-  const remaining = annualLeaveBalance.allocated - annualLeaveBalance.used;
-  const el1 = document.getElementById("empAnnualBalance");
-  if (el1) el1.textContent = remaining + " / " + annualLeaveBalance.allocated + " " + dict.days;
-  const el2 = document.getElementById("lcAnnualValue");
-  if (el2) el2.textContent = remaining + " / " + annualLeaveBalance.allocated;
+  const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  setText("empAnnualBalance", formatLeaveBalanceText(dict, employeeName, "ANNUAL"));
+  setText("empSickBalance", formatLeaveBalanceText(dict, employeeName, "SICK"));
+  setText("empPersonalBalance", formatLeaveBalanceText(dict, employeeName, "PERSONAL"));
+  setText("lcAnnualValue", formatLeaveBalanceValue(dict, employeeName, "ANNUAL"));
+  setText("lcSickValue", formatLeaveBalanceValue(dict, employeeName, "SICK"));
+  setText("lcPersonalValue", formatLeaveBalanceValue(dict, employeeName, "PERSONAL"));
 }
 
 function leaveTypeBadgeInfo(dict, category) {
-  const map = {
-    ANNUAL:        { label: dict.annual,       cls: "success", payRate: 100 },
-    SICK:          { label: dict.sick,         cls: "warning", payRate: 100 },
-    PERSONAL:      { label: dict.personal,     cls: "danger",  payRate: 70  },
-    TRAINING:      { label: dict.training,     cls: "success", payRate: 100 },
-    BUSINESS_TRIP: { label: dict.businessTrip, cls: "success", payRate: 100 }
+  const labelMap = {
+    ANNUAL:        { label: dict.annual,       cls: "success" },
+    SICK:          { label: dict.sick,         cls: "warning" },
+    PERSONAL:      { label: dict.personal,     cls: "danger"  },
+    TRAINING:      { label: dict.training,     cls: "success" },
+    BUSINESS_TRIP: { label: dict.businessTrip, cls: "success" }
   };
-  return map[category] || map.ANNUAL;
+  const info = labelMap[category] || labelMap.ANNUAL;
+  const config = leaveTypeConfigs[category] || leaveTypeConfigs.ANNUAL;
+  return { label: info.label, cls: info.cls, payRate: config.payRate };
 }
+
+/* ---------- 请假类型与额度设置面板(公司后台) ----------
+   对应后端 PATCH /companies/:id/leave-types/:leaveTypeId —— 每一行都是数据库里的一条
+   可编辑记录,保存后立刻影响员工端显示与请假申请表单的校验规则,不需要改代码/重新部署。 */
+const LEAVE_CATEGORIES_ORDER = ["ANNUAL", "SICK", "PERSONAL", "TRAINING", "BUSINESS_TRIP"];
+
+function renderLeaveTypeConfigPanel() {
+  const tbody = document.getElementById("leaveTypeConfigBody");
+  if (!tbody) return;
+  const dict = i18n[currentLang];
+  tbody.innerHTML = LEAVE_CATEGORIES_ORDER.map(cat => {
+    const config = leaveTypeConfigs[cat];
+    const info = leaveTypeBadgeInfo(dict, cat);
+    return '<tr>' +
+      '<td><span class="badge ' + info.cls + '">' + info.label + '</span></td>' +
+      '<td><input type="number" min="0" max="365" style="width:80px;" placeholder="' + dict.unlimitedQuota + '" id="cfgQuota-' + cat + '" value="' + (config.quota === null ? "" : config.quota) + '" /></td>' +
+      '<td><input type="number" min="0" max="100" style="width:70px;" id="cfgPayRate-' + cat + '" value="' + config.payRate + '" /></td>' +
+      '<td style="text-align:center;"><input type="checkbox" id="cfgApproval-' + cat + '" ' + (config.requiresApproval ? "checked" : "") + ' /></td>' +
+      '<td style="text-align:center;"><input type="checkbox" id="cfgAttachment-' + cat + '" ' + (config.requiresAttachment ? "checked" : "") + ' /></td>' +
+      '<td><button type="button" class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-save-leave-config="' + cat + '">' + dict.saveRow + '</button></td>' +
+    '</tr>';
+  }).join("");
+  tbody.querySelectorAll("[data-save-leave-config]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const cat = btn.dataset.saveLeaveConfig;
+      const quotaInput = document.getElementById("cfgQuota-" + cat).value.trim();
+      leaveTypeConfigs[cat] = {
+        quota: quotaInput === "" ? null : Math.max(0, Number(document.getElementById("cfgQuota-" + cat).value)),
+        payRate: Math.max(0, Math.min(100, Number(document.getElementById("cfgPayRate-" + cat).value))),
+        requiresApproval: document.getElementById("cfgApproval-" + cat).checked,
+        requiresAttachment: document.getElementById("cfgAttachment-" + cat).checked,
+      };
+      updateLeaveBalanceDisplays("Alex Chen");
+      renderLeaveRequests();
+      renderLeaveHistory();
+      syncSettingsAnnualQuotaInput(); // 两处年假天数入口保持同步,见 syncSettingsAnnualQuotaInput 说明
+      const notice = document.getElementById("leaveTypeConfigSavedNotice");
+      notice.classList.remove("hidden");
+      setTimeout(() => notice.classList.add("hidden"), 2000);
+    });
+  });
+}
+
+/* ---------- 单个员工额度调整(公司后台) ----------
+   对应后端 PUT /companies/:id/employees/:employeeId/leave-balances/:leaveTypeId。 */
+function renderEmployeeBalanceOverrideForm() {
+  const select = document.getElementById("balanceOverrideEmployee");
+  if (!select) return;
+  const currentValue = select.value;
+  select.innerHTML = employees.map(emp => '<option value="' + emp.name + '">' + emp.name + "</option>").join("");
+  if (currentValue) select.value = currentValue;
+}
+
+document.getElementById("btnSaveEmployeeBalance").addEventListener("click", () => {
+  const employeeName = document.getElementById("balanceOverrideEmployee").value;
+  const category = document.getElementById("balanceOverrideType").value;
+  const days = Math.max(0, Number(document.getElementById("balanceOverrideDays").value));
+  const bal = getEmployeeLeaveBalance(employeeName, category);
+  bal.allocated = days; // 只改总额度,不影响 usedDays(和后端 setBalance() 的语义一致)
+  if (employeeName === "Alex Chen") updateLeaveBalanceDisplays("Alex Chen");
+  const notice = document.getElementById("employeeBalanceSavedNotice");
+  notice.classList.remove("hidden");
+  setTimeout(() => notice.classList.add("hidden"), 2000);
+});
 
 function buildLeaveCardHtml(req, isAdminView) {
   const dict = i18n[currentLang];
@@ -1203,14 +1966,14 @@ function approveLeaveRequest(id) {
   const req = leaveRequests.find(r => r.id === id);
   if (!req) return;
   req.status = "approved";
-  // 每休息一天,年假天数里就扣除一天(仅 ANNUAL 类别影响年假余额;
-  // 病假/事假走各自的工资比例,不占用年假天数)。
-  if (req.category === "ANNUAL" && req.employeeName === "Alex Chen") {
-    annualLeaveBalance.used += req.days;
-    updateAnnualBalanceDisplay();
-  }
+  // 批准即计入已休天数——不再局限于 ANNUAL 类别或写死某个员工姓名,
+  // 任何员工、任何请假类型批准后都会更新对应的余额(和后端 applyUsedDays() 语义一致)。
+  const bal = getEmployeeLeaveBalance(req.employeeName, req.category);
+  bal.used += req.days;
+  updateLeaveBalanceDisplays("Alex Chen"); // 员工端演示身份固定是 Alex Chen,其余员工的余额只在后台调整表单里可见
   renderLeaveRequests();
   renderLeaveHistory();
+  renderEmployeeOverviewList();
 }
 function rejectLeaveRequest(id) {
   const req = leaveRequests.find(r => r.id === id);
@@ -1218,12 +1981,15 @@ function rejectLeaveRequest(id) {
   req.status = "rejected";
   renderLeaveRequests();
   renderLeaveHistory();
+  renderEmployeeOverviewList();
 }
 
 document.getElementById("leaveTypeSelect").addEventListener("change", e => {
   const val = e.target.value;
-  document.getElementById("sickAttachmentField").classList.toggle("hidden", val !== "SICK");
+  const config = leaveTypeConfigs[val] || {};
+  document.getElementById("sickAttachmentField").classList.toggle("hidden", !config.requiresAttachment);
   document.getElementById("tripDetailsField").classList.toggle("hidden", val !== "TRAINING" && val !== "BUSINESS_TRIP");
+  document.getElementById("leaveBalanceInsufficientHint").classList.add("hidden");
 });
 
 document.getElementById("form-leave-request").addEventListener("submit", e => {
@@ -1233,10 +1999,35 @@ document.getElementById("form-leave-request").addEventListener("submit", e => {
   const end = document.getElementById("leaveEndDate").value;
   const reason = document.getElementById("leaveReason").value.trim();
   const destinationInput = document.getElementById("tripDestination");
+  const insufficientHint = document.getElementById("leaveBalanceInsufficientHint");
+  const attachmentHint = document.getElementById("doctorNoteRequiredHint");
+  insufficientHint.classList.add("hidden");
+  attachmentHint.classList.add("hidden");
   if (!start || !end || !reason) return;
+
   const days = Math.max(1, Math.round((new Date(end) - new Date(start)) / 86400000) + 1);
-  const hasAttachment = category === "SICK" && document.getElementById("doctorNoteFile").files.length > 0;
-  const req = { id: leaveRequestIdCounter++, employeeName: "Alex Chen", category, days, reason, status: "pending", hasAttachment, messages: [] };
+  const config = leaveTypeConfigs[category] || {};
+  const hasAttachment = document.getElementById("doctorNoteFile").files.length > 0;
+
+  // 和后端 createLeaveRequest() 的两条校验完全一致:
+  // 1) 该类型要求凭证时(如病假),没有附件不允许提交。
+  if (config.requiresAttachment && !hasAttachment) {
+    attachmentHint.classList.remove("hidden");
+    return;
+  }
+  // 2) 该类型设了有限额度时,剩余天数不够也不允许提交。
+  const employeeName = "Alex Chen";
+  const quota = effectiveQuota(employeeName, category);
+  if (quota !== null && quota !== undefined) {
+    const bal = getEmployeeLeaveBalance(employeeName, category);
+    const remaining = Math.max(0, quota - bal.used);
+    if (remaining < days) {
+      insufficientHint.classList.remove("hidden");
+      return;
+    }
+  }
+
+  const req = { id: leaveRequestIdCounter++, employeeName, category, days, reason, status: "pending", hasAttachment, messages: [] };
   if ((category === "TRAINING" || category === "BUSINESS_TRIP") && destinationInput.value.trim()) {
     req.destination = destinationInput.value.trim();
   }
@@ -1246,6 +2037,17 @@ document.getElementById("form-leave-request").addEventListener("submit", e => {
   e.target.reset();
   document.getElementById("sickAttachmentField").classList.add("hidden");
   document.getElementById("tripDetailsField").classList.add("hidden");
+  document.getElementById("doctorNoteFileLabel").textContent = i18n[currentLang].uploadDoctorNote;
+});
+
+document.getElementById("doctorNoteFile").addEventListener("change", e => {
+  const label = document.getElementById("doctorNoteFileLabel");
+  if (e.target.files.length > 0) {
+    label.textContent = "📎 " + e.target.files[0].name;
+    document.getElementById("doctorNoteRequiredHint").classList.add("hidden");
+  } else {
+    label.textContent = i18n[currentLang].uploadDoctorNote;
+  }
 });
 
 document.getElementById("btnOpenLeaveCenter").addEventListener("click", () => openModal("modal-leave-center"));
@@ -1274,14 +2076,792 @@ document.getElementById("btnCopyInviteCode").addEventListener("click", () => {
   setTimeout(() => { notice.style.display = "none"; }, 2000);
 });
 document.getElementById("btnSaveCompanyProfile").addEventListener("click", () => {
+  // Bug 修复:这里之前只弹一个"已保存"提示,并没有把"默认年假天数"写回
+  // leaveTypeConfigs.ANNUAL.quota —— 导致这个输入框和"请假类型与额度设置"表格
+  // 里的年假默认天数是两份互不影响的数据。真正生效的额度只有一份,这里统一写回。
+  const quotaInput = document.getElementById("settingsAnnualQuota");
+  const newQuota = Math.max(0, Number(quotaInput.value) || 0);
+  leaveTypeConfigs.ANNUAL.quota = newQuota;
+  renderLeaveTypeConfigPanel();
+  updateLeaveBalanceDisplays("Alex Chen");
+  renderLeaveRequests();
+  renderLeaveHistory();
+
   const notice = document.getElementById("profileSaveNotice");
   notice.textContent = i18n[currentLang].profileSaved;
   notice.classList.remove("hidden");
   setTimeout(() => { notice.classList.add("hidden"); }, 2500);
 });
 
+/** 让"设置"页的默认年假天数输入框始终显示 leaveTypeConfigs.ANNUAL.quota 的当前值,
+    避免管理员在"请假类型与额度设置"表格里改了年假天数后,这里还显示旧数字。 */
+function syncSettingsAnnualQuotaInput() {
+  const quotaInput = document.getElementById("settingsAnnualQuota");
+  if (quotaInput && leaveTypeConfigs.ANNUAL.quota !== null && leaveTypeConfigs.ANNUAL.quota !== undefined) {
+    quotaInput.value = leaveTypeConfigs.ANNUAL.quota;
+  }
+}
+
+/* ---------- 考勤记录:更正(留痕) / 作废(可恢复,不物理删除) ----------
+   对应数据库设计 attendance_sessions.voided_at/voided_by/void_reason +
+   attendance_session_edits 审计表:管理员发现打卡时间有误可以"更正",系统保留
+   原始值和修改记录;明显错误/重复的记录可以"作废"(不计入工资),但底层数据
+   永远保留,可随时恢复——不提供真正删除历史打卡记录的功能,理由见 ca-attendance
+   区块顶部的说明文字与 03-API-DESIGN.md 里那条 "On deletion" 的备注。 */
+let attendanceIdCounter = 900;
+const attendanceRecords = [
+  { id: attendanceIdCounter++, employeeName: "Alex Chen", date: "2026-07-14", clockIn: "09:02", clockOut: "17:35", hours: "8.55h", voided: false, voidReason: "", edits: [] },
+  { id: attendanceIdCounter++, employeeName: "Maria Santos", date: "2026-07-14", clockIn: "08:58", clockOut: "16:30", hours: "7.53h", voided: false, voidReason: "", edits: [] },
+  { id: attendanceIdCounter++, employeeName: "Sam Park", date: "2026-07-13", clockIn: "12:00", clockOut: "12:04", hours: "0.07h", voided: true, voidReason: "系统重复生成的空记录 / Duplicate empty session generated by a bug", edits: [] }
+];
+
+function buildAttendanceCardHtml(rec) {
+  const dict = i18n[currentLang];
+  const statusBadge = rec.voided
+    ? '<span class="badge danger">' + dict.statusVoided + "</span>"
+    : '<span class="badge success">' + dict.statusNormal + "</span>";
+  const actionBtns = rec.voided
+    ? '<button class="btn btn-outline" style="height:32px;padding:0 14px;font-size:12px;" data-restore-attendance="' + rec.id + '">' + dict.restoreRecord + "</button>"
+    : '<button class="btn btn-outline" style="height:32px;padding:0 14px;font-size:12px;" data-correct-attendance="' + rec.id + '">' + dict.correctRecord + "</button>" +
+      '<button class="btn" style="background:var(--danger);color:#fff;height:32px;padding:0 14px;font-size:12px;" data-void-attendance="' + rec.id + '">' + dict.voidRecord + "</button>";
+  const voidReasonHtml = rec.voided && rec.voidReason
+    ? '<div class="leave-card-reason">' + dict.voidedByLabel + ": " + rec.voidReason + "</div>"
+    : "";
+  const edits = rec.edits || [];
+  const editsHtml = edits.length
+    ? edits.map(e => '<div class="edit-history-item">' + e.time + " · " + dict.editedByLabel + " " + e.field + ': <span class="corrected-value">' + e.oldValue + "</span> → " + e.newValue + " (" + e.reason + ")</div>").join("")
+    : '<div style="font-size:12px;color:var(--text-2);">' + dict.noEditsYet + "</div>";
+
+  return '<div class="leave-card' + (rec.voided ? " voided" : "") + '" data-attendance-card="' + rec.id + '">' +
+    '<div class="leave-card-head">' +
+      "<span><strong>" + rec.employeeName + "</strong> · " + rec.date + "</span>" +
+      '<span style="margin-left:auto;display:flex;gap:8px;align-items:center;">' + statusBadge + actionBtns + "</span>" +
+    "</div>" +
+    '<div class="leave-card-reason">' + dict.clockInTime + " " + rec.clockIn + " · " + dict.clockOutTime + " " + rec.clockOut + " · " + dict.totalHours + " " + rec.hours + "</div>" +
+    voidReasonHtml +
+    '<button class="msg-toggle" data-toggle-edits="' + rec.id + '" style="margin-top:8px;">' + dict.viewEditHistory + "</button>" +
+    '<div class="msg-thread hidden" id="edit-thread-' + rec.id + '">' + editsHtml + "</div>" +
+  "</div>";
+}
+
+function wireAttendanceCardEvents(container) {
+  container.querySelectorAll("[data-toggle-edits]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const dict = i18n[currentLang];
+      const thread = document.getElementById("edit-thread-" + btn.dataset.toggleEdits);
+      thread.classList.toggle("hidden");
+      btn.textContent = thread.classList.contains("hidden") ? dict.viewEditHistory : dict.hideEditHistory;
+    });
+  });
+  container.querySelectorAll("[data-correct-attendance]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.dataset.correctAttendance);
+      const rec = attendanceRecords.find(r => r.id === id);
+      if (!rec) return;
+      document.getElementById("correctAttendanceId").value = String(id);
+      document.getElementById("correctAttendanceContext").textContent = rec.employeeName + " · " + rec.date;
+      document.getElementById("correctClockIn").value = rec.clockIn;
+      document.getElementById("correctClockOut").value = rec.clockOut;
+      document.getElementById("correctReason").value = "";
+      openModal("modal-correct-attendance");
+    });
+  });
+  container.querySelectorAll("[data-void-attendance]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const dict = i18n[currentLang];
+      const reason = window.prompt(dict.voidReasonPrompt);
+      if (!reason || !reason.trim()) return;
+      const id = Number(btn.dataset.voidAttendance);
+      const rec = attendanceRecords.find(r => r.id === id);
+      if (!rec) return;
+      rec.voided = true;
+      rec.voidReason = reason.trim();
+      renderAttendanceTable();
+    });
+  });
+  container.querySelectorAll("[data-restore-attendance]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const dict = i18n[currentLang];
+      if (!window.confirm(dict.restoreConfirm)) return;
+      const id = Number(btn.dataset.restoreAttendance);
+      const rec = attendanceRecords.find(r => r.id === id);
+      if (!rec) return;
+      rec.voided = false;
+      rec.voidReason = "";
+      renderAttendanceTable();
+    });
+  });
+}
+
+function renderAttendanceTable() {
+  const container = document.getElementById("attendanceList");
+  if (!container) return;
+  container.innerHTML = attendanceRecords.map(rec => buildAttendanceCardHtml(rec)).join("");
+  wireAttendanceCardEvents(container);
+  renderEmployeeOverviewList(); // 考勤数据(更正/作废/恢复)一变,员工总览里的早退次数也要跟着变
+}
+
+function parseHm(hm) {
+  const parts = hm.split(":");
+  return Number(parts[0]) * 60 + Number(parts[1]);
+}
+
+/** 根据当前 clockIn/clockOut 重新算出 rec.hours(小时数,一位小数,如 "8.5h")。
+    过零(跨天)情况下自动按次日处理,避免出现负数工时。 */
+function recalcAttendanceHours(rec) {
+  const startMin = parseHm(rec.clockIn);
+  let endMin = parseHm(rec.clockOut);
+  if (endMin < startMin) endMin += 24 * 60;
+  const hours = Math.round(((endMin - startMin) / 60) * 100) / 100;
+  rec.hours = hours + "h";
+}
+
+document.getElementById("form-correct-attendance").addEventListener("submit", e => {
+  e.preventDefault();
+  const id = Number(document.getElementById("correctAttendanceId").value);
+  const rec = attendanceRecords.find(r => r.id === id);
+  if (!rec) return;
+  const newClockIn = document.getElementById("correctClockIn").value;
+  const newClockOut = document.getElementById("correctClockOut").value;
+  const reason = document.getElementById("correctReason").value.trim();
+  if (!reason) return;
+  const dict = i18n[currentLang];
+  const now = new Date().toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB");
+  rec.edits = rec.edits || [];
+  let changed = false;
+  if (newClockIn && newClockIn !== rec.clockIn) {
+    rec.edits.push({ time: now, field: dict.fieldClockIn, oldValue: rec.clockIn, newValue: newClockIn, reason });
+    rec.clockIn = newClockIn;
+    changed = true;
+  }
+  if (newClockOut && newClockOut !== rec.clockOut) {
+    rec.edits.push({ time: now, field: dict.fieldClockOut, oldValue: rec.clockOut, newValue: newClockOut, reason });
+    rec.clockOut = newClockOut;
+    changed = true;
+  }
+  // Bug 修复:更正打卡时间后必须重新计算 rec.hours,否则考勤列表和
+  // 每日经营报告里的工资成本(computeDailyWageCost 读取的正是 rec.hours)会继续用旧值。
+  if (changed) recalcAttendanceHours(rec);
+  renderAttendanceTable();
+  closeModal(document.getElementById("modal-correct-attendance"));
+});
+
+/* ---------- 智能库存:SKU 档案 + 只增不改的流水 + 规则引擎"AI 建议" ----------
+   对应后端 InventoryModule(inventory_items / inventory_transactions):
+   current_quantity 只是流水聚合后的快照,库存数量永远只能通过"记录流水"变动
+   (RECEIPT 入库/CONSUMPTION 消耗/WASTE 浪费/ADJUSTMENT 盘点调整),这里的算法
+   (消耗速率预测断货天数、固定阈值判断、积压判断、浪费率预警)和后端
+   InventoryService 的规则完全一致,只是数据是演示用的假数据。 */
+const INV_OVERSTOCK_BUFFER_DAYS = 21;
+const INV_REORDER_BUFFER_DAYS = 7;
+const INV_WASTE_RATIO_THRESHOLD = 0.1;
+
+let inventoryIdCounter = 500;
+const inventoryItems = [
+  // 三文鱼柳:近 14 天日均消耗 5kg,采购提前期 3 天,当前只剩 15kg -> 预计 3 天后不足 -> LOW_STOCK
+  { id: inventoryIdCounter++, sku: "SALMON-001", name: "三文鱼柳", category: "生鲜", unit: "kg", currentQuantity: 15, reorderThreshold: null, reorderQuantity: null, leadTimeDays: 3, avgDailyConsumption: 5, wasteRatio: 0, transactions: [] },
+  // 外卖包装盒:库存 500 个,日均只用 2 个 -> 能撑 250 天,远超阈值 -> OVERSTOCK(资金占用)
+  { id: inventoryIdCounter++, sku: "PACKAGING-001", name: "外卖包装盒", category: "耗材", unit: "box", currentQuantity: 500, reorderThreshold: null, reorderQuantity: null, leadTimeDays: 2, avgDailyConsumption: 2, wasteRatio: 0, transactions: [] },
+  // 一次性手套:正常水位
+  { id: inventoryIdCounter++, sku: "GLOVES-001", name: "一次性手套", category: "耗材", unit: "box", currentQuantity: 40, reorderThreshold: null, reorderQuantity: null, leadTimeDays: 2, avgDailyConsumption: 4, wasteRatio: 0, transactions: [] },
+  // 生菜:库存天数正常,但近 30 天浪费占消耗量 20%,超过 10% 阈值 -> 浪费预警
+  { id: inventoryIdCounter++, sku: "LETTUCE-001", name: "生菜", category: "生鲜", unit: "kg", currentQuantity: 8, reorderThreshold: null, reorderQuantity: null, leadTimeDays: 1, avgDailyConsumption: 1, wasteRatio: 0.2, transactions: [] },
+  // 消毒纸巾:全新 SKU,还没有消耗历史,但管理员手动设置了固定阈值 -> 仍能判断库存不足
+  { id: inventoryIdCounter++, sku: "SANITIZER-001", name: "消毒纸巾", category: "清洁用品", unit: "pack", currentQuantity: 3, reorderThreshold: 10, reorderQuantity: 20, leadTimeDays: 2, avgDailyConsumption: null, wasteRatio: 0, transactions: [] }
+];
+
+function computeInventoryView(item) {
+  const avg = item.avgDailyConsumption;
+  const daysUntilStockout = avg && avg > 0 ? Math.round((item.currentQuantity / avg) * 10) / 10 : null;
+
+  const belowFixedThreshold = item.reorderThreshold !== null && item.reorderThreshold !== undefined
+    ? item.currentQuantity <= item.reorderThreshold
+    : false;
+  const belowLeadTimeDays = daysUntilStockout !== null ? daysUntilStockout <= item.leadTimeDays : false;
+
+  let status = "NORMAL";
+  let suggestedReorderQuantity = null;
+
+  if (belowFixedThreshold || belowLeadTimeDays) {
+    status = "LOW_STOCK";
+    suggestedReorderQuantity = (item.reorderQuantity !== null && item.reorderQuantity !== undefined)
+      ? item.reorderQuantity
+      : (avg && avg > 0 ? Math.max(0, Math.round(avg * (item.leadTimeDays + INV_REORDER_BUFFER_DAYS) - item.currentQuantity)) : null);
+  } else if (daysUntilStockout !== null && daysUntilStockout >= item.leadTimeDays + INV_OVERSTOCK_BUFFER_DAYS) {
+    status = "OVERSTOCK";
+  }
+
+  return { daysUntilStockout, status, suggestedReorderQuantity };
+}
+
+function buildInventoryInsights() {
+  const dict = i18n[currentLang];
+  const lowStock = [], overstock = [], waste = [];
+  inventoryItems.forEach(item => {
+    const view = computeInventoryView(item);
+    if (view.status === "LOW_STOCK") {
+      let msg;
+      if (view.daysUntilStockout !== null && view.suggestedReorderQuantity !== null) {
+        msg = dict.insightLowStockWithQty(item.name, view.daysUntilStockout, view.suggestedReorderQuantity, item.unit);
+      } else if (view.daysUntilStockout !== null) {
+        msg = dict.insightLowStockDaysOnly(item.name, view.daysUntilStockout);
+      } else {
+        msg = dict.insightLowStockThresholdOnly(item.name, item.currentQuantity, item.unit);
+      }
+      lowStock.push(msg);
+    } else if (view.status === "OVERSTOCK") {
+      // "如何减少库存":把积压天数换算成具体该暂停采购多少天,和后端 InventoryService 的公式一致。
+      const healthyDaysOfSupply = item.leadTimeDays + INV_REORDER_BUFFER_DAYS;
+      const suggestedPauseDays = Math.max(0, Math.round(view.daysUntilStockout - healthyDaysOfSupply));
+      overstock.push(dict.insightOverstock(item.name, view.daysUntilStockout, suggestedPauseDays));
+    }
+    if (item.wasteRatio && item.wasteRatio >= INV_WASTE_RATIO_THRESHOLD) {
+      waste.push(dict.insightWaste(item.name, (item.wasteRatio * 100).toFixed(1)));
+    }
+  });
+  return { lowStock, overstock, waste };
+}
+
+function renderInventoryInsights(containerId) {
+  const container = document.getElementById(containerId || "inventoryInsights");
+  if (!container) return;
+  const dict = i18n[currentLang];
+  const { lowStock, overstock, waste } = buildInventoryInsights();
+  const all = []
+    .concat(lowStock.map(msg => ({ type: "low-stock", icon: "⚠️", msg: msg })))
+    .concat(overstock.map(msg => ({ type: "overstock", icon: "📦", msg: msg })))
+    .concat(waste.map(msg => ({ type: "waste", icon: "♻️", msg: msg })));
+  container.innerHTML = all.length
+    ? all.map(a => '<div class="insight-card ' + a.type + '">' + a.icon + " " + a.msg + "</div>").join("")
+    : '<div class="insight-empty">' + dict.noInsights + "</div>";
+}
+
+function buildInventoryRowHtml(item) {
+  const dict = i18n[currentLang];
+  const view = computeInventoryView(item);
+  const statusBadgeClass = view.status === "LOW_STOCK" ? "danger" : (view.status === "OVERSTOCK" ? "warning" : "success");
+  const statusLabel = view.status === "LOW_STOCK" ? dict.statusLowStock : (view.status === "OVERSTOCK" ? dict.statusOverstock : dict.statusNormalStock);
+  const daysLabel = view.daysUntilStockout !== null ? (view.daysUntilStockout + " " + dict.daysUnit) : "—";
+  const suggestedLabel = view.suggestedReorderQuantity !== null ? (view.suggestedReorderQuantity + " " + item.unit) : "—";
+
+  const txHistory = item.transactions || [];
+  const txHtml = txHistory.length
+    ? txHistory.map(t => '<div class="edit-history-item">' + t.time + " · " + t.typeLabel + " " + (t.signedQuantity >= 0 ? "+" : "") + t.signedQuantity + " " + item.unit + (t.note ? " (" + t.note + ")" : "") + "</div>").join("")
+    : '<div style="font-size:12px;color:var(--text-2);">' + dict.noTransactionsYet + "</div>";
+
+  return '<div class="leave-card" data-inventory-card="' + item.id + '">' +
+    '<div class="leave-card-head">' +
+      "<span><strong>" + item.name + "</strong> · " + item.sku + (item.category ? " · " + item.category : "") + "</span>" +
+      '<span style="margin-left:auto;display:flex;gap:8px;align-items:center;"><span class="badge ' + statusBadgeClass + '">' + statusLabel + "</span></span>" +
+    "</div>" +
+    '<div class="leave-card-reason">' + dict.colCurrentQty + ": " + item.currentQuantity + " " + item.unit +
+      " · " + dict.colDaysLeft + ": " + daysLabel +
+      " · " + dict.colSuggestedReorder + ": " + suggestedLabel + "</div>" +
+    '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">' +
+      '<button class="btn btn-primary" style="height:32px;padding:0 14px;font-size:12px;" data-record-transaction="' + item.id + '">' + dict.recordTransaction + "</button>" +
+      '<button class="btn btn-outline" style="height:32px;padding:0 14px;font-size:12px;" data-edit-inventory-item="' + item.id + '">' + dict.editItem + "</button>" +
+    "</div>" +
+    '<button class="msg-toggle" data-toggle-inventory-tx="' + item.id + '" style="margin-top:8px;">' + dict.viewTransactionHistory + "</button>" +
+    '<div class="msg-thread hidden" id="inv-tx-thread-' + item.id + '">' + txHtml + "</div>" +
+  "</div>";
+}
+
+function openInventoryItemModal(item) {
+  const dict = i18n[currentLang];
+  document.getElementById("inventoryItemModalTitle").textContent = item ? dict.editItem : dict.addInventoryItem;
+  document.getElementById("btnSubmitInventoryItem").textContent = item ? dict.saveChanges : dict.submitAddItem;
+  document.getElementById("inventoryItemId").value = item ? String(item.id) : "";
+  const skuField = document.getElementById("invFieldSku");
+  skuField.value = item ? item.sku : "";
+  skuField.disabled = !!item; // SKU 是查重键,创建后不允许再改,和后端规则一致
+  document.getElementById("invFieldName").value = item ? item.name : "";
+  document.getElementById("invFieldCategory").value = item ? (item.category || "") : "";
+  document.getElementById("invFieldUnit").value = item ? item.unit : "kg";
+  document.getElementById("invFieldReorderThreshold").value = (item && item.reorderThreshold !== null && item.reorderThreshold !== undefined) ? item.reorderThreshold : "";
+  document.getElementById("invFieldReorderQuantity").value = (item && item.reorderQuantity !== null && item.reorderQuantity !== undefined) ? item.reorderQuantity : "";
+  document.getElementById("invFieldLeadTimeDays").value = item ? item.leadTimeDays : 2;
+  openModal("modal-inventory-item");
+}
+
+function updateInvQuantityHint() {
+  const type = document.getElementById("invFieldTransactionType").value;
+  const dict = i18n[currentLang];
+  document.getElementById("invQuantityLabel").textContent = type === "ADJUSTMENT" ? dict.fieldQuantityAdjustment : dict.fieldQuantity;
+}
+
+function wireInventoryCardEvents(container) {
+  container.querySelectorAll("[data-toggle-inventory-tx]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const dict = i18n[currentLang];
+      const thread = document.getElementById("inv-tx-thread-" + btn.dataset.toggleInventoryTx);
+      thread.classList.toggle("hidden");
+      btn.textContent = thread.classList.contains("hidden") ? dict.viewTransactionHistory : dict.hideTransactionHistory;
+    });
+  });
+  container.querySelectorAll("[data-record-transaction]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const dict = i18n[currentLang];
+      const id = Number(btn.dataset.recordTransaction);
+      const item = inventoryItems.find(i => i.id === id);
+      if (!item) return;
+      document.getElementById("transactionItemId").value = String(id);
+      document.getElementById("inventoryTransactionContext").textContent = item.name + " · " + item.sku + " · " + dict.colCurrentQty + ": " + item.currentQuantity + " " + item.unit;
+      document.getElementById("invFieldTransactionType").value = "RECEIPT";
+      document.getElementById("invFieldQuantity").value = "";
+      document.getElementById("invFieldNote").value = "";
+      document.getElementById("invStockError").classList.add("hidden");
+      updateInvQuantityHint();
+      openModal("modal-inventory-transaction");
+    });
+  });
+  container.querySelectorAll("[data-edit-inventory-item]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.dataset.editInventoryItem);
+      const item = inventoryItems.find(i => i.id === id);
+      if (!item) return;
+      openInventoryItemModal(item);
+    });
+  });
+}
+
+function renderInventoryTable() {
+  const container = document.getElementById("inventoryList");
+  if (!container) return;
+  container.innerHTML = inventoryItems.map(item => buildInventoryRowHtml(item)).join("");
+  wireInventoryCardEvents(container);
+  renderInventoryInsights();
+  updateEmpInventoryCardNote(); // 员工主页"仓库领用"卡片的提示文案也依赖同一份库存数据,一起刷新
+}
+
+/* ---------- 员工端"仓库领用"(需求:员工从仓库/操作间取货时,库存要实时同步给后台) ----------
+   这里没有另外造一套"员工库存表",而是复用公司后台"智能库存"用的同一份 inventoryItems
+   数据和同一套 computeInventoryView() 判断逻辑——员工领用本质上就是一次 CONSUMPTION 流水,
+   只是发起方是员工而不是管理员,备注里带上员工姓名。因为两边共享同一份内存数据,员工这边
+   一领用,库存数字立刻就是后台看到的数字,不需要额外的"通知后台"步骤;真实后端里这里
+   应该是同一条 POST /inventory-items/:id/transactions,只是 actor 字段记录成 employee。 */
+function buildEmpInventoryWithdrawRowHtml(item) {
+  const dict = i18n[currentLang];
+  return '<div class="leave-card" data-emp-withdraw-card="' + item.id + '">' +
+    '<div class="leave-card-head">' +
+      '<span><strong>' + item.name + '</strong> · ' + item.sku + (item.category ? ' · ' + item.category : '') + '</span>' +
+      '<span style="margin-left:auto;font-size:12.5px;color:var(--text-2);">' + dict.colCurrentQty + ': <span id="empWithdrawQtyLabel-' + item.id + '">' + item.currentQuantity + '</span> ' + item.unit + '</span>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">' +
+      '<input type="number" min="0" step="0.01" placeholder="' + dict.empInventoryQtyPlaceholder + '" id="empWithdrawInput-' + item.id + '" style="width:110px;height:36px;border-radius:10px;border:1px solid var(--border-c);background:rgba(120,130,160,.06);padding:0 10px;font-size:13px;" />' +
+      '<button class="btn btn-primary" style="height:36px;padding:0 16px;font-size:12.5px;" data-emp-withdraw="' + item.id + '">' + dict.empInventoryWithdrawBtn + '</button>' +
+    '</div>' +
+    '<div class="field-hint hidden" id="empWithdrawStatus-' + item.id + '" style="margin-top:6px;"></div>' +
+  '</div>';
+}
+
+function renderEmpInventoryWithdrawList() {
+  const container = document.getElementById("empInventoryWithdrawList");
+  if (!container) return;
+  const dict = i18n[currentLang];
+  container.innerHTML = inventoryItems.length
+    ? inventoryItems.map(item => buildEmpInventoryWithdrawRowHtml(item)).join("")
+    : '<div class="insight-empty">' + dict.empInventoryNoItems + '</div>';
+  container.querySelectorAll("[data-emp-withdraw]").forEach(btn => {
+    btn.addEventListener("click", () => handleEmpInventoryWithdraw(Number(btn.dataset.empWithdraw)));
+  });
+}
+
+function handleEmpInventoryWithdraw(itemId) {
+  const dict = i18n[currentLang];
+  const item = inventoryItems.find(i => i.id === itemId);
+  if (!item) return;
+  const input = document.getElementById("empWithdrawInput-" + itemId);
+  const statusEl = document.getElementById("empWithdrawStatus-" + itemId);
+  const qty = Number(input.value);
+  if (!qty || qty <= 0) return;
+  if (qty > item.currentQuantity) {
+    statusEl.textContent = dict.empInventoryInsufficientStock;
+    statusEl.style.color = "var(--danger)";
+    statusEl.classList.remove("hidden");
+    return;
+  }
+
+  item.currentQuantity = Math.round((item.currentQuantity - qty) * 1000) / 1000;
+  item.transactions = item.transactions || [];
+  item.transactions.unshift({
+    time: new Date().toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB"),
+    typeLabel: dict.typeConsumption,
+    signedQuantity: -qty,
+    note: (currentLang === "zh" ? "员工领用 - " : "Employee withdrawal - ") + "Alex Chen"
+  });
+  input.value = "";
+
+  // 只更新这一行显示的库存数字和状态提示,不整份重新渲染列表——否则刚设置好的
+  // "领用成功/库存不足预警"提示会被重新渲染直接冲掉,用户看不到反馈。
+  const qtyLabel = document.getElementById("empWithdrawQtyLabel-" + itemId);
+  if (qtyLabel) qtyLabel.textContent = item.currentQuantity;
+
+  const view = computeInventoryView(item);
+  if (view.status === "LOW_STOCK") {
+    statusEl.textContent = dict.empInventoryWithdrawnNote(qty, item.unit) + " · " + dict.empInventoryLowStockAfter;
+    statusEl.style.color = "var(--danger)";
+  } else {
+    statusEl.textContent = dict.empInventoryWithdrawnNote(qty, item.unit);
+    statusEl.style.color = "var(--success)";
+  }
+  statusEl.classList.remove("hidden");
+
+  updateEmpInventoryCardNote();
+  renderInventoryTable(); // 公司后台"智能库存"和员工这边共用同一份 inventoryItems,这里同步刷新
+  renderDailyReport();    // 每日经营报告里的库存提醒也要跟着变
+}
+
+/** 员工主页"仓库领用"卡片下面的一行小字:平时是操作提示,一旦有库存低于警戒线,
+    就换成醒目的提醒文案,鼓励员工点进去看看、顺手通知管理员进货。 */
+function updateEmpInventoryCardNote() {
+  const dict = i18n[currentLang];
+  const noteEl = document.getElementById("empInventoryLowStockNote");
+  if (!noteEl) return;
+  const lowStockCount = inventoryItems.filter(item => computeInventoryView(item).status === "LOW_STOCK").length;
+  if (lowStockCount > 0) {
+    noteEl.textContent = dict.empInventoryNoteWithLowStock(lowStockCount);
+    noteEl.style.color = "var(--danger)";
+  } else {
+    noteEl.textContent = dict.empInventoryNote;
+    noteEl.style.color = "";
+  }
+}
+
+document.getElementById("btnOpenInventoryWithdraw").addEventListener("click", () => {
+  renderEmpInventoryWithdrawList();
+  openModal("modal-inventory-withdraw");
+});
+
+document.getElementById("btnAddInventoryItem").addEventListener("click", () => openInventoryItemModal(null));
+document.getElementById("invFieldTransactionType").addEventListener("change", updateInvQuantityHint);
+
+document.getElementById("form-inventory-item").addEventListener("submit", e => {
+  e.preventDefault();
+  const dict = i18n[currentLang];
+  const idVal = document.getElementById("inventoryItemId").value;
+  const sku = document.getElementById("invFieldSku").value.trim();
+  const name = document.getElementById("invFieldName").value.trim();
+  const category = document.getElementById("invFieldCategory").value.trim();
+  const unit = document.getElementById("invFieldUnit").value;
+  const reorderThresholdRaw = document.getElementById("invFieldReorderThreshold").value;
+  const reorderQuantityRaw = document.getElementById("invFieldReorderQuantity").value;
+  const leadTimeDays = Number(document.getElementById("invFieldLeadTimeDays").value) || 0;
+  if (!sku || !name) return;
+
+  if (idVal) {
+    const item = inventoryItems.find(i => i.id === Number(idVal));
+    if (!item) return;
+    item.name = name;
+    item.category = category || null;
+    item.unit = unit;
+    item.reorderThreshold = reorderThresholdRaw !== "" ? Number(reorderThresholdRaw) : null;
+    item.reorderQuantity = reorderQuantityRaw !== "" ? Number(reorderQuantityRaw) : null;
+    item.leadTimeDays = leadTimeDays;
+  } else {
+    const dupe = inventoryItems.some(i => i.sku.toLowerCase() === sku.toLowerCase());
+    if (dupe) {
+      window.alert(dict.duplicateSkuError);
+      return;
+    }
+    inventoryItems.push({
+      id: inventoryIdCounter++, sku: sku, name: name, category: category || null, unit: unit,
+      currentQuantity: 0,
+      reorderThreshold: reorderThresholdRaw !== "" ? Number(reorderThresholdRaw) : null,
+      reorderQuantity: reorderQuantityRaw !== "" ? Number(reorderQuantityRaw) : null,
+      leadTimeDays: leadTimeDays, avgDailyConsumption: null, wasteRatio: 0, transactions: []
+    });
+  }
+  renderInventoryTable();
+  closeModal(document.getElementById("modal-inventory-item"));
+});
+
+document.getElementById("form-inventory-transaction").addEventListener("submit", e => {
+  e.preventDefault();
+  const dict = i18n[currentLang];
+  const itemId = Number(document.getElementById("transactionItemId").value);
+  const item = inventoryItems.find(i => i.id === itemId);
+  if (!item) return;
+  const type = document.getElementById("invFieldTransactionType").value;
+  const rawQuantity = Number(document.getElementById("invFieldQuantity").value);
+  const note = document.getElementById("invFieldNote").value.trim();
+  const errorEl = document.getElementById("invStockError");
+  errorEl.classList.add("hidden");
+
+  let signedQuantity;
+  if (type === "RECEIPT") signedQuantity = Math.abs(rawQuantity);
+  else if (type === "CONSUMPTION" || type === "WASTE") signedQuantity = -Math.abs(rawQuantity);
+  else signedQuantity = rawQuantity - item.currentQuantity; // ADJUSTMENT:rawQuantity 是盘点后的实际数量,差值才是真正落流水的量
+
+  const quantityAfter = Math.round((item.currentQuantity + signedQuantity) * 1000) / 1000;
+  if (quantityAfter < 0) {
+    errorEl.textContent = dict.insufficientStockError;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+
+  const typeLabelMap = { RECEIPT: dict.typeReceipt, CONSUMPTION: dict.typeConsumption, WASTE: dict.typeWaste, ADJUSTMENT: dict.typeAdjustment };
+  item.transactions = item.transactions || [];
+  item.transactions.unshift({
+    time: new Date().toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB"),
+    typeLabel: typeLabelMap[type],
+    signedQuantity: signedQuantity,
+    note: note
+  });
+  item.currentQuantity = quantityAfter;
+
+  renderInventoryTable();
+  closeModal(document.getElementById("modal-inventory-transaction"));
+});
+
+/* ---------- 每日经营报告:GPS 异常停留 + 工时/工资成本 + 库存提醒 ----------
+   对应后端新增的 ReportsModule(聚合 AttendanceModule + GpsModule + PayrollModule +
+   InventoryModule)。GPS 异常停留检测算法和后端 GpsService.computeDwellAnomaliesFromPings
+   完全一致(连续低速打点合并成停留窗口,>=20 分钟判定异常),工资成本计算规则也和
+   后端 PayrollService.getDailyWageCost 一致(每日 8 小时内正常工资,超出部分 1.5 倍)。
+   这里只是用演示假数据跑同一套算法,不是另外发明一套。 */
+const GPS_STATIONARY_SPEED_THRESHOLD_KMH = 3;
+const GPS_DWELL_ANOMALY_MINUTES = 20;
+
+function gpsPing(employeeName, sessionId, hh, mm, speedKmh) {
+  const d = new Date();
+  d.setHours(hh, mm, 0, 0);
+  return { employeeName: employeeName, sessionId: sessionId, recordedAt: d, speedKmh: speedKmh };
+}
+
+// 演示数据:Sam Park 送外卖途中在 13:10-13:38(28 分钟)几乎没有移动 -> 异常停留;
+// Maria Santos 只是正常的短暂停留(5 分钟)-> 不算异常。
+const gpsPingsDemo = [
+  gpsPing("Sam Park", "sess-sam-1", 13, 0, 18),
+  gpsPing("Sam Park", "sess-sam-1", 13, 5, 15),
+  gpsPing("Sam Park", "sess-sam-1", 13, 10, 2),
+  gpsPing("Sam Park", "sess-sam-1", 13, 15, 1),
+  gpsPing("Sam Park", "sess-sam-1", 13, 20, 0.5),
+  gpsPing("Sam Park", "sess-sam-1", 13, 25, 1),
+  gpsPing("Sam Park", "sess-sam-1", 13, 28, 2),
+  gpsPing("Sam Park", "sess-sam-1", 13, 38, 1),
+  gpsPing("Sam Park", "sess-sam-1", 13, 40, 22),
+  gpsPing("Maria Santos", "sess-maria-1", 9, 0, 20),
+  gpsPing("Maria Santos", "sess-maria-1", 9, 5, 1),
+  gpsPing("Maria Santos", "sess-maria-1", 9, 10, 2),
+  gpsPing("Maria Santos", "sess-maria-1", 9, 15, 18)
+];
+
+function computeGpsDwellAnomalies(pings) {
+  const anomalies = [];
+  let windowStart = null, prevPing = null, currentEmployee = null, currentSession = null;
+
+  const flush = (endPing) => {
+    if (windowStart && endPing && currentEmployee && currentSession) {
+      const durationMinutes = Math.round((endPing.recordedAt.getTime() - windowStart.recordedAt.getTime()) / 60000);
+      if (durationMinutes >= GPS_DWELL_ANOMALY_MINUTES) {
+        anomalies.push({
+          employeeName: currentEmployee,
+          sessionId: currentSession,
+          startTime: windowStart.recordedAt,
+          endTime: endPing.recordedAt,
+          durationMinutes: durationMinutes
+        });
+      }
+    }
+    windowStart = null;
+  };
+
+  pings.forEach(ping => {
+    const isStationary = ping.speedKmh !== null && ping.speedKmh !== undefined && ping.speedKmh <= GPS_STATIONARY_SPEED_THRESHOLD_KMH;
+    if (currentEmployee !== ping.employeeName || currentSession !== ping.sessionId) {
+      flush(prevPing);
+      currentEmployee = ping.employeeName;
+      currentSession = ping.sessionId;
+      windowStart = isStationary ? ping : null;
+    } else if (isStationary) {
+      if (!windowStart) windowStart = ping;
+    } else {
+      flush(prevPing);
+    }
+    prevPing = ping;
+  });
+  flush(prevPing);
+
+  return anomalies;
+}
+
+function formatHm(d) {
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+function renderDailyReportGps() {
+  const dict = i18n[currentLang];
+  const container = document.getElementById("dailyReportGpsList");
+  if (!container) return;
+  const anomalies = computeGpsDwellAnomalies(gpsPingsDemo);
+  container.innerHTML = anomalies.length
+    ? anomalies.map(a => '<div class="insight-card low-stock">⚠️ ' + dict.gpsAnomalyMessage(a.employeeName, formatHm(a.startTime), formatHm(a.endTime), a.durationMinutes) + "</div>").join("")
+    : '<div class="insight-empty">' + dict.noGpsAnomalies + "</div>";
+}
+
+// 演示用时薪(分),真实后端由 PayrollService.setWageConfig 按员工单独配置,版本化保留历史费率。
+const employeeWageRatesCents = { "Alex Chen": 1500, "Maria Santos": 1400, "Sam Park": 1300 };
+
+function computeDailyWageCost() {
+  return attendanceRecords
+    .filter(rec => !rec.voided) // 作废的记录不计入工资成本,和考勤模块的规则一致
+    .map(rec => {
+      const hours = parseFloat(rec.hours);
+      const rateCents = employeeWageRatesCents[rec.employeeName] || 0;
+      const regularHours = Math.min(hours, 8);
+      const overtimeHours = Math.max(hours - 8, 0);
+      const regularCostCents = Math.round(regularHours * rateCents);
+      const overtimeCostCents = Math.round(overtimeHours * rateCents * 1.5);
+      return {
+        employeeName: rec.employeeName,
+        regularHours: regularHours,
+        overtimeHours: overtimeHours,
+        costCents: regularCostCents + overtimeCostCents
+      };
+    });
+}
+
+function renderDailyReportWageTable() {
+  const dict = i18n[currentLang];
+  const table = document.getElementById("dailyReportWageTable");
+  if (!table) return;
+  const rows = computeDailyWageCost();
+  let totalCostCents = 0;
+  let html = "<tr><th>" + dict.colName + "</th><th>" + dict.colRegular + "</th><th>" + dict.colOvertime + "</th><th>" + dict.colWageCost + "</th></tr>";
+  rows.forEach(r => {
+    totalCostCents += r.costCents;
+    html += "<tr><td>" + r.employeeName + "</td><td>" + r.regularHours.toFixed(2) + "h</td><td>" + r.overtimeHours.toFixed(2) + "h</td><td>€" + (r.costCents / 100).toFixed(2) + "</td></tr>";
+  });
+  html += "<tr><td><strong>" + dict.totalRow + "</strong></td><td></td><td></td><td><strong>€" + (totalCostCents / 100).toFixed(2) + "</strong></td></tr>";
+  table.innerHTML = html;
+}
+
+function renderDailyReport() {
+  renderDailyReportGps();
+  renderDailyReportWageTable();
+  renderInventoryInsights("dailyReportInventoryList");
+}
+
+/* ---------- 密码修改 / 找回密码:JS 逻辑 ---------- */
+function getPasswordHash(context) {
+  if (context === "employee") return employeeDemoPasswordHash;
+  if (context === "company") return companyAdminDemoPasswordHash;
+  return platformAdminPasswordHash;
+}
+function setPasswordHash(context, hash) {
+  if (context === "employee") employeeDemoPasswordHash = hash;
+  else if (context === "company") companyAdminDemoPasswordHash = hash;
+  else platformAdminPasswordHash = hash;
+}
+function isPasswordStrongEnough(pwd) {
+  return pwd.length >= 8 && /[A-Za-z]/.test(pwd) && /[0-9]/.test(pwd);
+}
+
+function openChangePasswordModal(context) {
+  document.getElementById("changePasswordContext").value = context;
+  document.getElementById("form-change-password").reset();
+  document.getElementById("changePasswordError").classList.add("hidden");
+  openModal("modal-change-password");
+}
+
+document.querySelectorAll("[data-open-change-password]").forEach(btn => {
+  btn.addEventListener("click", () => openChangePasswordModal(btn.dataset.openChangePassword));
+});
+
+document.getElementById("form-change-password").addEventListener("submit", async e => {
+  e.preventDefault();
+  const dict = i18n[currentLang];
+  const context = document.getElementById("changePasswordContext").value;
+  const current = document.getElementById("currentPasswordInput").value;
+  const next = document.getElementById("newPasswordInput").value;
+  const confirmValue = document.getElementById("confirmPasswordInput").value;
+  const errorEl = document.getElementById("changePasswordError");
+
+  const currentHash = await sha256Hex(current);
+  if (currentHash !== getPasswordHash(context)) {
+    errorEl.textContent = dict.currentPasswordWrong;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  if (!isPasswordStrongEnough(next)) {
+    errorEl.textContent = dict.passwordStrengthError;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  if (next !== confirmValue) {
+    errorEl.textContent = dict.passwordMismatch;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+
+  setPasswordHash(context, await sha256Hex(next));
+  errorEl.classList.add("hidden");
+  window.alert(dict.passwordChanged);
+  closeModal(document.getElementById("modal-change-password"));
+});
+
+// 找回密码:两步流程(发送验证码 -> 输入验证码+新密码),用一个内存变量模拟"服务端刚生成的验证码"。
+let forgotPasswordDemoCode = "";
+
+function openForgotPasswordModal(context) {
+  document.getElementById("forgotPasswordContext").value = context;
+  document.getElementById("form-forgot-password-request").classList.remove("hidden");
+  document.getElementById("form-forgot-password-reset").classList.add("hidden");
+  document.getElementById("form-forgot-password-request").reset();
+  document.getElementById("form-forgot-password-reset").reset();
+  document.getElementById("forgotPasswordError").classList.add("hidden");
+  document.getElementById("forgotPasswordCodeDisplay").textContent = "";
+  openModal("modal-forgot-password");
+}
+
+document.querySelectorAll("[data-open-forgot-password]").forEach(btn => {
+  btn.addEventListener("click", () => openForgotPasswordModal(btn.dataset.openForgotPassword));
+});
+
+document.getElementById("form-forgot-password-request").addEventListener("submit", e => {
+  e.preventDefault();
+  const dict = i18n[currentLang];
+  // 真实后端(AuthService.requestPasswordReset)是生成一个哈希存库、原始值只发邮件的一次性
+  // token;演示环境没有邮件基础设施,所以直接生成一个 6 位数字验证码显示在页面上,
+  // 并在注释里如实说明"真实环境这里不会显示,只会发到邮箱"。
+  forgotPasswordDemoCode = String(Math.floor(100000 + Math.random() * 900000));
+  document.getElementById("forgotPasswordCodeDisplay").textContent = dict.demoCodeLabel + ": " + forgotPasswordDemoCode;
+  document.getElementById("form-forgot-password-request").classList.add("hidden");
+  document.getElementById("form-forgot-password-reset").classList.remove("hidden");
+});
+
+document.getElementById("form-forgot-password-reset").addEventListener("submit", async e => {
+  e.preventDefault();
+  const dict = i18n[currentLang];
+  const context = document.getElementById("forgotPasswordContext").value;
+  const code = document.getElementById("resetCodeInput").value.trim();
+  const next = document.getElementById("resetNewPasswordInput").value;
+  const confirmValue = document.getElementById("resetConfirmPasswordInput").value;
+  const errorEl = document.getElementById("forgotPasswordError");
+
+  if (code !== forgotPasswordDemoCode) {
+    errorEl.textContent = dict.resetCodeWrong;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  if (!isPasswordStrongEnough(next)) {
+    errorEl.textContent = dict.passwordStrengthError;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  if (next !== confirmValue) {
+    errorEl.textContent = dict.passwordMismatch;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+
+  setPasswordHash(context, await sha256Hex(next));
+  forgotPasswordDemoCode = ""; // 一次性使用,重放同一个验证码会被拒绝
+  window.alert(dict.passwordResetSuccess);
+  closeModal(document.getElementById("modal-forgot-password"));
+});
+
 applyI18n();
-updateAnnualBalanceDisplay();
 </script>
 </body>
 </html>
