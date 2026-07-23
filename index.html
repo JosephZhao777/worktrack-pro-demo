@@ -623,8 +623,8 @@
       <button class="tab-active-toggle" data-tab="register" data-i18n="register">注册</button>
     </div>
     <form id="form-employee-login" class="auth-pane">
-      <div class="field"><label data-i18n="fieldEmployeeCode">员工编号 / 手机号</label><input type="text" id="empLoginCode" value="EMP-1024" placeholder="e.g. EMP-1024" /></div>
-      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" id="empLoginPassword" value="MyPassword123" placeholder="••••••••" /></div>
+      <div class="field"><label data-i18n="fieldEmployeeCode">员工编号 / 手机号</label><input type="text" id="empLoginCode" placeholder="e.g. EMP-1024" /></div>
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" id="empLoginPassword" placeholder="••••••••" /></div>
       <button type="button" class="msg-toggle" style="margin:-4px 0 10px;" data-open-forgot-password="employee" data-i18n="forgotPasswordLink">忘记密码?</button>
       <p class="field-hint hidden" id="employeeLoginError" style="color:var(--danger);" data-i18n="employeeLoginError">员工编号或密码不正确</p>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="login">登录</button>
@@ -657,8 +657,8 @@
       <button class="tab-active-toggle" data-tab="register" data-i18n="registerCompany">注册我的公司</button>
     </div>
     <form id="form-company-login" class="auth-pane">
-      <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" id="companyLoginEmail" value="admin@yourcompany.com" placeholder="admin@yourcompany.com" /></div>
-      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" id="companyLoginPassword" value="MyOwnPassword123" placeholder="••••••••" /></div>
+      <div class="field"><label data-i18n="fieldEmail">邮箱</label><input type="email" id="companyLoginEmail" placeholder="admin@yourcompany.com" /></div>
+      <div class="field"><label data-i18n="fieldPassword">密码</label><input type="password" id="companyLoginPassword" placeholder="••••••••" /></div>
       <button type="button" class="msg-toggle" style="margin:-4px 0 10px;" data-open-forgot-password="company" data-i18n="forgotPasswordLink">忘记密码?</button>
       <p class="field-hint hidden" id="companyLoginError" style="color:var(--danger);" data-i18n="companyLoginError">邮箱或密码不正确</p>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="login">登录</button>
@@ -851,9 +851,13 @@
       <div class="form-grid">
         <div class="field"><label data-i18n="fieldSku">SKU 编号</label><input type="text" id="invFieldSku" required /></div>
         <div class="field"><label data-i18n="fieldItemName">商品名称</label><input type="text" id="invFieldName" required /></div>
+        <div class="field full">
+          <label data-i18n="fieldCurrentQtyDisplay">当前库存总量</label>
+          <div id="invCurrentQtyDisplay" style="padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:14px;">—</div>
+        </div>
         <div class="field"><label data-i18n="fieldCategory">分类(可选)</label><input type="text" id="invFieldCategory" /></div>
         <div class="field">
-          <label data-i18n="fieldUnit">计量单位</label>
+          <label data-i18n="fieldUnit">单位</label>
           <select id="invFieldUnit">
             <option value="kg">kg</option>
             <option value="g">g</option>
@@ -864,14 +868,16 @@
             <option value="pack" data-i18n="unitPack">包</option>
           </select>
         </div>
-        <div class="field"><label data-i18n="fieldReorderThreshold">补货阈值(可选)</label><input type="number" min="0" step="0.01" id="invFieldReorderThreshold" /></div>
-        <div class="field"><label data-i18n="fieldReorderQuantity">建议采购量(可选)</label><input type="number" min="0" step="0.01" id="invFieldReorderQuantity" /></div>
+        <div class="field"><label data-i18n="fieldReorderThreshold">进货阈值(可选)</label><input type="number" min="0" step="0.01" id="invFieldReorderThreshold" /></div>
+        <div class="field"><label data-i18n="fieldReorderQuantity">建议进货数量(可选)</label><input type="number" min="0" step="0.01" id="invFieldReorderQuantity" /></div>
         <div class="field"><label data-i18n="fieldLeadTimeDays">采购提前期(天)</label><input type="number" min="0" max="90" step="1" id="invFieldLeadTimeDays" value="2" /></div>
+        <div class="field full" style="font-weight:600;margin-top:2px;" data-i18n="sectionPackaging">分包装数量</div>
         <div class="field"><label data-i18n="fieldPackSize">每箱/包数量(可选)</label><input type="number" min="0" step="0.01" id="invFieldPackSize" placeholder="例如 24" /></div>
         <div class="field"><label data-i18n="fieldPackUnitLabel">箱/包单位标签</label><input type="text" id="invFieldPackUnitLabel" placeholder="箱" /></div>
       </div>
-      <div class="field-hint" id="inventoryItemQuantityHint" data-i18n="inventoryItemHint">库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过"记录流水"入库。</div>
-      <div class="field-hint" data-i18n="packSizeHint">不是每个商品都按箱管理:填了"每箱数量",库存和采购建议会顺带换算成箱数;留空就只按上面的计量单位显示。</div>
+      <div class="field-hint" id="inventoryItemQuantityHint" data-i18n="inventoryItemHint">库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过"记录流水"入库(员工每次从仓库补货到操作间,这里的总量也会相应减少)。</div>
+      <div class="field-hint" data-i18n="reorderThresholdHint">当前库存总量低于"进货阈值"时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。</div>
+      <div class="field-hint" data-i18n="packSizeHint">不是每个商品都按箱管理:填了"每箱数量",库存和采购建议会顺带换算成箱数;留空就只按上面的单位显示。</div>
       <button type="submit" class="btn btn-primary btn-block" id="btnSubmitInventoryItem" data-i18n="submitAddItem">保存</button>
     </form>
   </div>
@@ -1051,9 +1057,11 @@ const i18n = {
     navInventory: "智能库存",
     inventorySub: "系统按近 14 天的消耗速率自动预测断货天数与建议采购量,近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过\"记录流水\"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。",
     addInventoryItem: "+ 新增库存商品", editItem: "编辑商品资料", submitAddItem: "保存",
-    fieldSku: "SKU 编号", fieldItemName: "商品名称", fieldCategory: "分类(可选)", fieldUnit: "计量单位",
-    fieldReorderThreshold: "补货阈值(可选)", fieldReorderQuantity: "建议采购量(可选)", fieldLeadTimeDays: "采购提前期(天)",
-    inventoryItemHint: "库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过\"记录流水\"入库。",
+    fieldSku: "SKU 编号", fieldItemName: "商品名称", fieldCategory: "分类(可选)", fieldUnit: "单位",
+    fieldReorderThreshold: "进货阈值(可选)", fieldReorderQuantity: "建议进货数量(可选)", fieldLeadTimeDays: "采购提前期(天)",
+    fieldCurrentQtyDisplay: "当前库存总量", sectionPackaging: "分包装数量", newItemStartsAtZero: "新建商品,库存从 0 开始",
+    reorderThresholdHint: "当前库存总量低于“进货阈值”时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。",
+    inventoryItemHint: "库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过\"记录流水\"入库(员工每次从仓库补货到操作间,这里的总量也会相应减少)。",
     inventoryItemEditHint: function (qty, unit) { return "当前库存(" + qty + " " + unit + ")不能在这里直接改——如果盘点后发现数字不对,请用\"记录流水 → 盘点调整\"来修正,系统会自动算出差值并留下记录,不会出现来路不明的数字变动。"; },
     unitPiece: "件", unitBox: "箱", unitPack: "包",
     recordTransaction: "记录流水", fieldTransactionType: "流水类型",
@@ -1073,7 +1081,7 @@ const i18n = {
     insightOverstock: function (name, days, pauseDays) { return name + "目前库存可支撑约 " + days + " 天,明显高于正常水位,建议暂停采购约 " + pauseDays + " 天(或用促销/内部消耗加快周转),以减少资金占用。"; },
     insightWaste: function (name, ratioPct) { return name + "最近 30 天的浪费占消耗量的 " + ratioPct + "%,建议排查储存或采购批量是否合理。"; },
     fieldPackSize: "每箱/包数量(可选)", fieldPackUnitLabel: "箱/包单位标签",
-    packSizeHint: "不是每个商品都按箱管理:填了“每箱数量”,库存和采购建议会顺带换算成箱数;留空就只按上面的计量单位显示。",
+    packSizeHint: "不是每个商品都按箱管理:填了“每箱数量”,库存和采购建议会顺带换算成箱数;留空就只按上面的单位显示。",
     colSpec: "规格", defaultPackUnitLabel: "箱",
     packCountSuffix: function (packs, packUnitLabel) { return "(约 " + packs + " " + packUnitLabel + ")"; },
     inventoryHistoryModalTitle: function (name) { return name + " · 流水记录"; },
@@ -1226,7 +1234,9 @@ const i18n = {
     addInventoryItem: "+ Add inventory item", editItem: "Edit item", submitAddItem: "Save",
     fieldSku: "SKU", fieldItemName: "Item name", fieldCategory: "Category (optional)", fieldUnit: "Unit",
     fieldReorderThreshold: "Reorder threshold (optional)", fieldReorderQuantity: "Suggested reorder quantity (optional)", fieldLeadTimeDays: "Lead time (days)",
-    inventoryItemHint: "Stock quantity can't be set here directly — a new item always starts at 0, then goes up via \"Record transaction\".",
+    fieldCurrentQtyDisplay: "Current total stock", sectionPackaging: "Pack size", newItemStartsAtZero: "New item — stock starts at 0",
+    reorderThresholdHint: "When current stock drops below the \"reorder threshold\", the system automatically works out a suggested reorder quantity and surfaces it in the inventory alerts — no manual math needed.",
+    inventoryItemHint: "Stock quantity can't be set here directly — a new item always starts at 0, then goes up via \"Record transaction\" (each time an employee restocks from the warehouse to the prep area, this total goes down accordingly).",
     inventoryItemEditHint: function (qty, unit) { return "Current stock (" + qty + " " + unit + ") can't be edited here — if a stock count turns up a wrong number, use \"Record transaction → Adjustment\" instead; the system works out the difference and keeps a record, so there's never an untraceable change to the number."; },
     unitPiece: "piece", unitBox: "box", unitPack: "pack",
     recordTransaction: "Record transaction", fieldTransactionType: "Transaction type",
@@ -1246,7 +1256,7 @@ const i18n = {
     insightOverstock: function (name, days, pauseDays) { return name + " currently has about " + days + " day(s) of supply on hand, well above the normal level — suggest pausing purchases for about " + pauseDays + " day(s) (or use a promotion/internal use to speed up turnover) to free up cash."; },
     insightWaste: function (name, ratioPct) { return "Waste for " + name + " over the last 30 days is " + ratioPct + "% of consumption — worth checking storage or order batch sizes."; },
     fieldPackSize: "Units per box/pack (optional)", fieldPackUnitLabel: "Box/pack unit label",
-    packSizeHint: "Not every product is managed by the box — set \"units per box\" and stock/reorder suggestions will also show a box count; leave it blank to just use the unit above.",
+    packSizeHint: "Not every product is managed by the box — set \"units per box\" and stock/reorder suggestions will also show a box count; leave it blank to just use the unit above (same as before).",
     colSpec: "Spec", defaultPackUnitLabel: "box",
     packCountSuffix: function (packs, packUnitLabel) { return "(~ " + packs + " " + packUnitLabel + ")"; },
     inventoryHistoryModalTitle: function (name) { return name + " · Transaction history"; },
@@ -1301,16 +1311,23 @@ let currentLang = "zh";
    用户自己在表单里输入的明文,页面/后端都不会替用户生成或展示一个"新密码"。
    "找回密码"的验证码只用来证明"是不是本人",和后端 AuthService 的一次性
    reset token 是同一个思路,只是演示环境里用 6 位数字验证码代替邮件链接。 */
-let employeeDemoPassword = "MyPassword123";
-let companyAdminDemoPassword = "MyOwnPassword123";
+// 员工/公司登录不再自带一组"默认账号密码"——员工注册、公司注册两条真实流程都已经验证
+// 过能正常工作,所以这里不再需要一个可以绕过注册、直接登进去的演示后门。真正想登录,
+// 必须先走"注册"把这两个变量/员工记录设置成真实值。平台管理员暂时保留默认账号,
+// 由用户自己决定之后要不要换掉。
+let employeeDemoPassword = "";
+let companyAdminDemoPassword = "";
 // 公司管理员的登录邮箱,和密码一样是 let(可变):这份演示只支持单一公司/单一后台工作区,
 // "注册我的公司"实际上是在设置这个唯一工作区的登录邮箱+密码(见 form-company-register 提交
 // 逻辑),不是真正创建了一个隔离的新公司——员工管理、库存、请假等数据始终是同一份。
-let companyAdminEmail = "admin@yourcompany.com";
+let companyAdminEmail = "";
 let platformAdminPassword = "admin123"; // 平台管理员演示默认密码,登录后可在"账号设置"里修改
 // Bug 修复:这里原来写死的是 "vavgrace@gmail.com",和真正登录这个平台管理后台的账号邮箱
 // 对不上,导致平台管理员无论如何都登录不进去。改成实际使用的邮箱。
 let platformAdminEmail = "vavdenhaag@gmail.com";
+// 现在允许任意一个真实注册的员工登录(不再只有 Alex Chen 一个人能登进去),"修改密码"
+// 就必须知道"当前到底是谁登录的",而不能像以前一样写死同步 EMP-1024 这一条记录。
+let loggedInEmployeeId = null;
 
 function applyI18n() {
   const dict = i18n[currentLang];
@@ -1355,11 +1372,13 @@ document.querySelectorAll("[data-back-home]").forEach(btn => btn.addEventListene
    employeeId / password 这两个字段就是"登录凭证"本身:管理员手动添加的新员工(见
    btnAddEmployee 那条路径)status 是 pending,且没有 employeeId/password——要等他们自己
    走"员工注册"流程,拿邀请码 + 自己设置密码之后,这两个字段才会被填上,之后才能真正登录。
-   Alex Chen 这条预置了 employeeId/password,对应登录表单里演示预填的 EMP-1024 /
-   MyPassword123,方便直接测试登录,不用先走一遍注册。 */
+   Alex Chen 之前预置了 employeeId/password(EMP-1024 / MyPassword123),方便不用先走一遍
+   注册就能直接测试登录——员工/公司注册登录都已经验证过能正常工作,不再需要这个走后门的演示
+   账号,所以这里和其余几位员工一样,统一设成 null:必须先完成"员工注册",登录凭证才会生效。
+   姓名/工时/GPS 等其余演示数据不受影响,和登录凭证是否存在完全无关。 */
 let employeeIdCounter = 1000;
 const employees = [
-  { id: employeeIdCounter++, name: "Alex Chen",    role: "employee", status: "active",  hours: "32.5h", employmentType: "full_time", monthHours: "128h", employeeId: "EMP-1024", password: employeeDemoPassword },
+  { id: employeeIdCounter++, name: "Alex Chen",    role: "employee", status: "active",  hours: "32.5h", employmentType: "full_time", monthHours: "128h", employeeId: null, password: null },
   { id: employeeIdCounter++, name: "Maria Santos", role: "employee", status: "active",  hours: "28.0h", employmentType: "full_time", monthHours: "112h", employeeId: null, password: null },
   { id: employeeIdCounter++, name: "Jonas Weber",  role: "employee", status: "pending", hours: "—",     employmentType: "full_time", monthHours: "—", employeeId: null, password: null },
   { id: employeeIdCounter++, name: "Sam Park",     role: "employee", status: "active",  hours: "14.0h", employmentType: "temporary",  monthHours: "56h", employeeId: null, password: null }
@@ -1466,6 +1485,7 @@ document.getElementById("form-employee-login").addEventListener("submit", e => {
   const match = employees.find(emp => emp.employeeId && emp.employeeId.toUpperCase() === code);
   if (match && match.password && password === match.password) {
     errorEl.classList.add("hidden");
+    loggedInEmployeeId = match.employeeId; // "修改密码"需要知道当前到底是谁登录的
     e.target.reset();
     closeModal(document.getElementById("modal-employee"));
     showView("view-employeeApp");
@@ -1508,6 +1528,7 @@ document.getElementById("form-employee-register").addEventListener("submit", e =
     id: employeeIdCounter++, name, role: "employee", status: "active", hours: "—", employmentType: "full_time", monthHours: "—",
     employeeId: newEmployeeId.toUpperCase(), password
   });
+  loggedInEmployeeId = newEmployeeId.toUpperCase(); // 注册完直接算作已登录,"修改密码"要认得这是谁
   renderEmployeeTable();
   e.target.reset();
   closeModal(document.getElementById("modal-employee"));
@@ -1518,7 +1539,10 @@ document.getElementById("form-company-login").addEventListener("submit", e => {
   const email = document.getElementById("companyLoginEmail").value.trim().toLowerCase();
   const password = document.getElementById("companyLoginPassword").value;
   const errorEl = document.getElementById("companyLoginError");
-  if (email === companyAdminEmail.toLowerCase() && password === companyAdminDemoPassword) {
+  // companyAdminEmail/companyAdminDemoPassword 在还没有任何公司注册过之前都是空字符串——
+  // 这里必须显式判断"两边都不能是空的",否则表单什么都不填直接提交,空字符串等于空字符串,
+  // 会被误判成登录成功。
+  if (email && password && email === companyAdminEmail.toLowerCase() && password === companyAdminDemoPassword) {
     errorEl.classList.add("hidden");
     e.target.reset();
     closeModal(document.getElementById("modal-company"));
@@ -2438,6 +2462,22 @@ function openInventoryItemModal(item) {
   document.getElementById("invFieldLeadTimeDays").value = item ? item.leadTimeDays : 2;
   document.getElementById("invFieldPackSize").value = (item && item.packSize !== null && item.packSize !== undefined) ? item.packSize : "";
   document.getElementById("invFieldPackUnitLabel").value = item ? (item.packUnitLabel || "") : "";
+
+  // "当前库存总量"是只读展示,不是表单字段——员工每次从仓库补货到操作间,这个数字会
+  // 相应减少(走的是 CONSUMPTION 流水,和公司后台"记录流水"是同一套数据),这里只是
+  // 让管理员编辑商品资料时也能顺便看一眼,不需要跳出去找。
+  const currentQtyDisplayEl = document.getElementById("invCurrentQtyDisplay");
+  if (item) {
+    const view = computeInventoryView(item);
+    let label = item.currentQuantity + " " + item.unit;
+    if (view.currentQuantityInPacks !== null) {
+      label += " " + dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
+    }
+    currentQtyDisplayEl.textContent = label;
+  } else {
+    currentQtyDisplayEl.textContent = dict.newItemStartsAtZero;
+  }
+
   // 编辑已有商品时,把"库存数量不能改"这句提示换成更有用的版本——直接告诉管理员
   // 真正想改数字时该去哪(记录流水→盘点调整),而不是只说"新建商品初始库存是0"(编辑场景下这句话没有意义)。
   const quantityHintEl = document.getElementById("inventoryItemQuantityHint");
@@ -3014,18 +3054,23 @@ function renderDailyReport() {
 
 /* ---------- 密码修改 / 找回密码:JS 逻辑 ---------- */
 function getPasswordStoreValue(context) {
-  if (context === "employee") return employeeDemoPassword;
+  if (context === "employee") {
+    // 优先看"当前登录的是哪个员工",而不是只认一个写死的演示账号——现在任何一个真实
+    // 注册过的员工都能登录,"验证当前密码"必须对应真正登录的这个人。
+    const loggedInEmployee = employees.find(emp => emp.employeeId === loggedInEmployeeId);
+    return loggedInEmployee ? loggedInEmployee.password : employeeDemoPassword;
+  }
   if (context === "company") return companyAdminDemoPassword;
   return platformAdminPassword;
 }
 function setPasswordStoreValue(context, value) {
   if (context === "employee") {
     employeeDemoPassword = value;
-    // Bug 修复的延伸:登录校验用的是 employees 数组里 Alex Chen 那条记录的 .password 字段,
-    // 不是 employeeDemoPassword 这个变量本身——修改密码后如果不同步这条记录,新密码永远
-    // 登不进去,旧密码却还能用。这里保持两处一致。
-    const alexChen = employees.find(emp => emp.employeeId === "EMP-1024");
-    if (alexChen) alexChen.password = value;
+    // 同步到"当前登录的员工"这条记录——登录校验用的是 employees 数组里对应员工的
+    // .password 字段,不是 employeeDemoPassword 这个变量本身,修改密码后如果不同步,
+    // 新密码永远登不进去,旧密码却还能用。
+    const loggedInEmployee = employees.find(emp => emp.employeeId === loggedInEmployeeId);
+    if (loggedInEmployee) loggedInEmployee.password = value;
   }
   else if (context === "company") companyAdminDemoPassword = value;
   else platformAdminPassword = value;
