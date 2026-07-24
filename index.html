@@ -312,7 +312,7 @@
           </div>
         </div>
         <div style="font-size:13px;opacity:.7;margin:10px 0 2px;" id="todayDate"></div>
-        <h2 class="section-title" data-i18n="welcomeTitle">欢迎回来,Alex</h2>
+        <h2 class="section-title" id="employeeWelcomeTitle">欢迎回来</h2>
 
         <button class="clock-btn" id="clockBtn" data-i18n="clockIn">上班打卡</button>
         <div style="text-align:center;font-size:13px;opacity:.75;margin-top:-8px;">
@@ -320,10 +320,10 @@
         </div>
 
         <div class="metric-grid">
-          <div class="metric-card"><div class="metric-label" data-i18n="weekHours">本周工时</div><div class="metric-value">32.5h</div></div>
-          <div class="metric-card"><div class="metric-label" data-i18n="monthHours">本月工时</div><div class="metric-value">128h</div></div>
-          <div class="metric-card"><div class="metric-label" data-i18n="salary">工资摘要</div><div class="metric-value">€1,860</div></div>
-          <div class="metric-card"><div class="metric-label" data-i18n="attendanceRate">出勤率</div><div class="metric-value">96%</div></div>
+          <div class="metric-card"><div class="metric-label" data-i18n="weekHours">本周工时</div><div class="metric-value" id="empWeekHoursValue">—</div></div>
+          <div class="metric-card"><div class="metric-label" data-i18n="monthHours">本月工时</div><div class="metric-value" id="empMonthHoursValue">—</div></div>
+          <div class="metric-card"><div class="metric-label" data-i18n="salary">工资摘要</div><div class="metric-value" id="empSalaryValue">—</div></div>
+          <div class="metric-card"><div class="metric-label" data-i18n="attendanceRate">出勤率</div><div class="metric-value" id="empAttendanceRateValue">—</div></div>
         </div>
 
         <div class="glass" style="padding:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);cursor:pointer;" id="btnOpenLeaveCenter">
@@ -380,10 +380,10 @@
           <h2 class="section-title" data-i18n="caDashboardTitle">公司概览</h2>
           <p class="section-sub" data-i18n="caDashboardSub">关键运营指标一览</p>
           <div class="metric-grid">
-            <div class="metric-card"><div class="metric-label" data-i18n="headcount">在职员工</div><div class="metric-value">42</div></div>
-            <div class="metric-card"><div class="metric-label" data-i18n="onDuty">当前在岗</div><div class="metric-value">17</div></div>
-            <div class="metric-card"><div class="metric-label" data-i18n="pendingLeave">待审批请假</div><div class="metric-value">3</div></div>
-            <div class="metric-card"><div class="metric-label" data-i18n="attendanceRate">出勤率</div><div class="metric-value">94%</div></div>
+            <div class="metric-card"><div class="metric-label" data-i18n="headcount">在职员工</div><div class="metric-value" id="caHeadcountValue">0</div></div>
+            <div class="metric-card"><div class="metric-label" data-i18n="onDuty">当前在岗</div><div class="metric-value">—</div></div>
+            <div class="metric-card"><div class="metric-label" data-i18n="pendingLeave">待审批请假</div><div class="metric-value" id="caPendingLeaveValue">0</div></div>
+            <div class="metric-card"><div class="metric-label" data-i18n="attendanceRate">出勤率</div><div class="metric-value">—</div></div>
           </div>
         </div>
         <div class="glass ca-section" id="ca-daily-report" style="display:none;margin-top:20px;">
@@ -429,8 +429,13 @@
           </div>
         </div>
         <div class="glass ca-section" id="ca-attendance" style="display:none;margin-top:20px;">
-          <h2 class="section-title" data-i18n="navAttendance">考勤记录</h2>
-          <p class="section-sub" data-i18n="attendanceSub">发现打卡时间有误可以"更正"(保留原始记录与修改留痕);明显重复/错误的记录可以"作废"(不计入工资,但不会被物理删除,可随时恢复)。系统不提供真正删除历史打卡记录的功能——工时记录属于工资凭证,随意删除对企业和员工都没有保护作用。</p>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <h2 class="section-title" data-i18n="navAttendance">考勤记录</h2>
+              <p class="section-sub" style="margin:0;" data-i18n="attendanceSub">发现打卡时间有误可以"更正"(保留原始记录与修改留痕);明显重复/错误的记录可以"作废"(不计入工资,但不会被物理删除,可随时恢复)。系统不提供真正删除历史打卡记录的功能——工时记录属于工资凭证,随意删除对企业和员工都没有保护作用。</p>
+            </div>
+            <button class="btn btn-primary" id="btnAddAttendance" data-i18n="addAttendanceRecord">+ 补录打卡</button>
+          </div>
           <div id="attendanceList"></div>
         </div>
         <div class="glass ca-section" id="ca-inventory" style="display:none;margin-top:20px;">
@@ -460,12 +465,9 @@
           <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:12px;" id="inventoryPagination"></div>
         </div>
         <div class="glass ca-section" id="ca-payroll" style="display:none;margin-top:20px;">
-          <h2 class="section-title" data-i18n="navPayroll">本月工资</h2>
-          <table class="data-table">
-            <tr><th data-i18n="colName">姓名</th><th data-i18n="colRegular">正常工时</th><th data-i18n="colOvertime">加班工时</th><th data-i18n="colTotal">应发合计</th></tr>
-            <tr><td>Alex Chen</td><td>160h</td><td>8h</td><td>€1,860</td></tr>
-            <tr><td>Maria Santos</td><td>152h</td><td>0h</td><td>€1,672</td></tr>
-          </table>
+          <h2 class="section-title" data-i18n="navPayroll">工资管理</h2>
+          <p class="section-sub" data-i18n="payrollSub">工资按"员工名单 + 考勤记录(未作废部分)+ 每位员工设置的时薪"自动计算,和每日经营报告用的是同一套算法;需要额外发放奖金或做扣款时,可以给单个员工手动增加调整项。</p>
+          <div id="payrollTable"></div>
         </div>
         <div class="glass ca-section" id="ca-leave" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navLeave">请假审批</h2>
@@ -674,6 +676,7 @@
         <div class="field"><label data-i18n="fieldCountry">国家(可选)</label><input type="text" id="regCompanyCountry" placeholder="Netherlands" /></div>
         <div class="field"><label data-i18n="fieldCity">城市(可选)</label><input type="text" id="regCompanyCity" placeholder="Amsterdam" /></div>
         <div class="field"><label data-i18n="fieldPostalCode">邮编(可选)</label><input type="text" id="regCompanyPostalCode" placeholder="1012 AB" /></div>
+        <div class="field"><label data-i18n="fieldAdminFullName">您的姓名(管理员账号持有人)</label><input type="text" id="regCompanyAdminName" placeholder="Jonas Weber" required /></div>
         <div class="field"><label data-i18n="fieldContactPerson">联系人(可选)</label><input type="text" id="regCompanyContactPerson" placeholder="Jonas Weber" /></div>
         <div class="field full">
           <label data-i18n="fieldAddress">完整地址(可选)</label>
@@ -775,6 +778,11 @@
           <option value="manager" data-i18n="roleManager">主管(可审批请假、查看排班)</option>
         </select>
       </div>
+      <div class="field">
+        <label data-i18n="fieldHourlyRate">时薪(欧元/小时)</label>
+        <input type="number" id="newEmployeeHourlyRate" min="0" step="0.01" placeholder="15.00" />
+        <span class="field-hint" data-i18n="hourlyRateHint">用于自动计算这名员工的工资,之后可以在员工列表里随时修改</span>
+      </div>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="submitAddEmployee">生成邀请码并添加</button>
     </form>
   </div>
@@ -838,6 +846,42 @@
       <div class="field"><label data-i18n="fieldClockOut">下班打卡时间</label><input type="time" id="correctClockOut" required /></div>
       <div class="field"><label data-i18n="fieldCorrectionReason">更正理由(必填,会永久记录在案)</label><input type="text" id="correctReason" placeholder="例如:员工忘记下班打卡" required /></div>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="submitCorrection">保存更正(留痕)</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-add-attendance">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="addAttendanceRecord">+ 补录打卡</h3>
+    <p class="modal-sub" data-i18n="addAttendanceSub">用于员工忘记打卡、系统故障等情况下,由管理员手动补一条记录;正常的每日打卡不需要用到这里。</p>
+    <form id="form-add-attendance">
+      <div class="field full">
+        <label data-i18n="fieldSelectEmployee">员工</label>
+        <select id="addAttendanceEmployee" required></select>
+      </div>
+      <div class="field"><label data-i18n="fieldAttendanceDate">日期</label><input type="date" id="addAttendanceDate" required /></div>
+      <div class="field"><label data-i18n="fieldClockIn">上班打卡时间</label><input type="time" id="addAttendanceClockIn" required /></div>
+      <div class="field"><label data-i18n="fieldClockOut">下班打卡时间</label><input type="time" id="addAttendanceClockOut" required /></div>
+      <div class="field-hint hidden" id="addAttendanceError" style="color:var(--danger);"></div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="submitAddAttendance">补录这条记录</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-payroll-adjustment">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="addPayrollAdjustment">+ 增加工资调整项</h3>
+    <p class="modal-sub" data-i18n="payrollAdjustmentSub">比如奖金、补贴填正数;扣款、更正多发填负数,会累加进这名员工的应发合计。</p>
+    <form id="form-payroll-adjustment">
+      <div class="field full">
+        <label data-i18n="fieldSelectEmployee">员工</label>
+        <select id="payrollAdjustmentEmployee" required></select>
+      </div>
+      <div class="field full"><label data-i18n="fieldAdjustmentLabel">说明</label><input type="text" id="payrollAdjustmentLabel" placeholder="例如:节日奖金" required /></div>
+      <div class="field full"><label data-i18n="fieldAdjustmentAmount">金额(欧元,扣款请填负数)</label><input type="number" id="payrollAdjustmentAmount" step="0.01" placeholder="50 或 -20" required /></div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="submitAddAdjustment">添加调整项</button>
     </form>
   </div>
 </div>
@@ -970,21 +1014,22 @@ const i18n = {
     employeeRegisterMissingFields: "请填写姓名、员工编号和密码",
     employeeRegisterInviteCodeError: "未识别该邀请码,请向公司管理员确认",
     employeeRegisterIdTaken: "该员工编号已被使用,请换一个",
-    companyRegisterMissingFields: "请填写公司名称、联络电话、邮箱和密码",
+    companyRegisterMissingFields: "请填写公司名称、您的姓名、联络电话、邮箱和密码",
     companyRegisterInvalidEmail: "邮箱格式不正确",
+    reauthRequiredNotice: "登录状态已失效,请重新登录后再试。",
     fieldEmployeeCode: "员工编号 / 手机号", fieldPassword: "密码", fieldFullName: "姓名", fieldPhone: "电话号码",
     fieldEmployeeId: "员工编号", fieldInviteCode: "公司邀请码", fieldEmail: "邮箱", fieldLogo: "公司 Logo",
     uploadLogo: "点击上传 Logo", fieldCompanyName: "公司名称", fieldSlogan: "公司口号", fieldCountry: "国家(可选)",
     fieldCity: "城市(可选)", fieldPostalCode: "邮编(可选)", fieldAddress: "完整地址(可选)",
     fieldContactPerson: "联系人(可选)", fieldWhatsapp: "WhatsApp(可选)", fieldVat: "VAT 税号(可选)", fieldCoc: "商会注册号(可选)",
-    fieldPhoneRequired: "联络电话(必填)",
+    fieldPhoneRequired: "联络电话(必填)", fieldAdminFullName: "您的姓名(管理员账号持有人)",
     addressGeocodeHint: "填写地址后,系统会自动为您匹配 GPS 经纬度,用于地图定位——不需要自己去查坐标;地址暂时没有也不影响注册。",
     geocodeSuccessAlert: "注册成功!已根据您填写的地址自动匹配到 GPS 坐标,后续 GPS 看板会用得上。",
     geocodeFailedAlert: "注册成功,但填写的地址暂时无法自动匹配到 GPS 坐标(不影响使用)——如果需要用到公司地图定位,建议之后去\"设置\"里检查一下地址是否写得完整。",
     passwordHint: "密码由您自行设置,注册成功后可随时在个人资料中修改。",
     submitRegister: "提交注册", submitRegisterCompany: "提交注册,开始 30 天免费试用",
     footerText: "© 2026 WorkTrack AI",
-    companyName: "Delicious Poke Co.", welcomeTitle: "欢迎回来,Alex", clockIn: "上班打卡", clockOut: "下班打卡",
+    companyName: "Delicious Poke Co.", welcomeTitlePrefix: "欢迎回来", clockIn: "上班打卡", clockOut: "下班打卡",
     todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "工资摘要", attendanceRate: "出勤率",
     leaveBalance: "请假余额", annual: "年假", sick: "病假", personal: "事假", days: "天",
     announcements: "公司公告", announcementSample: "下周三全员培训,请准时参加。",
@@ -996,10 +1041,16 @@ const i18n = {
     headcount: "在职员工", onDuty: "当前在岗", pendingLeave: "待审批请假",
     colName: "姓名", colRole: "角色", colStatus: "状态", colHours: "本周工时", colActions: "操作",
     roleEmployee: "员工", roleManager: "主管(可审批请假、查看排班)", statusActive: "在职", statusPending: "待审批", statusTrial: "试用中",
+    statusSuspended: "已停用", statusInvited: "已邀请,待注册",
     employeesSub: "管理员可以添加新员工、调整权限,或删除员工的全部记录",
     addEmployee: "+ 添加员工", addEmployeeSub: "该员工会收到邀请码,自行完成注册并设置密码",
     fieldPermissionLevel: "权限级别", submitAddEmployee: "生成邀请码并添加",
-    deleteEmployee: "删除", confirmDeleteEmployee: "确定要删除该员工的全部记录吗?此操作会清除个人信息,工资等财务记录将做匿名化保留以满足合规要求,不可撤销。",
+    addEmployeeMissingFields: "请填写姓名和员工编号",
+    addEmployeeInviteCodeAlert: "已生成邀请码,请把这个码发给对方完成注册:",
+    suspendEmployeeAction: "停用", reactivateEmployeeAction: "恢复", cancelInviteAction: "撤销邀请",
+    confirmSuspendEmployee: "确定要停用这名员工吗?停用后对方无法再登录,随时可以恢复。",
+    confirmCancelInvite: "确定要撤销这份还没被认领的邀请吗?撤销后对方不能再用这个邀请码注册。",
+    deleteEmployee: "删除", confirmDeleteEmployee: "确定要删除这名员工吗?该员工将无法再登录,并从员工列表中移除;考勤/工资/请假等历史记录会保留,不会被清除。",
     colRegular: "正常工时", colOvertime: "加班工时", colTotal: "应发合计", approve: "批准", reject: "拒绝",
     navCompanies: "公司管理", navRevenue: "收入看板", navAds: "广告管理",
     paDashboardTitle: "平台概览", totalCompanies: "入驻公司总数", mrr: "月经常性收入",
@@ -1054,6 +1105,18 @@ const i18n = {
     voidedByLabel: "作废原因", editedByLabel: "更正",
     viewEditHistory: "查看修改记录", hideEditHistory: "收起修改记录", noEditsYet: "暂无修改记录",
     totalHours: "工时", clockInTime: "上班", clockOutTime: "下班",
+    addAttendanceRecord: "+ 补录打卡", addAttendanceSub: "用于员工忘记打卡、系统故障等情况下,由管理员手动补一条记录;正常的每日打卡不需要用到这里。",
+    fieldAttendanceDate: "日期", submitAddAttendance: "补录这条记录", addAttendanceInvalidRange: "下班时间必须晚于上班时间",
+    noAttendanceYet: "暂无考勤记录,员工上班打卡后会显示在这里,也可以点击「补录打卡」手动添加",
+    noEmployeesYet: "暂无员工,点击「添加员工」开始,或等待员工凭邀请码自行注册",
+    editHourlyRate: "调整时薪", editHourlyRatePrompt: "请输入这名员工的新时薪(欧元/小时):",
+    fieldHourlyRate: "时薪(欧元/小时)", hourlyRateHint: "用于自动计算这名员工的工资,之后可以在员工列表里随时修改",
+    payrollSub: "工资按「员工名单 + 考勤记录(未作废部分)+ 每位员工设置的时薪」自动计算,和每日经营报告用的是同一套算法;需要额外发放奖金或做扣款时,可以给单个员工手动增加调整项。",
+    colBasePay: "基础工资", colAdjustments: "调整项", deleteAction: "删除", noAdjustmentsYet: "暂无调整项",
+    addPayrollAdjustment: "+ 增加调整项", confirmDeleteAdjustment: "确定要删除这条调整项吗?",
+    payrollAdjustmentSub: "比如奖金、补贴填正数;扣款、更正多发填负数,会累加进这名员工的应发合计。",
+    fieldAdjustmentLabel: "说明", fieldAdjustmentAmount: "金额(欧元,扣款请填负数)", submitAddAdjustment: "添加调整项",
+    noLeaveRequestsYet: "暂无请假记录",
     navInventory: "智能库存",
     inventorySub: "系统按近 14 天的消耗速率自动预测断货天数与建议采购量,近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过\"记录流水\"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。",
     addInventoryItem: "+ 新增库存商品", editItem: "编辑商品资料", submitAddItem: "保存",
@@ -1145,21 +1208,22 @@ const i18n = {
     employeeRegisterMissingFields: "Please fill in your name, employee ID, and password",
     employeeRegisterInviteCodeError: "Invitation code not recognized — check with your company admin",
     employeeRegisterIdTaken: "That employee ID is already in use — please pick another one",
-    companyRegisterMissingFields: "Please fill in the company name, contact phone, email, and password",
+    companyRegisterMissingFields: "Please fill in the company name, your full name, contact phone, email, and password",
     companyRegisterInvalidEmail: "That doesn't look like a valid email address",
+    reauthRequiredNotice: "Your session has expired — please log in again.",
     fieldEmployeeCode: "Employee ID / phone", fieldPassword: "Password", fieldFullName: "Full name", fieldPhone: "Phone number",
     fieldEmployeeId: "Employee ID", fieldInviteCode: "Company invitation code", fieldEmail: "Email", fieldLogo: "Company logo",
     uploadLogo: "Click to upload logo", fieldCompanyName: "Company name", fieldSlogan: "Company slogan", fieldCountry: "Country (optional)",
     fieldCity: "City (optional)", fieldPostalCode: "Postal code (optional)", fieldAddress: "Full address (optional)",
     fieldContactPerson: "Contact person (optional)", fieldWhatsapp: "WhatsApp (optional)", fieldVat: "VAT number (optional)", fieldCoc: "Chamber of commerce no. (optional)",
-    fieldPhoneRequired: "Contact phone (required)",
+    fieldPhoneRequired: "Contact phone (required)", fieldAdminFullName: "Your full name (admin account holder)",
     addressGeocodeHint: "Once you enter an address, we'll automatically match it to GPS coordinates for map display — no need to look up the coordinates yourself; leaving it blank won't stop registration.",
     geocodeSuccessAlert: "Registration successful! We've automatically matched your address to GPS coordinates, which the GPS dashboard will use later.",
     geocodeFailedAlert: "Registration successful, but the address you entered couldn't be automatically matched to GPS coordinates (this doesn't affect account use) — if you'll need map location later, check that the address is complete under \"Settings\".",
     passwordHint: "You set this password yourself — change it anytime from your profile after registering.",
     submitRegister: "Submit registration", submitRegisterCompany: "Submit and start your 30-day free trial",
     footerText: "© 2026 WorkTrack AI",
-    companyName: "Delicious Poke Co.", welcomeTitle: "Welcome back, Alex", clockIn: "Clock in", clockOut: "Clock out",
+    companyName: "Delicious Poke Co.", welcomeTitlePrefix: "Welcome back", clockIn: "Clock in", clockOut: "Clock out",
     todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "Salary summary", attendanceRate: "Attendance rate",
     leaveBalance: "Leave balance", annual: "Annual", sick: "Sick", personal: "Personal", days: "days",
     announcements: "Announcements", announcementSample: "Company-wide training next Wednesday, please attend on time.",
@@ -1171,10 +1235,16 @@ const i18n = {
     headcount: "Headcount", onDuty: "Currently on duty", pendingLeave: "Pending leave requests",
     colName: "Name", colRole: "Role", colStatus: "Status", colHours: "Hours this week", colActions: "Actions",
     roleEmployee: "Employee", roleManager: "Manager (can approve leave, view schedules)", statusActive: "Active", statusPending: "Pending", statusTrial: "Trialing",
+    statusSuspended: "Suspended", statusInvited: "Invited, not yet registered",
     employeesSub: "Admins can add employees, adjust permissions, or delete an employee's full record",
     addEmployee: "+ Add employee", addEmployeeSub: "This employee will receive an invitation code to complete registration and set their own password",
     fieldPermissionLevel: "Permission level", submitAddEmployee: "Generate invitation code and add",
-    deleteEmployee: "Delete", confirmDeleteEmployee: "Delete this employee's entire record? Personal data will be erased; payroll/financial records will be anonymized to meet legal retention requirements. This cannot be undone.",
+    addEmployeeMissingFields: "Please fill in the full name and employee ID",
+    addEmployeeInviteCodeAlert: "Invitation code generated — share this with them to complete registration: ",
+    suspendEmployeeAction: "Suspend", reactivateEmployeeAction: "Reactivate", cancelInviteAction: "Cancel invite",
+    confirmSuspendEmployee: "Suspend this employee? They won't be able to log in until reactivated.",
+    confirmCancelInvite: "Cancel this pending invitation? They won't be able to register with this code afterwards.",
+    deleteEmployee: "Delete", confirmDeleteEmployee: "Delete this employee? They will no longer be able to log in and will be removed from the employee list; attendance/payroll/leave history is kept, not erased.",
     colRegular: "Regular hours", colOvertime: "Overtime", colTotal: "Total pay", approve: "Approve", reject: "Reject",
     navCompanies: "Companies", navRevenue: "Revenue", navAds: "Advertisements",
     paDashboardTitle: "Platform overview", totalCompanies: "Total companies", mrr: "Monthly recurring revenue",
@@ -1229,6 +1299,18 @@ const i18n = {
     voidedByLabel: "Void reason", editedByLabel: "Corrected",
     viewEditHistory: "View edit history", hideEditHistory: "Hide edit history", noEditsYet: "No edits yet",
     totalHours: "Hours", clockInTime: "Clock in", clockOutTime: "Clock out",
+    addAttendanceRecord: "+ Add attendance record", addAttendanceSub: "For cases like a forgotten clock-in/out or a system issue — an admin can manually add a record; normal daily clock-in/out doesn't need this.",
+    fieldAttendanceDate: "Date", submitAddAttendance: "Add this record", addAttendanceInvalidRange: "Clock-out time must be later than clock-in time",
+    noAttendanceYet: "No attendance records yet — they'll appear here once employees clock in, or you can add one manually via \"Add attendance record\"",
+    noEmployeesYet: "No employees yet — click \"Add employee\" to start, or wait for employees to self-register with an invite code",
+    editHourlyRate: "Edit hourly rate", editHourlyRatePrompt: "Enter this employee's new hourly rate (EUR/hour):",
+    fieldHourlyRate: "Hourly rate (EUR/hour)", hourlyRateHint: "Used to auto-calculate this employee's pay; can be changed anytime from the employee list",
+    payrollSub: "Pay is calculated automatically from the employee list + attendance records (excluding voided ones) + each employee's hourly rate — the same logic used in the daily report. You can add a manual adjustment for a specific employee for bonuses or deductions.",
+    colBasePay: "Base pay", colAdjustments: "Adjustments", deleteAction: "Delete", noAdjustmentsYet: "No adjustments yet",
+    addPayrollAdjustment: "+ Add adjustment", confirmDeleteAdjustment: "Delete this adjustment?",
+    payrollAdjustmentSub: "Use a positive amount for bonuses/allowances, a negative amount for deductions/corrections — it's added to this employee's total pay.",
+    fieldAdjustmentLabel: "Description", fieldAdjustmentAmount: "Amount (EUR, use negative for a deduction)", submitAddAdjustment: "Add adjustment",
+    noLeaveRequestsYet: "No leave requests yet",
     navInventory: "Smart Inventory",
     inventorySub: "The system predicts days-until-stockout and a suggested reorder quantity from the last 14 days of consumption, and flags waste separately when it exceeds 10% of consumption over the last 30 days. Stock quantity only changes via \"Record transaction\" (receipt/consumption/waste/adjustment) — there's no way to edit the number directly, so every change stays traceable.",
     addInventoryItem: "+ Add inventory item", editItem: "Edit item", submitAddItem: "Save",
@@ -1325,9 +1407,240 @@ let platformAdminPassword = "admin123"; // 平台管理员演示默认密码,登
 // Bug 修复:这里原来写死的是 "vavgrace@gmail.com",和真正登录这个平台管理后台的账号邮箱
 // 对不上,导致平台管理员无论如何都登录不进去。改成实际使用的邮箱。
 let platformAdminEmail = "vavdenhaag@gmail.com";
+// 公司名称/口号目前只活在"设置"页面那两个 <input> 的 DOM 值里,没有对应的 JS 变量——
+// 页面一刷新,浏览器不会记得这两个输入框刚才被改成了什么。这里补一份变量,注册公司、
+// 保存公司资料时都会同步写入,配合 saveState() 才能真正跨刷新记住。
+let companyDisplayName = "Delicious Poke Co.";
+let companySloganText = "新鲜每一天";
+// 当前生效的邀请码——重新生成时要用它把 inviteCodeDirectory 里的旧码删掉,否则旧码会
+// 一直有效,造成"作废的邀请码还能用"这个新问题。
+let currentCompanyInviteCode = null;
+
+/* ---------- 真实后端连接:身份认证相关(注册/登录/改密码/邀请码) ----------
+   这一批改动的范围:公司注册、公司登录、员工注册、员工登录、公司管理员/员工的修改
+   密码、公司管理员的忘记/重设密码、重新生成邀请码——这几个"身份相关"的流程现在会
+   真的调用本机跑起来的 NestJS 后端(默认 http://localhost:3000/api/v1),不再只是操作
+   浏览器内存/localStorage 模拟。要让它们真的成功,需要先在本机启动后端:
+     cd worktrack-pro/backend && docker-compose up -d && npm install && npm run start:dev
+   如果后端没有启动,下面这些请求会失败,并在对应表单里提示"无法连接后端"。
+   刻意维持本地模拟、留到下一阶段再接的部分(如实披露,不是遗漏):
+     1. 平台管理员登录/改密码/忘记密码——这套账号目前没有自助注册入口,不在这次范围内。
+     2. 员工"忘记密码"——后端的忘记密码流程是按邮箱查找账号,但员工凭邀请码自助注册时
+        并不需要填邮箱(RegisterEmployeeDto 里没有 email 字段),数据模型层面员工目前
+        就没有邮箱可查,所以这个入口暂时继续用本地模拟,等以后给员工加上邮箱字段再接。
+     3. 员工管理/考勤/工资/请假/库存/GPS/经营报告——这些模块的数据本身仍然是本地模拟,
+        这次没有改动,继续留到之后的阶段。 */
+const API_BASE_URL = "http://localhost:3000/api/v1";
+
+/** 统一的后端请求封装:自动拼 URL、带 JSON header、按需带 Bearer token,并按
+    03-API-DESIGN.md §1 的信封格式解析响应——成功时是 { success:true, data },
+    失败时是 { success:false, error:{ code, message } }。失败时统一抛出一个
+    Error(err.code 是后端的稳定错误码,err.message 是人类可读说明)。
+    已知限制(如实披露):后端的错误文案目前只有中文,英文界面下会退化显示中文
+    原文——这不是这次改动引入的新问题,是后端错误信息目前还没做国际化,留到
+    之后的阶段一起处理。 */
+async function apiRequest(path, { method = "GET", body, auth = false } = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (auth && accessToken) headers["Authorization"] = "Bearer " + accessToken;
+  let response;
+  try {
+    response = await fetch(API_BASE_URL + path, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (networkErr) {
+    const err = new Error("无法连接到后端服务,请确认已在本机通过 docker-compose 启动 WorkTrack AI 后端(http://localhost:3000)。");
+    err.code = "NETWORK_ERROR";
+    throw err;
+  }
+  let payload = null;
+  try { payload = await response.json(); } catch (parseErr) { /* 无响应体(比如个别 204)时会走到这里,忽略即可 */ }
+  if (!response.ok || !payload || payload.success === false) {
+    const err = new Error((payload && payload.error && payload.error.message) || ("请求失败(HTTP " + response.status + ")"));
+    err.code = payload && payload.error ? payload.error.code : "UNKNOWN_ERROR";
+    throw err;
+  }
+  return payload.data;
+}
+
+// 当前登录会话的真实凭证——公司管理员/员工这两条身份线现在由后端签发的 JWT 驱动。
+// accessToken 有效期短(默认 15 分钟,见后端 JWT_ACCESS_EXPIRES_IN 配置),这一次改动
+// 暂时没有做"access token 过期自动用 refreshToken 静默换新"这一步(已知的分阶段限制),
+// 过期后需要的操作会报错提示重新登录,下一阶段可以补上自动刷新重试。
+let accessToken = null;
+let refreshToken = null;
+let currentUserId = null;
+let currentUserRole = null;
+let currentUserCompanyId = null;
+
+/** RegisterCompanyDto.countryCode 要求正好 2 位 ISO 3166-1 alpha-2(比如 "NL"),但注册
+    表单这一栏一直是自由文本、填的是国家全名(比如 "Netherlands")——这是接后端之前就
+    已经存在的字段不匹配,不是这次改动引入的新问题。这里做一个尽量不打扰用户的兼容:
+    填了就取前两个字母转大写,没填或填的内容凑不够两个字母就默认 "NL"(这份演示数据
+    一直是基于荷兰地址的假设)。更完整的修复应该是把这一栏换成国家下拉选择框,
+    留到之后的迭代里做,不在这次"接后端"的范围内。 */
+function normalizeCountryCode(input) {
+  const letters = (input || "").replace(/[^A-Za-z]/g, "");
+  return letters.length >= 2 ? letters.slice(0, 2).toUpperCase() : "NL";
+}
+
+/** 登录/注册成功后,把这家公司的真实资料(目前只有名称/口号)从后端同步到本地展示——
+    不这样做的话,换一台从没在本浏览器登录过的设备登录一家已经存在的公司时,页面会
+    继续显示上一次(或初始)的本地演示公司名,而不是这家公司真正的名字。员工管理/
+    库存/考勤等其余业务数据这次仍然是纯本地模拟,不受这次同步影响。 */
+async function syncCompanyProfileFromBackend(companyId) {
+  try {
+    const company = await apiRequest("/companies/" + companyId, { auth: true });
+    companyDisplayName = company.name;
+    companySloganText = company.slogan || companySloganText;
+    const nameInput = document.getElementById("settingsCompanyName");
+    if (nameInput) nameInput.value = companyDisplayName;
+    const sloganInput = document.getElementById("settingsCompanySlogan");
+    if (sloganInput) sloganInput.value = companySloganText;
+    const empNameEl = document.getElementById("employeeCompanyName");
+    if (empNameEl) empNameEl.textContent = companyDisplayName;
+    saveState();
+  } catch (err) {
+    // 同步失败(比如后端没启动、或者这个 companyId 在本地还查不到)不阻断登录本身,
+    // 继续用本地已有的公司名兜底,不让用户卡在登录这一步。
+    console.warn("同步公司资料失败,继续使用本地缓存的公司名:", err);
+  }
+}
+
+/* ---------- 演示数据持久化(localStorage) ----------
+   Bug 修复:之前公司注册、员工注册全部只存在页面这一次运行的 JS 内存里——刷新页面、
+   关掉浏览器重开,employees/attendanceRecords/leaveRequests/companyAdminEmail 等等
+   全部会回到脚本里写的初始值,给人的感觉就是"注册了却什么都没发生,也登录不进去"。
+   真实产品当然是靠后端数据库持久化(这也是这个项目同时在做的 NestJS 后端的职责),
+   但员工管理/考勤/工资/请假/库存/GPS 等模块这次仍然没有连接后端,所以这里继续用
+   浏览器自带的 localStorage 模拟"数据不会因为刷新页面而消失"——只在这一个浏览器里
+   生效,换设备/换浏览器仍然看不到,这一点和真正连接数据库的区别需要向用户说明清楚。
+   accessToken/refreshToken/currentUserId 等身份凭证这次也一并存进这里,方便刷新页面
+   后不用重新登录——这是延续这份原型一直以来"localStorage 模拟持久化"的既有方式,
+   和真实产品应该把 refreshToken 存在更安全的地方(如 httpOnly Cookie)是两回事,
+   已在交付说明里如实披露。 */
+const DEMO_STORAGE_KEY = "worktrackAiPrototypeState_v1";
+
+function saveState() {
+  try {
+    const state = {
+      employees, employeeIdCounter,
+      attendanceRecords, attendanceIdCounter,
+      leaveRequests, leaveRequestIdCounter,
+      leaveBalancesByEmployee, leaveTypeConfigs,
+      payrollAdjustments, payrollAdjustmentIdCounter,
+      inviteCodeDirectory, currentCompanyInviteCode,
+      companyAdminEmail, companyAdminDemoPassword, companyDisplayName, companySloganText,
+      inventoryItems, inventoryIdCounter,
+      platformAdminEmail, platformAdminPassword,
+      employeeDemoPassword,
+      accessToken, refreshToken, currentUserId, currentUserRole, currentUserCompanyId
+    };
+    window.localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(state));
+  } catch (err) {
+    // 存储失败(比如隐私浏览模式禁用了 localStorage)不应该影响正常使用,顶多是
+    // 刷新之后记不住最新的修改,不应该让整个页面报错崩掉。
+    console.warn("演示数据保存失败,刷新页面后可能无法记住最新的修改:", err);
+  }
+}
+
+function loadState() {
+  let saved;
+  try {
+    const raw = window.localStorage.getItem(DEMO_STORAGE_KEY);
+    if (!raw) return;
+    saved = JSON.parse(raw);
+  } catch (err) {
+    return;
+  }
+  if (!saved || typeof saved !== "object") return;
+
+  if (Array.isArray(saved.employees)) { employees.length = 0; employees.push(...saved.employees); }
+  if (typeof saved.employeeIdCounter === "number") employeeIdCounter = saved.employeeIdCounter;
+  if (Array.isArray(saved.attendanceRecords)) { attendanceRecords.length = 0; attendanceRecords.push(...saved.attendanceRecords); }
+  if (typeof saved.attendanceIdCounter === "number") attendanceIdCounter = saved.attendanceIdCounter;
+  if (Array.isArray(saved.leaveRequests)) { leaveRequests.length = 0; leaveRequests.push(...saved.leaveRequests); }
+  if (typeof saved.leaveRequestIdCounter === "number") leaveRequestIdCounter = saved.leaveRequestIdCounter;
+  if (saved.leaveBalancesByEmployee && typeof saved.leaveBalancesByEmployee === "object") leaveBalancesByEmployee = saved.leaveBalancesByEmployee;
+  if (saved.leaveTypeConfigs && typeof saved.leaveTypeConfigs === "object") leaveTypeConfigs = saved.leaveTypeConfigs;
+  if (Array.isArray(saved.payrollAdjustments)) { payrollAdjustments.length = 0; payrollAdjustments.push(...saved.payrollAdjustments); }
+  if (typeof saved.payrollAdjustmentIdCounter === "number") payrollAdjustmentIdCounter = saved.payrollAdjustmentIdCounter;
+  if (saved.inviteCodeDirectory && typeof saved.inviteCodeDirectory === "object") Object.assign(inviteCodeDirectory, saved.inviteCodeDirectory);
+  if (typeof saved.currentCompanyInviteCode === "string") currentCompanyInviteCode = saved.currentCompanyInviteCode;
+  if (typeof saved.companyAdminEmail === "string") companyAdminEmail = saved.companyAdminEmail;
+  if (typeof saved.companyAdminDemoPassword === "string") companyAdminDemoPassword = saved.companyAdminDemoPassword;
+  if (typeof saved.companyDisplayName === "string") companyDisplayName = saved.companyDisplayName;
+  if (typeof saved.companySloganText === "string") companySloganText = saved.companySloganText;
+  if (Array.isArray(saved.inventoryItems)) { inventoryItems.length = 0; inventoryItems.push(...saved.inventoryItems); }
+  if (typeof saved.inventoryIdCounter === "number") inventoryIdCounter = saved.inventoryIdCounter;
+  if (typeof saved.platformAdminEmail === "string") platformAdminEmail = saved.platformAdminEmail;
+  if (typeof saved.platformAdminPassword === "string") platformAdminPassword = saved.platformAdminPassword;
+  if (typeof saved.employeeDemoPassword === "string") employeeDemoPassword = saved.employeeDemoPassword;
+  if (typeof saved.accessToken === "string") accessToken = saved.accessToken;
+  if (typeof saved.refreshToken === "string") refreshToken = saved.refreshToken;
+  if (typeof saved.currentUserId === "string") currentUserId = saved.currentUserId;
+  if (typeof saved.currentUserRole === "string") currentUserRole = saved.currentUserRole;
+  if (typeof saved.currentUserCompanyId === "string") currentUserCompanyId = saved.currentUserCompanyId;
+
+  // 把恢复出来的公司资料同步回设置页面的输入框、以及员工端头部的公司名/口号展示。
+  const nameInput = document.getElementById("settingsCompanyName");
+  if (nameInput) nameInput.value = companyDisplayName;
+  const sloganInput = document.getElementById("settingsCompanySlogan");
+  if (sloganInput) sloganInput.value = companySloganText;
+  const empNameEl = document.getElementById("employeeCompanyName");
+  if (empNameEl) empNameEl.textContent = companyDisplayName;
+  const inviteCodeEl = document.getElementById("currentInviteCodeValue");
+  if (inviteCodeEl && currentCompanyInviteCode) inviteCodeEl.textContent = currentCompanyInviteCode;
+}
 // 现在允许任意一个真实注册的员工登录(不再只有 Alex Chen 一个人能登进去),"修改密码"
 // 就必须知道"当前到底是谁登录的",而不能像以前一样写死同步 EMP-1024 这一条记录。
 let loggedInEmployeeId = null;
+
+/** 员工管理/考勤/工资/请假四个模块统一通过这一个函数找"当前到底是谁登录的",不再有任何
+    地方写死具体姓名——同一个真实注册的员工,这四个模块看到的都是同一份数据,一对一映证。
+    未登录(比如还在首页)时返回 null,调用方各自决定如何降级显示。 */
+function currentEmployeeName() {
+  const emp = employees.find(e => e.employeeId === loggedInEmployeeId);
+  return emp ? emp.name : null;
+}
+
+/** 员工仪表盘顶部"本周工时/本月工时/工资摘要/出勤率"四张卡片,全部基于当前真实登录
+    员工自己的考勤记录 + 时薪实时计算,和公司后台工资表(computeEmployeeWageSummary)
+    用的是同一套算法,不再是写死的静态数字。演示环境不区分"周"和"月"两个统计口径
+    (只有一份考勤记录数组,没有真实的自然周/月边界),这里两栏用的是同一份合计,
+    真实后端会按各自的时间窗口分别统计。 */
+function updateEmployeeSummaryCards() {
+  const dict = i18n[currentLang];
+  const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  const employeeName = currentEmployeeName();
+  if (!employeeName) {
+    setText("empWeekHoursValue", "—");
+    setText("empMonthHoursValue", "—");
+    setText("empSalaryValue", "—");
+    setText("empAttendanceRateValue", "—");
+    return;
+  }
+  const summary = computeEmployeeWageSummary(employeeName);
+  const records = attendanceRecords.filter(r => r.employeeName === employeeName);
+  const attendanceRate = records.length
+    ? Math.round((records.filter(r => !r.voided).length / records.length) * 100) + "%"
+    : "—"; // 还没有任何打卡记录时没有出勤率可算,不要显示一个假的 100%
+  setText("empWeekHoursValue", summary.totalHours.toFixed(1) + "h");
+  setText("empMonthHoursValue", summary.totalHours.toFixed(1) + "h");
+  setText("empSalaryValue", "€" + (summary.totalCostCents / 100).toFixed(2));
+  setText("empAttendanceRateValue", attendanceRate);
+}
+
+/** "欢迎回来"标题里的姓名不再写死,取当前真实登录的员工姓名;还没登录时(理论上看不到
+   这个视图)退回一个不带姓名的通用问候,避免显示 "欢迎回来,null" 这种文案。 */
+function updateWelcomeTitle() {
+  const dict = i18n[currentLang];
+  const el = document.getElementById("employeeWelcomeTitle");
+  if (!el) return;
+  const employeeName = currentEmployeeName();
+  el.textContent = employeeName ? dict.welcomeTitlePrefix + ", " + employeeName : dict.welcomeTitlePrefix;
+}
 
 function applyI18n() {
   const dict = i18n[currentLang];
@@ -1346,9 +1659,15 @@ function applyI18n() {
   renderLeaveRequests();
   renderLeaveHistory();
   renderAttendanceTable();
+  renderPayrollTable();
+  renderCaDashboardMetrics();
   renderInventoryTable();
   renderDailyReport();
-  updateLeaveBalanceDisplays("Alex Chen");
+  // 未登录(比如还停留在首页)时 currentEmployeeName() 是 null,这些展示函数各自都能
+  // 正确处理 null(显示"—"/空状态),不会报错,所以这里不需要额外判断再调用。
+  updateLeaveBalanceDisplays(currentEmployeeName());
+  updateEmployeeSummaryCards();
+  updateWelcomeTitle();
   renderLeaveTypeConfigPanel();
   renderEmployeeBalanceOverrideForm();
   syncSettingsAnnualQuotaInput();
@@ -1369,20 +1688,29 @@ document.querySelectorAll("[data-back-home]").forEach(btn => btn.addEventListene
 /* ---------- 员工管理:添加 / 删除 ----------
    对应权限文档:公司管理员有权直接添加新员工(生成邀请码,员工自行完成注册与设置密码),
    也有权删除员工的全部记录(个人信息清除,财务类记录做匿名化保留以满足合规要求)。
-   employeeId / password 这两个字段就是"登录凭证"本身:管理员手动添加的新员工(见
-   btnAddEmployee 那条路径)status 是 pending,且没有 employeeId/password——要等他们自己
-   走"员工注册"流程,拿邀请码 + 自己设置密码之后,这两个字段才会被填上,之后才能真正登录。
-   Alex Chen 之前预置了 employeeId/password(EMP-1024 / MyPassword123),方便不用先走一遍
-   注册就能直接测试登录——员工/公司注册登录都已经验证过能正常工作,不再需要这个走后门的演示
-   账号,所以这里和其余几位员工一样,统一设成 null:必须先完成"员工注册",登录凭证才会生效。
-   姓名/工时/GPS 等其余演示数据不受影响,和登录凭证是否存在完全无关。 */
+   employeeId / password 这两个字段就是"登录凭证"本身:管理员手动添加的新员工 status 是
+   pending,且没有 employeeId/password——要等他们自己走"员工注册"流程,拿邀请码 + 自己
+   设置密码之后,这两个字段才会被填上,之后才能真正登录。
+   员工/公司注册登录都已经验证过能正常工作,这里不再预置任何演示员工(Alex Chen 等)——
+   员工列表默认是空的,真实数据完全来自管理员添加 + 员工自行注册,和考勤/工资/请假三个
+   模块用的是同一份 employees 数组,不会出现"某个模块显示的员工,另一个模块里根本不存在"
+   的情况。hourlyRateCents 是这名员工的时薪(单位:分),工资管理页面按这个值 + 考勤记录
+   自动算工资,管理员添加员工时设置,之后也可以随时调整。 */
 let employeeIdCounter = 1000;
-const employees = [
-  { id: employeeIdCounter++, name: "Alex Chen",    role: "employee", status: "active",  hours: "32.5h", employmentType: "full_time", monthHours: "128h", employeeId: null, password: null },
-  { id: employeeIdCounter++, name: "Maria Santos", role: "employee", status: "active",  hours: "28.0h", employmentType: "full_time", monthHours: "112h", employeeId: null, password: null },
-  { id: employeeIdCounter++, name: "Jonas Weber",  role: "employee", status: "pending", hours: "—",     employmentType: "full_time", monthHours: "—", employeeId: null, password: null },
-  { id: employeeIdCounter++, name: "Sam Park",     role: "employee", status: "active",  hours: "14.0h", employmentType: "temporary",  monthHours: "56h", employeeId: null, password: null }
-];
+const employees = [];
+
+/** 公司概览页"在职员工"/"待审批请假"两张卡片,和员工管理/请假审批用的是同一份数据,
+    员工一增删、请假一提交/审批,这里就跟着变,不再是写死的 42/3。"当前在岗"/"出勤率"
+    (公司整体口径)需要"谁现在处于打卡中的会话"这类实时在线状态,演示环境里同一个
+    浏览器同一时间只会有一个人登录,没有多员工并发在线的数据可统计,暂时保留为占位符,
+    留作后续扩展(不属于这次请求范围,已在交付说明里如实告知)。 */
+function renderCaDashboardMetrics() {
+  saveState(); // 集中放在各个 render 函数顶部,保证任何一次数据变动之后都会写入 localStorage,不用在每个改数据的地方分别记得调用
+  const headcountEl = document.getElementById("caHeadcountValue");
+  if (headcountEl) headcountEl.textContent = String(employees.filter(e => e.status === "active").length);
+  const pendingLeaveEl = document.getElementById("caPendingLeaveValue");
+  if (pendingLeaveEl) pendingLeaveEl.textContent = String(leaveRequests.filter(r => r.status === "pending").length);
+}
 
 function employmentTypeLabel(dict, type) {
   if (type === "temporary") return dict.typeTemporary;
@@ -1390,51 +1718,255 @@ function employmentTypeLabel(dict, type) {
   return dict.typeFullTime;
 }
 
+/** 员工列表里"本周工时"/"本月工时"不再是创建时写死的静态文字,而是每次渲染都从
+    attendanceRecords 里按姓名实时汇总(和工资表、员工仪表盘卡片共用同一份底层数据,
+    只是统计口径不同)。演示环境里没有真实的"周/月边界"概念,这里用"全部未作废的
+    打卡记录"近似代表"本周"、"本月"两栏,足够说明数据是联动的;真实后端会按自然周/
+    自然月边界精确统计。 */
+function sumEmployeeAttendanceHours(employeeName) {
+  return attendanceRecords
+    .filter(rec => rec.employeeName === employeeName && !rec.voided)
+    .reduce((total, rec) => total + parseFloat(rec.hours || 0), 0);
+}
+
+/**
+ * Bug 修复(员工管理这一次真正接上了数据库):从后端拉取"已加入"的真实员工账号 +
+ * "已邀请、还没注册"的一次性邀请码,合并进本地 `employees` 数组。时薪
+ * (hourlyRateCents)、权限级别(role,员工/主管)这两个字段后端还没有存储,继续
+ * 保留本地已有的值(新同步进来的记录默认时薪 0、角色员工)——见交付说明的分阶段披露。
+ */
+async function syncEmployeesFromBackend() {
+  if (!accessToken || !currentUserCompanyId) return;
+  try {
+    const list = await apiRequest("/companies/" + currentUserCompanyId + "/employees", { auth: true });
+    const backendIds = new Set(list.map(item => item.id));
+
+    list.forEach(item => {
+      const employeeCode = (item.employeeCode || "").toUpperCase();
+      let local = employees.find(e => e.employeeId && employeeCode && e.employeeId.toUpperCase() === employeeCode);
+      if (!local) {
+        local = {
+          id: employeeIdCounter++, name: item.fullName, role: "employee",
+          employmentType: "full_time", hourlyRateCents: 0, employeeId: employeeCode || null, password: null,
+        };
+        employees.push(local);
+      }
+      local.name = item.fullName || local.name;
+      local.joined = item.joined;
+      local.backendId = item.id;
+      if (item.joined) {
+        local.status = item.status === "SUSPENDED" ? "suspended" : (item.status === "ACTIVE" ? "active" : "pending");
+        local.invitationCode = undefined;
+      } else {
+        local.status = "pending";
+        local.invitationCode = item.invitationCode;
+      }
+    });
+
+    // 本地曾经同步过、但后端现在查不到的记录(比如已经被删除)要一并从本地移除——
+    // 只处理"曾经同步过"(有 backendId)的记录,不碰还没同步过的本地数据,避免误删。
+    for (let i = employees.length - 1; i >= 0; i--) {
+      const e = employees[i];
+      if (e.backendId && !backendIds.has(e.backendId)) {
+        employees.splice(i, 1);
+      }
+    }
+
+    renderEmployeeTable();
+    renderPayrollTable();
+    renderEmployeeBalanceOverrideForm();
+    renderCaDashboardMetrics();
+    saveState();
+  } catch (err) {
+    // 同步失败(比如后端没启动)不阻断已经登录成功这件事,继续显示本地已有的数据。
+    console.warn("同步员工列表失败:", err);
+  }
+}
+
 function renderEmployeeTable() {
+  saveState();
   const tbody = document.getElementById("employeeTableBody");
   if (!tbody) return;
   const dict = i18n[currentLang];
   tbody.innerHTML = "";
+  if (!employees.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-2);padding:18px;">' + dict.noEmployeesYet + '</td></tr>';
+    return;
+  }
   employees.forEach(emp => {
+    // Bug 修复:状态现在有三种(在职/已停用/已邀请待注册,对应后端真实的
+    // ACTIVE/SUSPENDED/未消费的一次性邀请码),不再只是本地"active"/"pending"两种。
     const statusBadge = emp.status === "active"
       ? '<span class="badge success">' + dict.statusActive + '</span>'
-      : '<span class="badge warning">' + dict.statusPending + '</span>';
+      : emp.status === "suspended"
+        ? '<span class="badge danger">' + dict.statusSuspended + '</span>'
+        : '<span class="badge warning">' + dict.statusInvited + '</span>';
     const roleLabel = emp.role === "manager" ? dict.roleManager : dict.roleEmployee;
     const typeBadgeClass = emp.employmentType === "temporary" ? "warning" : (emp.employmentType === "part_time" ? "warning" : "success");
     const typeBadge = '<span class="badge ' + typeBadgeClass + '">' + employmentTypeLabel(dict, emp.employmentType) + '</span>';
+    const hoursText = emp.status === "active" ? sumEmployeeAttendanceHours(emp.name).toFixed(1) + "h" : "—";
     const row = document.createElement("tr");
+    // 已加入的真实员工(joined=true):可以调整时薪、停用/恢复、删除。
+    // 还没注册、只是一份待认领邀请(joined=false):不适用时薪/停用,只能撤销邀请。
+    const actionsHtml = emp.joined === false
+      ? '<button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-cancel-invite="' + emp.id + '">' + dict.cancelInviteAction + '</button>'
+      : '<button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-edit-rate="' + emp.id + '">' + dict.editHourlyRate + '</button> ' +
+        '<button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-toggle-suspend="' + emp.id + '">' +
+          (emp.status === "suspended" ? dict.reactivateEmployeeAction : dict.suspendEmployeeAction) + '</button> ' +
+        '<button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-delete-employee="' + emp.id + '">' + dict.deleteEmployee + '</button>';
     row.innerHTML =
       '<td>' + emp.name + '</td>' +
       '<td>' + roleLabel + '</td>' +
       '<td>' + typeBadge + '</td>' +
       '<td>' + statusBadge + '</td>' +
-      '<td>' + emp.hours + '</td>' +
-      '<td>' + emp.monthHours + '</td>' +
-      '<td><button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-delete-employee="' + emp.id + '">' + dict.deleteEmployee + '</button></td>';
+      '<td>' + hoursText + '</td>' +
+      '<td>' + hoursText + '</td>' +
+      '<td>' + actionsHtml + '</td>';
     tbody.appendChild(row);
   });
   tbody.querySelectorAll("[data-delete-employee]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const dict2 = i18n[currentLang];
+      if (!window.confirm(dict2.confirmDeleteEmployee)) return;
+      const targetId = Number(btn.dataset.deleteEmployee);
+      const emp = employees.find(e => e.id === targetId);
+      if (!emp) return;
+      // Bug 修复(员工管理这次真正接了数据库):已经同步过真实账号的员工,删除会
+      // 真的调用后端(软删除);还没登录/没有真实账号的本地数据,继续走本地删除
+      // (比如后端没启动时的兜底,不阻断这份原型继续可用)。
+      if (emp.backendId && accessToken && currentUserCompanyId) {
+        try {
+          await apiRequest("/companies/" + currentUserCompanyId + "/employees/" + emp.backendId, {
+            method: "DELETE", auth: true,
+          });
+        } catch (err) {
+          window.alert(err.message);
+          return;
+        }
+      }
+      const idx = employees.findIndex(e => e.id === targetId);
+      if (idx !== -1) employees.splice(idx, 1);
+      renderEmployeeTable();
+      renderPayrollTable();
+      renderEmployeeBalanceOverrideForm();
+      renderCaDashboardMetrics();
+    });
+  });
+  tbody.querySelectorAll("[data-toggle-suspend]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const dict2 = i18n[currentLang];
+      const targetId = Number(btn.dataset.toggleSuspend);
+      const emp = employees.find(e => e.id === targetId);
+      if (!emp) return;
+      const suspending = emp.status !== "suspended";
+      if (suspending && !window.confirm(dict2.confirmSuspendEmployee)) return;
+      if (emp.backendId && accessToken && currentUserCompanyId) {
+        try {
+          const action = suspending ? "suspend" : "reactivate";
+          await apiRequest("/companies/" + currentUserCompanyId + "/employees/" + emp.backendId + "/" + action, {
+            method: "PATCH", auth: true,
+          });
+        } catch (err) {
+          window.alert(err.message);
+          return;
+        }
+      }
+      emp.status = suspending ? "suspended" : "active";
+      renderEmployeeTable();
+      renderCaDashboardMetrics();
+    });
+  });
+  tbody.querySelectorAll("[data-cancel-invite]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const dict2 = i18n[currentLang];
+      if (!window.confirm(dict2.confirmCancelInvite)) return;
+      const targetId = Number(btn.dataset.cancelInvite);
+      const emp = employees.find(e => e.id === targetId);
+      if (!emp) return;
+      if (emp.backendId && accessToken && currentUserCompanyId) {
+        try {
+          await apiRequest("/companies/" + currentUserCompanyId + "/invitation-codes/" + emp.backendId, {
+            method: "DELETE", auth: true,
+          });
+        } catch (err) {
+          window.alert(err.message);
+          return;
+        }
+      }
+      const idx = employees.findIndex(e => e.id === targetId);
+      if (idx !== -1) employees.splice(idx, 1);
+      renderEmployeeTable();
+      renderCaDashboardMetrics();
+    });
+  });
+  tbody.querySelectorAll("[data-edit-rate]").forEach(btn => {
     btn.addEventListener("click", () => {
       const dict2 = i18n[currentLang];
-      if (window.confirm(dict2.confirmDeleteEmployee)) {
-        const targetId = Number(btn.dataset.deleteEmployee);
-        const idx = employees.findIndex(e => e.id === targetId);
-        if (idx !== -1) employees.splice(idx, 1);
-        renderEmployeeTable();
-      }
+      const targetId = Number(btn.dataset.editRate);
+      const emp = employees.find(e => e.id === targetId);
+      if (!emp) return;
+      const currentRate = ((emp.hourlyRateCents || 0) / 100).toFixed(2);
+      const input = window.prompt(dict2.editHourlyRatePrompt, currentRate);
+      if (input === null) return;
+      const parsed = Number(input);
+      if (Number.isNaN(parsed) || parsed < 0) return;
+      emp.hourlyRateCents = Math.round(parsed * 100);
+      renderEmployeeTable();
+      renderPayrollTable();
     });
   });
 }
 
 document.getElementById("btnAddEmployee").addEventListener("click", () => openModal("modal-add-employee"));
 
-document.getElementById("form-add-employee").addEventListener("submit", e => {
+document.getElementById("form-add-employee").addEventListener("submit", async e => {
   e.preventDefault();
+  const dict = i18n[currentLang];
   const name = document.getElementById("newEmployeeName").value.trim();
   const role = document.getElementById("newEmployeeRole").value;
-  if (!name) return;
-  employees.push({ id: employeeIdCounter++, name, role, status: "pending", hours: "—", employmentType: "full_time", monthHours: "—" });
+  const phone = document.getElementById("newEmployeePhone").value.trim();
+  // Bug 修复:这个表单本来就有"电话"和"员工编号"输入框,但旧的提交逻辑从来没有读取过
+  // 它们的值——员工编号在真实后端是必填项(AddEmployeeDto.employeeCode),这里补上。
+  const employeeCode = document.getElementById("newEmployeeId").value.trim();
+  const rateInput = document.getElementById("newEmployeeHourlyRate").value;
+  const hourlyRateCents = rateInput ? Math.round(Number(rateInput) * 100) : 0;
+  if (!name || !employeeCode) {
+    window.alert(dict.addEmployeeMissingFields);
+    return;
+  }
+
+  if (accessToken && currentUserCompanyId) {
+    // 已经连接真实后端:调用 POST /companies/:companyId/employees,后端生成一次性
+    // 邀请码(员工凭码自助注册、自己设置密码,绝不会由后台代为生成/重置密码)。
+    try {
+      const result = await apiRequest("/companies/" + currentUserCompanyId + "/employees", {
+        method: "POST", auth: true,
+        body: { fullName: name, employeeCode, phone: phone || undefined },
+      });
+      employees.push({
+        id: employeeIdCounter++, name, role, status: "pending", employmentType: "full_time",
+        hourlyRateCents, employeeId: employeeCode.toUpperCase(), password: null,
+        joined: false, backendId: result.invitationCodeId, invitationCode: result.invitationCode,
+      });
+      renderEmployeeTable();
+      renderPayrollTable();
+      renderEmployeeBalanceOverrideForm();
+      renderCaDashboardMetrics();
+      e.target.reset();
+      closeModal(document.getElementById("modal-add-employee"));
+      window.alert(dict.addEmployeeInviteCodeAlert + result.invitationCode);
+    } catch (err) {
+      window.alert(err.message);
+    }
+    return;
+  }
+
+  // 没有连接真实后端(比如后端没启动)时,退回到本地模拟,不阻断这份原型继续可用。
+  employees.push({ id: employeeIdCounter++, name, role, status: "pending", employmentType: "full_time", hourlyRateCents, employeeId: employeeCode.toUpperCase() || null, password: null });
   renderEmployeeTable();
+  renderPayrollTable();
+  renderEmployeeBalanceOverrideForm();
+  renderCaDashboardMetrics();
   e.target.reset();
   closeModal(document.getElementById("modal-add-employee"));
 });
@@ -1474,26 +2006,55 @@ document.getElementById("btnCompanyRegister").addEventListener("click", () => {
 });
 document.getElementById("platformSecretMark").addEventListener("click", () => openModal("modal-platform"));
 
-// Bug 修复:这四个表单原来提交后无条件 preventDefault + 跳转视图,完全不校验任何账号/
-// 密码/邀请码——员工和公司登录、注册实际上从来没有真正生效过,和"平台管理员登录"那一份
-// 真实校验的逻辑不是一套。现在统一按同样的模式补上真实校验。
-document.getElementById("form-employee-login").addEventListener("submit", e => {
+// Bug 修复(升级为真实后端调用):这几个表单原来只在浏览器本地模拟校验账号/密码/
+// 邀请码,现在改成真的调用本机 NestJS 后端的 auth/login、auth/register-employee
+// 两个接口(见文件靠前 apiRequest() 的说明)。员工管理/考勤/工资/请假这几个模块
+// 这次仍然是本地模拟,登录/注册成功后这里会顺手在本地 employees 数组里补一条/同步
+// 一条记录,让那些模块继续认得"当前登录的是谁"——这是分阶段接后端过程中的过渡写法,
+// 已在交付说明里如实披露。
+document.getElementById("form-employee-login").addEventListener("submit", async e => {
   e.preventDefault();
   const code = document.getElementById("empLoginCode").value.trim().toUpperCase();
   const password = document.getElementById("empLoginPassword").value;
   const errorEl = document.getElementById("employeeLoginError");
-  const match = employees.find(emp => emp.employeeId && emp.employeeId.toUpperCase() === code);
-  if (match && match.password && password === match.password) {
-    errorEl.classList.add("hidden");
-    loggedInEmployeeId = match.employeeId; // "修改密码"需要知道当前到底是谁登录的
+  errorEl.classList.add("hidden");
+  if (!code || !password) {
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  try {
+    const result = await apiRequest("/auth/login", { method: "POST", body: { identifier: code, password } });
+    accessToken = result.accessToken;
+    refreshToken = result.refreshToken;
+    currentUserId = result.user.id;
+    currentUserRole = result.user.role;
+    currentUserCompanyId = result.user.companyId;
+
+    let match = employees.find(emp => emp.employeeId && emp.employeeId.toUpperCase() === code);
+    if (!match) {
+      match = {
+        id: employeeIdCounter++, name: result.user.fullName, role: "employee", status: "active",
+        employmentType: "full_time", hourlyRateCents: 0, employeeId: code, password
+      };
+      employees.push(match);
+    } else {
+      match.password = password; // 保持本地这份密码副本和刚验证过的真实密码一致
+    }
+    loggedInEmployeeId = match.employeeId;
+    saveState();
+    updateWelcomeTitle();
+    updateEmployeeSummaryCards();
+    updateLeaveBalanceDisplays(currentEmployeeName());
+    renderLeaveHistory();
     e.target.reset();
     closeModal(document.getElementById("modal-employee"));
     showView("view-employeeApp");
-  } else {
+    if (currentUserCompanyId) syncCompanyProfileFromBackend(currentUserCompanyId);
+  } catch (err) {
     errorEl.classList.remove("hidden");
   }
 });
-document.getElementById("form-employee-register").addEventListener("submit", e => {
+document.getElementById("form-employee-register").addEventListener("submit", async e => {
   e.preventDefault();
   const name = document.getElementById("empRegName").value.trim();
   const newEmployeeId = document.getElementById("empRegEmployeeId").value.trim();
@@ -1502,20 +2063,8 @@ document.getElementById("form-employee-register").addEventListener("submit", e =
   const errorEl = document.getElementById("employeeRegisterError");
   const dict = i18n[currentLang];
   errorEl.classList.add("hidden");
-  if (!name || !newEmployeeId || !password) {
+  if (!name || !newEmployeeId || !inviteCode || !password) {
     errorEl.textContent = dict.employeeRegisterMissingFields;
-    errorEl.classList.remove("hidden");
-    return;
-  }
-  // 邀请码必须能在公司目录里查到,才知道这个员工归属哪家公司(和首页那个实时预览用的
-  // 是同一份 inviteCodeDirectory,规则保持一致)。
-  if (!inviteCodeDirectory[inviteCode]) {
-    errorEl.textContent = dict.employeeRegisterInviteCodeError;
-    errorEl.classList.remove("hidden");
-    return;
-  }
-  if (employees.some(emp => emp.employeeId && emp.employeeId.toUpperCase() === newEmployeeId.toUpperCase())) {
-    errorEl.textContent = dict.employeeRegisterIdTaken;
     errorEl.classList.remove("hidden");
     return;
   }
@@ -1524,55 +2073,115 @@ document.getElementById("form-employee-register").addEventListener("submit", e =
     errorEl.classList.remove("hidden");
     return;
   }
-  employees.push({
-    id: employeeIdCounter++, name, role: "employee", status: "active", hours: "—", employmentType: "full_time", monthHours: "—",
-    employeeId: newEmployeeId.toUpperCase(), password
-  });
-  loggedInEmployeeId = newEmployeeId.toUpperCase(); // 注册完直接算作已登录,"修改密码"要认得这是谁
-  renderEmployeeTable();
-  e.target.reset();
-  closeModal(document.getElementById("modal-employee"));
-  showView("view-employeeApp");
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    // 邀请码是否有效、是否用完、员工编号是否在这家公司被占用,现在统一交给后端
+    // (POST auth/register-employee)真正校验——不再靠本地 inviteCodeDirectory 猜测,
+    // 因为邀请码可能是在另一台设备/浏览器上生成的,本地目录不一定认得。
+    const result = await apiRequest("/auth/register-employee", {
+      method: "POST",
+      body: { fullName: name, employeeCode: newEmployeeId, inviteCode, password },
+    });
+    accessToken = result.accessToken;
+    refreshToken = result.refreshToken;
+    currentUserId = result.user.id;
+    currentUserRole = result.user.role;
+    currentUserCompanyId = result.user.companyId;
+
+    // 注:自助注册目前总是在本地新建一条记录,不会去匹配管理员可能已经手动添加过的同名
+    // "待入职"占位记录——这是姓名匹配容易出错(重名、大小写、多打的空格)导致的已知限制,
+    // 管理员发现重复时可以手动删除多余那条,不属于这次改动的范围,已在交付说明里如实告知。
+    if (!employees.some(emp => emp.employeeId && emp.employeeId.toUpperCase() === newEmployeeId.toUpperCase())) {
+      employees.push({
+        id: employeeIdCounter++, name, role: "employee", status: "active", employmentType: "full_time", hourlyRateCents: 0,
+        employeeId: newEmployeeId.toUpperCase(), password
+      });
+    }
+    loggedInEmployeeId = newEmployeeId.toUpperCase();
+    renderEmployeeTable();
+    renderPayrollTable();
+    renderEmployeeBalanceOverrideForm();
+    renderCaDashboardMetrics();
+    updateWelcomeTitle();
+    updateEmployeeSummaryCards();
+    updateLeaveBalanceDisplays(currentEmployeeName());
+    renderLeaveHistory();
+    saveState();
+    e.target.reset();
+    closeModal(document.getElementById("modal-employee"));
+    showView("view-employeeApp");
+    if (currentUserCompanyId) syncCompanyProfileFromBackend(currentUserCompanyId);
+  } catch (err) {
+    if (err.code === "AUTH_INVITATION_CODE_INVALID" || err.code === "AUTH_INVITATION_CODE_EXHAUSTED") {
+      errorEl.textContent = dict.employeeRegisterInviteCodeError;
+    } else if (err.code === "AUTH_EMPLOYEE_CODE_TAKEN") {
+      errorEl.textContent = dict.employeeRegisterIdTaken;
+    } else {
+      errorEl.textContent = err.message;
+    }
+    errorEl.classList.remove("hidden");
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
 });
-document.getElementById("form-company-login").addEventListener("submit", e => {
+document.getElementById("form-company-login").addEventListener("submit", async e => {
   e.preventDefault();
   const email = document.getElementById("companyLoginEmail").value.trim().toLowerCase();
   const password = document.getElementById("companyLoginPassword").value;
   const errorEl = document.getElementById("companyLoginError");
-  // companyAdminEmail/companyAdminDemoPassword 在还没有任何公司注册过之前都是空字符串——
-  // 这里必须显式判断"两边都不能是空的",否则表单什么都不填直接提交,空字符串等于空字符串,
-  // 会被误判成登录成功。
-  if (email && password && email === companyAdminEmail.toLowerCase() && password === companyAdminDemoPassword) {
-    errorEl.classList.add("hidden");
+  errorEl.classList.add("hidden");
+  if (!email || !password) {
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  try {
+    const result = await apiRequest("/auth/login", { method: "POST", body: { identifier: email, password } });
+    accessToken = result.accessToken;
+    refreshToken = result.refreshToken;
+    currentUserId = result.user.id;
+    currentUserRole = result.user.role;
+    currentUserCompanyId = result.user.companyId;
+    companyAdminEmail = email;
+    saveState();
     e.target.reset();
     closeModal(document.getElementById("modal-company"));
     showView("view-companyAdminApp");
-  } else {
+    if (currentUserCompanyId) {
+      syncCompanyProfileFromBackend(currentUserCompanyId);
+      syncEmployeesFromBackend();
+    }
+  } catch (err) {
     errorEl.classList.remove("hidden");
   }
 });
-/** 地址 → GPS 经纬度自动匹配的演示版本。真实后端调用的是 OpenStreetMap Nominatim(见
-    backend/src/modules/companies/geocoding.service.ts),这里没有真的联网查询,用一个
-    简单但确定性的规则模拟"能不能解析出坐标"——写得像真实门牌地址(带数字、够长)就算匹配成功,
-    随手打几个字就算匹配失败。不管哪种结果,和后端的设计原则一样:失败绝不阻断注册。 */
-function simulateAddressGeocoding(addressLine) {
-  if (!addressLine) return "NOT_PROVIDED";
-  const looksLikeRealAddress = /\d/.test(addressLine) && addressLine.trim().length >= 5;
-  return looksLikeRealAddress ? "SUCCESS" : "FAILED";
-}
+// 地址 → GPS 经纬度自动匹配现在由后端真正调用 OpenStreetMap Nominatim 完成(见
+// backend/src/modules/companies/geocoding.service.ts),注册成功后直接读
+// registerResult.company.geocodingStatus 即可——原来这里那个本地模拟规则
+// (simulateAddressGeocoding)已经不再需要,移除。
 
-document.getElementById("form-company-register").addEventListener("submit", e => {
+document.getElementById("form-company-register").addEventListener("submit", async e => {
   e.preventDefault();
   const companyName = document.getElementById("regCompanyName").value.trim();
+  const slogan = document.getElementById("regCompanySlogan").value.trim();
+  const countryInput = document.getElementById("regCompanyCountry").value.trim();
+  const city = document.getElementById("regCompanyCity").value.trim();
+  const postalCode = document.getElementById("regCompanyPostalCode").value.trim();
+  const adminFullName = document.getElementById("regCompanyAdminName").value.trim();
+  const contactPersonName = document.getElementById("regCompanyContactPerson").value.trim();
   const phone = document.getElementById("regCompanyPhone").value.trim();
   const email = document.getElementById("regCompanyEmail").value.trim().toLowerCase();
+  const whatsapp = document.getElementById("regCompanyWhatsapp").value.trim();
+  const vatNumber = document.getElementById("regCompanyVat").value.trim();
+  const chamberOfCommerceNo = document.getElementById("regCompanyCoc").value.trim();
   const password = document.getElementById("regCompanyPassword").value;
   const addressLine = document.getElementById("regCompanyAddress").value.trim();
   const errorEl = document.getElementById("companyRegisterError");
   const dict = i18n[currentLang];
   errorEl.classList.add("hidden");
-  // 联络电话是必填项;公司地址、商会注册号、税号都是可选项——和后端 RegisterCompanyDto 的校验规则一致。
-  if (!companyName || !phone || !email || !password) {
+  // 联络电话、您的姓名是必填项;公司地址、商会注册号、税号都是可选项——和后端
+  // RegisterCompanyDto 的校验规则一致。
+  if (!companyName || !adminFullName || !phone || !email || !password) {
     errorEl.textContent = dict.companyRegisterMissingFields;
     errorEl.classList.remove("hidden");
     return;
@@ -1587,20 +2196,63 @@ document.getElementById("form-company-register").addEventListener("submit", e =>
     errorEl.classList.remove("hidden");
     return;
   }
-  // 这份演示只有一个公司工作区(见 companyAdminEmail 声明处的说明),注册相当于把这个
-  // 工作区的登录邮箱/密码设置成刚填的这一组,方便注册完立刻就能用同一组信息登录。
-  companyAdminEmail = email;
-  companyAdminDemoPassword = password;
-  document.getElementById("settingsCompanyName").value = companyName;
 
-  const geocodingStatus = simulateAddressGeocoding(addressLine);
-  e.target.reset();
-  closeModal(document.getElementById("modal-company"));
-  showView("view-companyAdminApp");
-  if (geocodingStatus === "SUCCESS") {
-    window.alert(dict.geocodeSuccessAlert);
-  } else if (geocodingStatus === "FAILED") {
-    window.alert(dict.geocodeFailedAlert);
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    const orUndef = v => (v ? v : undefined);
+    const registerResult = await apiRequest("/auth/register-company", {
+      method: "POST",
+      body: {
+        companyName, adminFullName, phone, email, password,
+        countryCode: normalizeCountryCode(countryInput),
+        slogan: orUndef(slogan), city: orUndef(city), postalCode: orUndef(postalCode),
+        contactPersonName: orUndef(contactPersonName), addressLine: orUndef(addressLine),
+        whatsapp: orUndef(whatsapp), vatNumber: orUndef(vatNumber), chamberOfCommerceNo: orUndef(chamberOfCommerceNo),
+      },
+    });
+
+    // POST auth/register-company 只负责建账号,不像 register-employee 那样直接发 token——
+    // 这里紧接着自动帮用户登录一次,保持原型一直以来"注册完立刻可用"的体验。
+    const loginResult = await apiRequest("/auth/login", { method: "POST", body: { identifier: email, password } });
+    accessToken = loginResult.accessToken;
+    refreshToken = loginResult.refreshToken;
+    currentUserId = loginResult.user.id;
+    currentUserRole = loginResult.user.role;
+    currentUserCompanyId = loginResult.user.companyId;
+
+    companyAdminEmail = email;
+    companyDisplayName = companyName;
+    document.getElementById("settingsCompanyName").value = companyName;
+    const empNameEl = document.getElementById("employeeCompanyName");
+    if (empNameEl) empNameEl.textContent = companyName; // 员工端头部的公司名同步更新,不再永远显示演示公司名
+
+    // 邀请码现在是后端真正生成、写进数据库的(见 CompaniesService.registerCompany)——
+    // 这里只是把它同步进本地的 inviteCodeDirectory,给首页"邀请码识别所属公司"这个纯
+    // 本地的实时预览功能用;真正的邀请码校验永远发生在后端 register-employee 接口里。
+    if (currentCompanyInviteCode) delete inviteCodeDirectory[currentCompanyInviteCode];
+    currentCompanyInviteCode = registerResult.invitationCode;
+    inviteCodeDirectory[currentCompanyInviteCode] = companyName;
+    const inviteCodeEl = document.getElementById("currentInviteCodeValue");
+    if (inviteCodeEl) inviteCodeEl.textContent = currentCompanyInviteCode;
+
+    saveState();
+    e.target.reset();
+    closeModal(document.getElementById("modal-company"));
+    showView("view-companyAdminApp");
+    syncEmployeesFromBackend();
+
+    const geocodingStatus = registerResult.company.geocodingStatus;
+    if (geocodingStatus === "SUCCESS") {
+      window.alert(dict.geocodeSuccessAlert);
+    } else if (geocodingStatus === "FAILED") {
+      window.alert(dict.geocodeFailedAlert);
+    }
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove("hidden");
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
   }
 });
 document.getElementById("form-platform-login").addEventListener("submit", e => {
@@ -1635,6 +2287,7 @@ wireNavRail("pa", "view-platformAdminApp");
 let clockedIn = false;
 let elapsedSeconds = 0;
 let timerHandle = null;
+let currentClockInAt = null; // 上班打卡时刻(Date对象),下班打卡时用来算真实工时并写入 attendanceRecords
 const clockBtn = document.getElementById("clockBtn");
 const timerEl = document.getElementById("todayTimer");
 
@@ -1645,13 +2298,40 @@ function formatElapsed(total) {
   return h + ":" + m + ":" + s;
 }
 
+function formatHhMm(d) {
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+// Bug 修复:之前这个按钮只管理一个纯前端的计时器显示,从来没有真正往 attendanceRecords
+// 里写过一条记录——员工打卡本该是考勤数据最主要的来源,结果考勤记录、工资表、员工仪表盘
+// 卡片全部只能靠管理员"补录"才有数据。现在下班打卡时会为"当前登录的这名员工"真实生成
+// 一条打卡记录,和考勤/工资/仪表盘三处联动刷新。
 clockBtn.addEventListener("click", () => {
   clockedIn = !clockedIn;
   clockBtn.classList.toggle("clocked-in", clockedIn);
   if (clockedIn) {
+    currentClockInAt = new Date();
     timerHandle = setInterval(() => { elapsedSeconds++; timerEl.textContent = formatElapsed(elapsedSeconds); }, 1000);
   } else {
     clearInterval(timerHandle);
+    const employeeName = currentEmployeeName();
+    if (employeeName && currentClockInAt) {
+      const clockOutAt = new Date();
+      const clockInStr = formatHhMm(currentClockInAt);
+      const clockOutStr = formatHhMm(clockOutAt);
+      const hours = computeHoursBetween(clockInStr, clockOutStr);
+      attendanceRecords.push({
+        id: attendanceIdCounter++,
+        employeeName,
+        date: clockOutAt.toISOString().slice(0, 10),
+        clockIn: clockInStr, clockOut: clockOutStr,
+        hours: hours.toFixed(2) + "h", voided: false, voidReason: "", edits: []
+      });
+      renderAttendanceTable();
+      refreshHoursDependentViews();
+    }
+    currentClockInAt = null;
+    elapsedSeconds = 0;
   }
   applyI18n();
 });
@@ -1754,11 +2434,9 @@ inviteInput.addEventListener("input", () => {
    公司管理后台"请假审批"(显示全部员工记录,可批准/拒绝)。每条记录都有独立留言板
    (leave_request_messages 的前端体现),病假证明/出差行程作为附加字段按需展示。 */
 let leaveRequestIdCounter = 500;
-const leaveRequests = [
-  { id: leaveRequestIdCounter++, employeeName: "Jonas Weber", category: "ANNUAL", days: 3, reason: "家庭旅行 / Family trip", status: "pending", messages: [] },
-  { id: leaveRequestIdCounter++, employeeName: "Alex Chen", category: "SICK", days: 1, reason: "感冒发烧,需要休息一天 / Flu, need a day to recover", status: "pending", hasAttachment: true, messages: [{ sender: "Alex Chen", text: "已上传医生证明,麻烦审批一下,谢谢!", senderRole: "employee" }] },
-  { id: leaveRequestIdCounter++, employeeName: "Maria Santos", category: "PERSONAL", days: 1, reason: "处理个人事务 / Personal errand", status: "approved", messages: [] }
-];
+// 不再预置任何演示员工的请假记录——员工列表本身默认是空的,这里预置的假请假记录也就没有
+// 归属对象了。真实数据完全来自员工自己在"请假中心"提交的申请。
+const leaveRequests = [];
 
 /* ---------- 请假配额配置("变量系统",对应后端 LeaveModule 的 leave_types) ----------
    quota=null 表示不限额(如培训假/出差)。这些值全部可以在公司后台"请假类型与额度设置"
@@ -1777,13 +2455,10 @@ let leaveTypeConfigs = {
    这个类型上没有被单独调整过",此时用 leaveTypeConfigs[category].quota 兜底
    (和后端 LeaveService.listBalances() 的兜底逻辑一致)。usedDays 在批准请假时累加,
    不会因为改额度而被清零——改额度只影响"总共能休多少天",不影响"已经休了多少天"。 */
-let leaveBalancesByEmployee = {
-  "Alex Chen": {
-    ANNUAL: { allocated: 21, used: 7 },
-    SICK: { allocated: null, used: 3 },
-    PERSONAL: { allocated: 5, used: 2 },
-  },
-};
+// 不再预置任何演示员工的余额——getEmployeeLeaveBalance() 已经是按姓名懒加载初始化
+// (allocated:null 会回退到公司级默认配额),任何真实注册的员工第一次被查询余额时都会
+// 自动生成一条初始记录,不需要在这里手工预置。
+let leaveBalancesByEmployee = {};
 
 function getEmployeeLeaveBalance(employeeName, category) {
   if (!leaveBalancesByEmployee[employeeName]) leaveBalancesByEmployee[employeeName] = {};
@@ -1822,6 +2497,9 @@ function formatLeaveBalanceValue(dict, employeeName, category) {
 function updateLeaveBalanceDisplays(employeeName) {
   const dict = i18n[currentLang];
   const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  // 还没有任何员工登录(比如刚打开首页)时没有余额可显示,保留卡片上的占位符即可,
+  // 不要为 null 姓名在 leaveBalancesByEmployee 里生成一条垃圾记录。
+  if (!employeeName) return;
   setText("empAnnualBalance", formatLeaveBalanceText(dict, employeeName, "ANNUAL"));
   setText("empSickBalance", formatLeaveBalanceText(dict, employeeName, "SICK"));
   setText("empPersonalBalance", formatLeaveBalanceText(dict, employeeName, "PERSONAL"));
@@ -1849,6 +2527,7 @@ function leaveTypeBadgeInfo(dict, category) {
 const LEAVE_CATEGORIES_ORDER = ["ANNUAL", "SICK", "PERSONAL", "TRAINING", "BUSINESS_TRIP"];
 
 function renderLeaveTypeConfigPanel() {
+  saveState();
   const tbody = document.getElementById("leaveTypeConfigBody");
   if (!tbody) return;
   const dict = i18n[currentLang];
@@ -1874,7 +2553,7 @@ function renderLeaveTypeConfigPanel() {
         requiresApproval: document.getElementById("cfgApproval-" + cat).checked,
         requiresAttachment: document.getElementById("cfgAttachment-" + cat).checked,
       };
-      updateLeaveBalanceDisplays("Alex Chen");
+      updateLeaveBalanceDisplays(currentEmployeeName());
       renderLeaveRequests();
       renderLeaveHistory();
       syncSettingsAnnualQuotaInput(); // 两处年假天数入口保持同步,见 syncSettingsAnnualQuotaInput 说明
@@ -1888,6 +2567,7 @@ function renderLeaveTypeConfigPanel() {
 /* ---------- 单个员工额度调整(公司后台) ----------
    对应后端 PUT /companies/:id/employees/:employeeId/leave-balances/:leaveTypeId。 */
 function renderEmployeeBalanceOverrideForm() {
+  saveState();
   const select = document.getElementById("balanceOverrideEmployee");
   if (!select) return;
   const currentValue = select.value;
@@ -1897,11 +2577,14 @@ function renderEmployeeBalanceOverrideForm() {
 
 document.getElementById("btnSaveEmployeeBalance").addEventListener("click", () => {
   const employeeName = document.getElementById("balanceOverrideEmployee").value;
+  if (!employeeName) return; // 员工名单是空的(下拉框没有选项)时不做任何事,避免生成归属不明的额度记录
   const category = document.getElementById("balanceOverrideType").value;
   const days = Math.max(0, Number(document.getElementById("balanceOverrideDays").value));
   const bal = getEmployeeLeaveBalance(employeeName, category);
   bal.allocated = days; // 只改总额度,不影响 usedDays(和后端 setBalance() 的语义一致)
-  if (employeeName === "Alex Chen") updateLeaveBalanceDisplays("Alex Chen");
+  // 只有当管理员调整的正好是"当前登录的员工"本人的额度时,才需要刷新员工端卡片——
+  // 调整的是其他员工,员工端此刻显示的是登录者自己的数据,不受影响。
+  if (employeeName === currentEmployeeName()) updateLeaveBalanceDisplays(employeeName);
   const notice = document.getElementById("employeeBalanceSavedNotice");
   notice.classList.remove("hidden");
   setTimeout(() => notice.classList.add("hidden"), 2000);
@@ -1995,17 +2678,26 @@ function wireLeaveCardEvents(container, isAdminView) {
 }
 
 function renderLeaveRequests() {
+  saveState();
   const container = document.getElementById("leaveRequestList");
   if (!container) return;
-  container.innerHTML = leaveRequests.map(req => buildLeaveCardHtml(req, true)).join("");
+  const dict = i18n[currentLang];
+  container.innerHTML = leaveRequests.length
+    ? leaveRequests.map(req => buildLeaveCardHtml(req, true)).join("")
+    : '<div class="insight-empty">' + dict.noLeaveRequestsYet + '</div>';
   wireLeaveCardEvents(container, true);
 }
 
 function renderLeaveHistory() {
+  saveState();
   const container = document.getElementById("leaveHistoryList");
   if (!container) return;
-  const mine = leaveRequests.filter(r => r.employeeName === "Alex Chen");
-  container.innerHTML = mine.map(req => buildLeaveCardHtml(req, false)).join("");
+  const dict = i18n[currentLang];
+  // "我的请假中心"只显示当前真实登录的这名员工自己的记录——不再写死某个演示姓名。
+  const mine = leaveRequests.filter(r => r.employeeName === currentEmployeeName());
+  container.innerHTML = mine.length
+    ? mine.map(req => buildLeaveCardHtml(req, false)).join("")
+    : '<div class="insight-empty">' + dict.noLeaveRequestsYet + '</div>';
   wireLeaveCardEvents(container, false);
 }
 
@@ -2017,9 +2709,10 @@ function approveLeaveRequest(id) {
   // 任何员工、任何请假类型批准后都会更新对应的余额(和后端 applyUsedDays() 语义一致)。
   const bal = getEmployeeLeaveBalance(req.employeeName, req.category);
   bal.used += req.days;
-  updateLeaveBalanceDisplays("Alex Chen"); // 员工端演示身份固定是 Alex Chen,其余员工的余额只在后台调整表单里可见
+  updateLeaveBalanceDisplays(currentEmployeeName()); // 只刷新当前登录者自己看到的卡片,其余员工的余额在后台调整表单里可见
   renderLeaveRequests();
   renderLeaveHistory();
+  renderCaDashboardMetrics();
 }
 function rejectLeaveRequest(id) {
   const req = leaveRequests.find(r => r.id === id);
@@ -2027,6 +2720,7 @@ function rejectLeaveRequest(id) {
   req.status = "rejected";
   renderLeaveRequests();
   renderLeaveHistory();
+  renderCaDashboardMetrics();
 }
 
 document.getElementById("leaveTypeSelect").addEventListener("change", e => {
@@ -2061,7 +2755,8 @@ document.getElementById("form-leave-request").addEventListener("submit", e => {
     return;
   }
   // 2) 该类型设了有限额度时,剩余天数不够也不允许提交。
-  const employeeName = "Alex Chen";
+  const employeeName = currentEmployeeName();
+  if (!employeeName) return; // 理论上走不到这里(没登录看不到这个表单),多一层保护避免生成归属不明的记录
   const quota = effectiveQuota(employeeName, category);
   if (quota !== null && quota !== undefined) {
     const bal = getEmployeeLeaveBalance(employeeName, category);
@@ -2079,6 +2774,7 @@ document.getElementById("form-leave-request").addEventListener("submit", e => {
   leaveRequests.push(req);
   renderLeaveRequests();
   renderLeaveHistory();
+  renderCaDashboardMetrics();
   e.target.reset();
   document.getElementById("sickAttachmentField").classList.add("hidden");
   document.getElementById("tripDetailsField").classList.add("hidden");
@@ -2098,20 +2794,41 @@ document.getElementById("doctorNoteFile").addEventListener("change", e => {
 document.getElementById("btnOpenLeaveCenter").addEventListener("click", () => openModal("modal-leave-center"));
 
 /* ---------- 设置:公司资料 + 邀请码管理 ----------
-   邀请码 = 公司名前缀(去除非字母字符,截取前4位)+ 4位随机数字,注册公司的瞬间就自动生成一个
-   常用邀请码(见首页邀请码预览演示),这里补上"哪一个方便"问题里缺失的后台管理入口:
-   查看当前码、复制、以及重新生成(旧码立即失效)。 */
-function regenerateInviteCode() {
-  const nameInput = document.getElementById("settingsCompanyName");
-  const rawName = (nameInput ? nameInput.value : "Delicious Poke Co.").toUpperCase().replace(/[^A-Z]/g, "");
-  const prefix = rawName.slice(0, 4) || "CODE";
-  const suffix = String(Math.floor(1000 + Math.random() * 9000));
-  const newCode = prefix + "-" + suffix;
-  document.getElementById("currentInviteCodeValue").textContent = newCode;
+   邀请码现在由后端真正生成(公司注册瞬间自动生成一个常用邀请码,见
+   CompaniesService.registerCompany + InvitationCodeService),这里的"重新生成"按钮
+   调用后端 POST companies/:id/invitation-codes/regenerate 接口(仅 COMPANY_ADMIN,
+   需要携带登录时拿到的 Bearer token)。 */
+// Bug 修复(升级为真实后端调用):之前"重新生成"只在本地更新页面文字和
+// inviteCodeDirectory,从来没有真正持久化到数据库——现在真的调后端接口,旧码在
+// 数据库里立即被标记作废(revokedAt),新码由后端生成并返回,前端只是同步展示。
+async function regenerateInviteCode() {
   const notice = document.getElementById("regenerateNotice");
-  notice.textContent = i18n[currentLang].codeRegenerated;
-  notice.style.display = "block";
-  setTimeout(() => { notice.style.display = "none"; }, 3000);
+  const showNotice = (text, ms) => {
+    notice.textContent = text;
+    notice.style.display = "block";
+    setTimeout(() => { notice.style.display = "none"; }, ms);
+  };
+  if (!accessToken || !currentUserCompanyId) {
+    // 没有真实登录态(比如刷新页面后 access token 过期——这次改动还没做自动
+    // refresh,见 apiRequest() 附近的说明)时没法调用需要鉴权的接口,提示重新登录,
+    // 而不是假装成功。
+    showNotice(i18n[currentLang].reauthRequiredNotice, 3000);
+    return;
+  }
+  try {
+    const result = await apiRequest("/companies/" + currentUserCompanyId + "/invitation-codes/regenerate", {
+      method: "POST",
+      auth: true,
+    });
+    if (currentCompanyInviteCode) delete inviteCodeDirectory[currentCompanyInviteCode];
+    currentCompanyInviteCode = result.code;
+    inviteCodeDirectory[currentCompanyInviteCode] = companyDisplayName;
+    document.getElementById("currentInviteCodeValue").textContent = currentCompanyInviteCode;
+    saveState();
+    showNotice(i18n[currentLang].codeRegenerated, 3000);
+  } catch (err) {
+    showNotice(err.message, 3000);
+  }
 }
 document.getElementById("btnRegenerateInviteCode").addEventListener("click", regenerateInviteCode);
 document.getElementById("btnCopyInviteCode").addEventListener("click", () => {
@@ -2129,10 +2846,19 @@ document.getElementById("btnSaveCompanyProfile").addEventListener("click", () =>
   const quotaInput = document.getElementById("settingsAnnualQuota");
   const newQuota = Math.max(0, Number(quotaInput.value) || 0);
   leaveTypeConfigs.ANNUAL.quota = newQuota;
+  // Bug 修复:公司名称/口号这两个输入框之前改了之后哪里都没同步——员工端头部的公司名
+  // 永远显示注册时的旧值(或演示默认值),现在保存时一并读取、同步、持久化。
+  companyDisplayName = document.getElementById("settingsCompanyName").value.trim() || companyDisplayName;
+  companySloganText = document.getElementById("settingsCompanySlogan").value.trim();
+  const empNameEl = document.getElementById("employeeCompanyName");
+  if (empNameEl) empNameEl.textContent = companyDisplayName;
+  const empSloganEl = document.getElementById("employeeCompanySlogan");
+  if (empSloganEl) empSloganEl.textContent = companySloganText;
   renderLeaveTypeConfigPanel();
-  updateLeaveBalanceDisplays("Alex Chen");
+  updateLeaveBalanceDisplays(currentEmployeeName());
   renderLeaveRequests();
   renderLeaveHistory();
+  saveState();
   const notice = document.getElementById("profileSaveNotice");
   notice.textContent = i18n[currentLang].profileSaved;
   notice.classList.remove("hidden");
@@ -2155,11 +2881,18 @@ function syncSettingsAnnualQuotaInput() {
    永远保留,可随时恢复——不提供真正删除历史打卡记录的功能,理由见 ca-attendance
    区块顶部的说明文字与 03-API-DESIGN.md 里那条 "On deletion" 的备注。 */
 let attendanceIdCounter = 900;
-const attendanceRecords = [
-  { id: attendanceIdCounter++, employeeName: "Alex Chen", date: "2026-07-14", clockIn: "09:02", clockOut: "17:35", hours: "8.55h", voided: false, voidReason: "", edits: [] },
-  { id: attendanceIdCounter++, employeeName: "Maria Santos", date: "2026-07-14", clockIn: "08:58", clockOut: "16:30", hours: "7.53h", voided: false, voidReason: "", edits: [] },
-  { id: attendanceIdCounter++, employeeName: "Sam Park", date: "2026-07-13", clockIn: "12:00", clockOut: "12:04", hours: "0.07h", voided: true, voidReason: "系统重复生成的空记录 / Duplicate empty session generated by a bug", edits: [] }
-];
+// 不再预置任何演示员工的打卡记录——员工上班打卡、或管理员"补录打卡"之后才会有数据,
+// 和员工列表、工资表读的是同一份数组。
+const attendanceRecords = [];
+
+/** 计算两个 "HH:MM" 时间之间的工时(小时,保留两位小数)。补录打卡用得到——
+    正常打卡由 clockBtn 那套计时器直接生成 hours 字段,这里是给手动补录场景用的。 */
+function computeHoursBetween(clockIn, clockOut) {
+  const [inH, inM] = clockIn.split(":").map(Number);
+  const [outH, outM] = clockOut.split(":").map(Number);
+  const minutes = (outH * 60 + outM) - (inH * 60 + inM);
+  return Math.max(0, Math.round((minutes / 60) * 100) / 100);
+}
 
 function buildAttendanceCardHtml(rec) {
   const dict = i18n[currentLang];
@@ -2223,6 +2956,7 @@ function wireAttendanceCardEvents(container) {
       rec.voided = true;
       rec.voidReason = reason.trim();
       renderAttendanceTable();
+      refreshHoursDependentViews();
     });
   });
   container.querySelectorAll("[data-restore-attendance]").forEach(btn => {
@@ -2235,16 +2969,74 @@ function wireAttendanceCardEvents(container) {
       rec.voided = false;
       rec.voidReason = "";
       renderAttendanceTable();
+      refreshHoursDependentViews();
     });
   });
 }
 
 function renderAttendanceTable() {
+  saveState();
   const container = document.getElementById("attendanceList");
   if (!container) return;
-  container.innerHTML = attendanceRecords.map(rec => buildAttendanceCardHtml(rec)).join("");
+  const dict = i18n[currentLang];
+  container.innerHTML = attendanceRecords.length
+    ? attendanceRecords.map(rec => buildAttendanceCardHtml(rec)).join("")
+    : '<div class="insight-empty">' + dict.noAttendanceYet + '</div>';
   wireAttendanceCardEvents(container);
 }
+
+/** 考勤记录一变(更正/作废/恢复/补录),员工列表的工时列、工资表、员工仪表盘卡片
+    这三处依赖同一份 attendanceRecords 的展示都要跟着刷新,否则会出现"考勤改了,
+    别的地方数字没变"的不一致。集中放在这一个函数里调用,避免漏掉某一处。 */
+function refreshHoursDependentViews() {
+  renderEmployeeTable();
+  renderPayrollTable();
+  updateEmployeeSummaryCards();
+}
+
+/** 补录打卡的员工下拉框,和请假余额调整表单的员工下拉框(renderEmployeeBalanceOverrideForm)
+    是完全一样的模式:每次打开都用当前 employees 名单重新生成一次。 */
+function populateEmployeeSelect(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  select.innerHTML = employees.map(emp => '<option value="' + emp.name + '">' + emp.name + "</option>").join("");
+}
+
+document.getElementById("btnAddAttendance").addEventListener("click", () => {
+  document.getElementById("addAttendanceError").classList.add("hidden");
+  document.getElementById("form-add-attendance").reset();
+  populateEmployeeSelect("addAttendanceEmployee");
+  openModal("modal-add-attendance");
+});
+
+document.getElementById("form-add-attendance").addEventListener("submit", e => {
+  e.preventDefault();
+  const dict = i18n[currentLang];
+  const errorEl = document.getElementById("addAttendanceError");
+  const employeeName = document.getElementById("addAttendanceEmployee").value;
+  const date = document.getElementById("addAttendanceDate").value;
+  const clockIn = document.getElementById("addAttendanceClockIn").value;
+  const clockOut = document.getElementById("addAttendanceClockOut").value;
+  if (!employeeName) {
+    errorEl.textContent = dict.noEmployeesYet;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  const hours = computeHoursBetween(clockIn, clockOut);
+  if (hours <= 0) {
+    errorEl.textContent = dict.addAttendanceInvalidRange;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  errorEl.classList.add("hidden");
+  attendanceRecords.push({
+    id: attendanceIdCounter++, employeeName, date, clockIn, clockOut,
+    hours: hours.toFixed(2) + "h", voided: false, voidReason: "", edits: []
+  });
+  renderAttendanceTable();
+  refreshHoursDependentViews();
+  closeModal(document.getElementById("modal-add-attendance"));
+});
 
 document.getElementById("form-correct-attendance").addEventListener("submit", e => {
   e.preventDefault();
@@ -2266,7 +3058,10 @@ document.getElementById("form-correct-attendance").addEventListener("submit", e 
     rec.edits.push({ time: now, field: dict.fieldClockOut, oldValue: rec.clockOut, newValue: newClockOut, reason });
     rec.clockOut = newClockOut;
   }
+  // 更正打卡时间之后工时可能变了,同步重算 hours 字段,否则工资表会继续用旧工时算钱。
+  rec.hours = computeHoursBetween(rec.clockIn, rec.clockOut).toFixed(2) + "h";
   renderAttendanceTable();
+  refreshHoursDependentViews();
   closeModal(document.getElementById("modal-correct-attendance"));
 });
 
@@ -2618,6 +3413,7 @@ function renderInventoryPagination(totalPages) {
 }
 
 function renderInventoryTable() {
+  saveState();
   const container = document.getElementById("inventoryList");
   if (!container) return;
   const dict = i18n[currentLang];
@@ -3009,15 +3805,19 @@ function renderDailyReportGps() {
     : '<div class="insight-empty">' + dict.noGpsAnomalies + "</div>";
 }
 
-// 演示用时薪(分),真实后端由 PayrollService.setWageConfig 按员工单独配置,版本化保留历史费率。
-const employeeWageRatesCents = { "Alex Chen": 1500, "Maria Santos": 1400, "Sam Park": 1300 };
+// 时薪不再是脱离员工名单单独维护的一张表——每位员工的 hourlyRateCents 就是"工资计算公式"
+// 真正用到的费率,管理员在"员工管理"里设置/修改,这里直接读,不会出现两处不一致。
+function hourlyRateCentsFor(employeeName) {
+  const emp = employees.find(e => e.name === employeeName);
+  return emp ? (emp.hourlyRateCents || 0) : 0;
+}
 
 function computeDailyWageCost() {
   return attendanceRecords
     .filter(rec => !rec.voided) // 作废的记录不计入工资成本,和考勤模块的规则一致
     .map(rec => {
       const hours = parseFloat(rec.hours);
-      const rateCents = employeeWageRatesCents[rec.employeeName] || 0;
+      const rateCents = hourlyRateCentsFor(rec.employeeName);
       const regularHours = Math.min(hours, 8);
       const overtimeHours = Math.max(hours - 8, 0);
       const regularCostCents = Math.round(regularHours * rateCents);
@@ -3030,6 +3830,106 @@ function computeDailyWageCost() {
       };
     });
 }
+
+/** 把 computeDailyWageCost() 按员工姓名汇总(一个员工可能有好几条打卡记录),
+    工资管理页面、员工仪表盘卡片都基于这一份汇总结果,保证两处数字永远一致。 */
+function computeEmployeeWageSummary(employeeName) {
+  const rows = computeDailyWageCost().filter(r => r.employeeName === employeeName);
+  const summary = rows.reduce((acc, r) => {
+    acc.regularHours += r.regularHours;
+    acc.overtimeHours += r.overtimeHours;
+    acc.baseCostCents += r.costCents;
+    return acc;
+  }, { regularHours: 0, overtimeHours: 0, baseCostCents: 0 });
+  const adjustments = payrollAdjustments.filter(a => a.employeeName === employeeName);
+  const adjustmentCostCents = adjustments.reduce((sum, a) => sum + a.amountCents, 0);
+  return {
+    regularHours: summary.regularHours,
+    overtimeHours: summary.overtimeHours,
+    totalHours: summary.regularHours + summary.overtimeHours,
+    baseCostCents: summary.baseCostCents,
+    adjustments,
+    adjustmentCostCents,
+    totalCostCents: summary.baseCostCents + adjustmentCostCents
+  };
+}
+
+/* ---------- 工资管理(公司后台) ----------
+   工资 = 未作废考勤记录按员工汇总的正常/加班工时 * 该员工时薪(自动计算,不可手动改动
+   底层工时和费率本身,和库存流水"只能通过记录变动"是同一个设计思路),再加上管理员
+   手动增加的调整项(奖金/扣款/更正等,金额可正可负)。调整项本身支持增加与删除。 */
+let payrollAdjustmentIdCounter = 1;
+const payrollAdjustments = [];
+
+function renderPayrollTable() {
+  saveState();
+  const container = document.getElementById("payrollTable");
+  if (!container) return;
+  const dict = i18n[currentLang];
+  if (!employees.length) {
+    container.innerHTML = '<div class="insight-empty">' + dict.noEmployeesYet + '</div>';
+    return;
+  }
+  let totalCents = 0;
+  let html = '<table class="data-table"><tr><th>' + dict.colName + '</th><th>' + dict.colRegular + '</th><th>' +
+    dict.colOvertime + '</th><th>' + dict.colBasePay + '</th><th>' + dict.colAdjustments + '</th><th>' +
+    dict.colTotal + '</th><th>' + dict.colActions + '</th></tr>';
+  employees.forEach(emp => {
+    const summary = computeEmployeeWageSummary(emp.name);
+    totalCents += summary.totalCostCents;
+    const adjustmentsHtml = summary.adjustments.length
+      ? summary.adjustments.map(a =>
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span>' + a.label + ' (' + (a.amountCents >= 0 ? "+" : "") + (a.amountCents / 100).toFixed(2) + '€)</span>' +
+            '<button class="btn btn-outline" style="height:24px;padding:0 8px;font-size:11px;" data-delete-adjustment="' + a.id + '">' + dict.deleteAction + '</button>' +
+          '</div>'
+        ).join("")
+      : '<span style="color:var(--text-2);font-size:12px;">' + dict.noAdjustmentsYet + '</span>';
+    html += '<tr>' +
+      '<td>' + emp.name + '</td>' +
+      '<td>' + summary.regularHours.toFixed(2) + 'h</td>' +
+      '<td>' + summary.overtimeHours.toFixed(2) + 'h</td>' +
+      '<td>€' + (summary.baseCostCents / 100).toFixed(2) + '</td>' +
+      '<td>' + adjustmentsHtml + '</td>' +
+      '<td><strong>€' + (summary.totalCostCents / 100).toFixed(2) + '</strong></td>' +
+      '<td><button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-add-adjustment="' + emp.name + '">' + dict.addPayrollAdjustment + '</button></td>' +
+    '</tr>';
+  });
+  html += '<tr><td><strong>' + dict.totalRow + '</strong></td><td></td><td></td><td></td><td></td><td><strong>€' + (totalCents / 100).toFixed(2) + '</strong></td><td></td></tr>';
+  html += '</table>';
+  container.innerHTML = html;
+
+  container.querySelectorAll("[data-add-adjustment]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.getElementById("form-payroll-adjustment").reset();
+      populateEmployeeSelect("payrollAdjustmentEmployee");
+      document.getElementById("payrollAdjustmentEmployee").value = btn.dataset.addAdjustment;
+      openModal("modal-payroll-adjustment");
+    });
+  });
+  container.querySelectorAll("[data-delete-adjustment]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const dict2 = i18n[currentLang];
+      if (!window.confirm(dict2.confirmDeleteAdjustment)) return;
+      const id = Number(btn.dataset.deleteAdjustment);
+      const idx = payrollAdjustments.findIndex(a => a.id === id);
+      if (idx !== -1) payrollAdjustments.splice(idx, 1);
+      renderPayrollTable();
+    });
+  });
+}
+
+document.getElementById("form-payroll-adjustment").addEventListener("submit", e => {
+  e.preventDefault();
+  const employeeName = document.getElementById("payrollAdjustmentEmployee").value;
+  const label = document.getElementById("payrollAdjustmentLabel").value.trim();
+  const amount = Number(document.getElementById("payrollAdjustmentAmount").value);
+  if (!employeeName || !label || Number.isNaN(amount) || amount === 0) return;
+  payrollAdjustments.push({ id: payrollAdjustmentIdCounter++, employeeName, label, amountCents: Math.round(amount * 100) });
+  renderPayrollTable();
+  e.target.reset();
+  closeModal(document.getElementById("modal-payroll-adjustment"));
+});
 
 function renderDailyReportWageTable() {
   const dict = i18n[currentLang];
@@ -3090,7 +3990,12 @@ document.querySelectorAll("[data-open-change-password]").forEach(btn => {
   btn.addEventListener("click", () => openChangePasswordModal(btn.dataset.openChangePassword));
 });
 
-document.getElementById("form-change-password").addEventListener("submit", e => {
+// Bug 修复(升级为真实后端调用):公司管理员/员工这两个身份的"修改密码"现在真的调用
+// PATCH users/:userId/password(需要登录时拿到的 Bearer token,只能改自己的密码)——
+// 当前密码是否正确、新密码强度这些校验都交给后端(bcrypt 比对更安全,不再依赖本地
+// getPasswordStoreValue 这份明文副本)。平台管理员这次仍然维持本地模拟(这次改动的
+// 范围只覆盖公司/员工两条身份线,见交付说明的分阶段披露)。
+document.getElementById("form-change-password").addEventListener("submit", async e => {
   e.preventDefault();
   const dict = i18n[currentLang];
   const context = document.getElementById("changePasswordContext").value;
@@ -3098,12 +4003,8 @@ document.getElementById("form-change-password").addEventListener("submit", e => 
   const next = document.getElementById("newPasswordInput").value;
   const confirmValue = document.getElementById("confirmPasswordInput").value;
   const errorEl = document.getElementById("changePasswordError");
+  errorEl.classList.add("hidden");
 
-  if (current !== getPasswordStoreValue(context)) {
-    errorEl.textContent = dict.currentPasswordWrong;
-    errorEl.classList.remove("hidden");
-    return;
-  }
   if (!isPasswordStrongEnough(next)) {
     errorEl.textContent = dict.passwordStrengthError;
     errorEl.classList.remove("hidden");
@@ -3115,10 +4016,40 @@ document.getElementById("form-change-password").addEventListener("submit", e => 
     return;
   }
 
-  setPasswordStoreValue(context, next);
-  errorEl.classList.add("hidden");
-  window.alert(dict.passwordChanged);
-  closeModal(document.getElementById("modal-change-password"));
+  if (context === "platform") {
+    if (current !== getPasswordStoreValue(context)) {
+      errorEl.textContent = dict.currentPasswordWrong;
+      errorEl.classList.remove("hidden");
+      return;
+    }
+    setPasswordStoreValue(context, next);
+    saveState();
+    window.alert(dict.passwordChanged);
+    closeModal(document.getElementById("modal-change-password"));
+    return;
+  }
+
+  if (!accessToken || !currentUserId) {
+    errorEl.textContent = i18n[currentLang].reauthRequiredNotice;
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  try {
+    await apiRequest("/users/" + currentUserId + "/password", {
+      method: "PATCH",
+      auth: true,
+      body: { currentPassword: current, newPassword: next },
+    });
+    // 本地这份密码副本(employees[].password / companyAdminDemoPassword)仍然同步一份——
+    // 员工管理/其余本地模拟模块这次还没有接后端,继续靠这份本地副本工作(见交付说明)。
+    setPasswordStoreValue(context, next);
+    saveState();
+    window.alert(dict.passwordChanged);
+    closeModal(document.getElementById("modal-change-password"));
+  } catch (err) {
+    errorEl.textContent = err.code === "AUTH_INVALID_CREDENTIALS" ? dict.currentPasswordWrong : err.message;
+    errorEl.classList.remove("hidden");
+  }
 });
 
 // 找回密码:两步流程(发送验证码 -> 输入验证码+新密码),用一个内存变量模拟"服务端刚生成的验证码"。
@@ -3139,19 +4070,47 @@ document.querySelectorAll("[data-open-forgot-password]").forEach(btn => {
   btn.addEventListener("click", () => openForgotPasswordModal(btn.dataset.openForgotPassword));
 });
 
-document.getElementById("form-forgot-password-request").addEventListener("submit", e => {
+// Bug 修复(升级为真实后端调用,仅限"company"这一条身份线):公司管理员的忘记密码
+// 现在真的调用 POST auth/forgot-password / POST auth/reset-password。员工/平台管理员
+// 这两条身份线这次仍然维持本地模拟的 6 位验证码流程,原因分别是:
+//   - 员工:后端的忘记密码是按邮箱查找账号,但员工凭邀请码自助注册时根本不需要填邮箱
+//     (RegisterEmployeeDto 没有 email 字段),数据模型层面员工目前就没有邮箱可查,
+//     等以后给员工加上邮箱字段再接这一段,不是这次改动遗漏。
+//   - 平台管理员:这套账号没有自助注册入口,不在这次"接后端"的范围内。
+document.getElementById("form-forgot-password-request").addEventListener("submit", async e => {
   e.preventDefault();
   const dict = i18n[currentLang];
-  // 真实后端(AuthService.requestPasswordReset)是生成一个哈希存库、原始值只发邮件的一次性
-  // token;演示环境没有邮件基础设施,所以直接生成一个 6 位数字验证码显示在页面上,
-  // 并在注释里如实说明"真实环境这里不会显示,只会发到邮箱"。
-  forgotPasswordDemoCode = String(Math.floor(100000 + Math.random() * 900000));
-  document.getElementById("forgotPasswordCodeDisplay").textContent = dict.demoCodeLabel + ": " + forgotPasswordDemoCode;
-  document.getElementById("form-forgot-password-request").classList.add("hidden");
-  document.getElementById("form-forgot-password-reset").classList.remove("hidden");
+  const context = document.getElementById("forgotPasswordContext").value;
+  const email = document.getElementById("forgotPasswordEmail").value.trim();
+
+  if (context !== "company") {
+    // 真实后端(AuthService.requestPasswordReset)是生成一个哈希存库、原始值只发邮件的
+    // 一次性 token;这两条身份线继续用本地模拟的 6 位数字验证码代替。
+    forgotPasswordDemoCode = String(Math.floor(100000 + Math.random() * 900000));
+    document.getElementById("forgotPasswordCodeDisplay").textContent = dict.demoCodeLabel + ": " + forgotPasswordDemoCode;
+    document.getElementById("form-forgot-password-request").classList.add("hidden");
+    document.getElementById("form-forgot-password-reset").classList.remove("hidden");
+    return;
+  }
+
+  try {
+    const result = await apiRequest("/auth/forgot-password", { method: "POST", body: { email } });
+    // devResetToken 只有非生产环境的后端才会返回(见 AuthService.requestPasswordReset 里
+    // 的说明)——演示环境直接把它当"验证码"显示出来,代替真实产品里发到邮箱的重置链接。
+    forgotPasswordDemoCode = result.devResetToken || "";
+    document.getElementById("forgotPasswordCodeDisplay").textContent = forgotPasswordDemoCode
+      ? (dict.demoCodeLabel + ": " + forgotPasswordDemoCode)
+      : dict.forgotPasswordSub;
+    document.getElementById("form-forgot-password-request").classList.add("hidden");
+    document.getElementById("form-forgot-password-reset").classList.remove("hidden");
+  } catch (err) {
+    const errorEl = document.getElementById("forgotPasswordError");
+    errorEl.textContent = err.message;
+    errorEl.classList.remove("hidden");
+  }
 });
 
-document.getElementById("form-forgot-password-reset").addEventListener("submit", e => {
+document.getElementById("form-forgot-password-reset").addEventListener("submit", async e => {
   e.preventDefault();
   const dict = i18n[currentLang];
   const context = document.getElementById("forgotPasswordContext").value;
@@ -3159,12 +4118,8 @@ document.getElementById("form-forgot-password-reset").addEventListener("submit",
   const next = document.getElementById("resetNewPasswordInput").value;
   const confirmValue = document.getElementById("resetConfirmPasswordInput").value;
   const errorEl = document.getElementById("forgotPasswordError");
+  errorEl.classList.add("hidden");
 
-  if (code !== forgotPasswordDemoCode) {
-    errorEl.textContent = dict.resetCodeWrong;
-    errorEl.classList.remove("hidden");
-    return;
-  }
   if (!isPasswordStrongEnough(next)) {
     errorEl.textContent = dict.passwordStrengthError;
     errorEl.classList.remove("hidden");
@@ -3176,12 +4131,37 @@ document.getElementById("form-forgot-password-reset").addEventListener("submit",
     return;
   }
 
-  setPasswordStoreValue(context, next);
-  forgotPasswordDemoCode = ""; // 一次性使用,重放同一个验证码会被拒绝
-  window.alert(dict.passwordResetSuccess);
-  closeModal(document.getElementById("modal-forgot-password"));
+  if (context !== "company") {
+    if (code !== forgotPasswordDemoCode) {
+      errorEl.textContent = dict.resetCodeWrong;
+      errorEl.classList.remove("hidden");
+      return;
+    }
+    setPasswordStoreValue(context, next);
+    saveState();
+    forgotPasswordDemoCode = ""; // 一次性使用,重放同一个验证码会被拒绝
+    window.alert(dict.passwordResetSuccess);
+    closeModal(document.getElementById("modal-forgot-password"));
+    return;
+  }
+
+  try {
+    await apiRequest("/auth/reset-password", { method: "POST", body: { token: code, newPassword: next } });
+    setPasswordStoreValue(context, next); // 同步本地密码副本,理由同"修改密码"处的说明
+    saveState();
+    forgotPasswordDemoCode = "";
+    window.alert(dict.passwordResetSuccess);
+    closeModal(document.getElementById("modal-forgot-password"));
+  } catch (err) {
+    errorEl.textContent = err.code === "AUTH_RESET_TOKEN_INVALID" ? dict.resetCodeWrong : err.message;
+    errorEl.classList.remove("hidden");
+  }
 });
 
+// Bug 修复的核心:必须在第一次 applyI18n() 渲染之前把 localStorage 里保存的数据恢复
+// 回各个数组/变量,否则页面一加载还是用脚本里写的初始值(公司/员工注册的内容就会
+// "消失"),第一次渲染就已经是错的了。
+loadState();
 applyI18n();
 updateAnnualBalanceDisplay();
 </script>
