@@ -445,7 +445,7 @@
           <div id="inventoryInsights"></div>
 
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0;">
-            <input type="text" id="invSearchInput" data-i18n-placeholder="invSearchPlaceholder" placeholder="按商品名称/SKU/分类搜索" style="flex:1;min-width:180px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;" />
+            <input type="text" id="invSearchInput" data-i18n-placeholder="invSearchPlaceholder" placeholder="按商品名称/分类搜索" style="flex:1;min-width:180px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;" />
             <select id="invCategoryFilter" style="height:36px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;padding:0 8px;">
               <option value="" data-i18n="invFilterAllCategories">全部分类</option>
             </select>
@@ -896,8 +896,7 @@
     <form id="form-inventory-item">
       <input type="hidden" id="inventoryItemId" />
       <div class="form-grid">
-        <div class="field"><label data-i18n="fieldSku">SKU 编号</label><input type="text" id="invFieldSku" required /></div>
-        <div class="field"><label data-i18n="fieldItemName">商品名称</label><input type="text" id="invFieldName" required /></div>
+        <div class="field full"><label data-i18n="fieldItemName">商品名称</label><input type="text" id="invFieldName" required /></div>
         <div class="field full" id="invCurrentQtyDisplayWrap">
           <label data-i18n="fieldCurrentQtyDisplay">当前库存总量</label>
           <div id="invCurrentQtyDisplay" style="padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:14px;">—</div>
@@ -1200,7 +1199,7 @@ const i18n = {
     empInventoryInsufficientStock: "库存不足,补不了这么多,请再确认一下数量。",
     empInventoryQtyRequired: "请先填写本次补货数量。",
     empInventoryLastAction: function (qty, unit, time) { return "上次补货:" + time + " · " + qty + " " + unit; },
-    invSearchPlaceholder: "按商品名称/SKU/分类搜索", invFilterAllCategories: "全部分类", invFilterAll: "全部",
+    invSearchPlaceholder: "按商品名称/分类搜索", invFilterAllCategories: "全部分类", invFilterAll: "全部",
     viewArchivedItems: "查看已归档商品",
     archivedItemsSub: "已归档的商品不会出现在日常库存列表和提醒里,但历史流水完整保留,可以随时恢复",
     fieldQualityGrade: "质量验收", qualityQualified: "合格", qualityMinorIssue: "轻微瑕疵", qualityRejected: "不合格",
@@ -1413,7 +1412,7 @@ const i18n = {
     empInventoryInsufficientStock: "Not enough stock for that amount — please double-check the quantity.",
     empInventoryQtyRequired: "Please enter a quantity first.",
     empInventoryLastAction: function (qty, unit, time) { return "Last restock: " + time + " · " + qty + " " + unit; },
-    invSearchPlaceholder: "Search by name / SKU / category", invFilterAllCategories: "All categories", invFilterAll: "All",
+    invSearchPlaceholder: "Search by name / category", invFilterAllCategories: "All categories", invFilterAll: "All",
     viewArchivedItems: "View archived items",
     archivedItemsSub: "Archived items won't show up in the daily inventory list or alerts, but their full history is kept and they can be restored anytime",
     fieldQualityGrade: "Quality inspection", qualityQualified: "Qualified", qualityMinorIssue: "Minor issue", qualityRejected: "Rejected",
@@ -3276,7 +3275,7 @@ function buildInventoryRowHtml(item) {
   const categoryLabel = categoryDisplayLabel(item);
 
   return '<tr data-inventory-row="' + item.id + '">' +
-    '<td><strong>' + item.name + "</strong><br/><span style=\"font-size:12px;color:var(--text-2);\">" + item.sku + (categoryLabel ? " · " + categoryLabel : "") + "</span></td>" +
+    '<td><strong>' + item.name + "</strong>" + (categoryLabel ? "<br/><span style=\"font-size:12px;color:var(--text-2);\">" + categoryLabel + "</span>" : "") + "</td>" +
     "<td>" + buildInventorySpecLabel(item, dict) + "</td>" +
     "<td>" + currentQtyLabel + "</td>" +
     '<td><span class="badge ' + statusBadgeClass + '">' + statusLabel + "</span></td>" +
@@ -3310,9 +3309,6 @@ function openInventoryItemModal(item) {
   document.getElementById("inventoryItemModalTitle").textContent = item ? dict.editItem : dict.addInventoryItem;
   document.getElementById("btnSubmitInventoryItem").textContent = item ? dict.saveChanges : dict.submitAddItem;
   document.getElementById("inventoryItemId").value = item ? String(item.id) : "";
-  const skuField = document.getElementById("invFieldSku");
-  skuField.value = item ? item.sku : "";
-  skuField.disabled = !!item; // SKU 是查重键,创建后不允许再改,和后端规则一致
   document.getElementById("invFieldName").value = item ? item.name : "";
   populateInventoryCategorySelect(document.getElementById("invFieldCategoryId"), item ? item.categoryId : null);
   document.getElementById("invFieldUnit").value = item ? item.unit : "kg";
@@ -3435,7 +3431,7 @@ function wireInventoryCardEvents(container) {
       const item = inventoryItems.find(i => i.id === id);
       if (!item) return;
       document.getElementById("transactionItemId").value = id;
-      document.getElementById("inventoryTransactionContext").textContent = item.name + " · " + item.sku + " · " + dict.colCurrentQty + ": " + item.currentQuantity + " " + item.unit;
+      document.getElementById("inventoryTransactionContext").textContent = item.name + " · " + dict.colCurrentQty + ": " + item.currentQuantity + " " + item.unit;
       document.getElementById("invFieldTransactionType").value = "RECEIPT";
       document.getElementById("invFieldQuantity").value = "";
       document.getElementById("invFieldNote").value = "";
@@ -3515,7 +3511,7 @@ function renderInventoryTable() {
   const query = invSearchQuery.trim().toLowerCase();
   let filtered = allActiveItems.filter(item => {
     const categoryLabel = categoryDisplayLabel(item).toLowerCase();
-    const matchesQuery = !query || item.name.toLowerCase().includes(query) || item.sku.toLowerCase().includes(query) || categoryLabel.includes(query);
+    const matchesQuery = !query || item.name.toLowerCase().includes(query) || categoryLabel.includes(query);
     const matchesCategory = !invCategoryFilter || item.categoryId === invCategoryFilter;
     const matchesStatus = !invStatusFilter || item.status === invStatusFilter;
     return matchesQuery && matchesCategory && matchesStatus;
@@ -3598,7 +3594,7 @@ async function renderInventoryArchivedList() {
     ? archived.map(item => (
         '<div class="leave-card" data-archived-row="' + item.id + '">' +
           '<div class="leave-card-head">' +
-            "<span><strong>" + item.name + "</strong> · " + item.sku + (categoryDisplayLabel(item) ? " · " + categoryDisplayLabel(item) : "") + "</span>" +
+            "<span><strong>" + item.name + "</strong>" + (categoryDisplayLabel(item) ? " · " + categoryDisplayLabel(item) : "") + "</span>" +
           "</div>" +
           '<div class="leave-card-reason">' + dict.colCurrentQty + ": " + item.currentQuantity + " " + item.unit + "</div>" +
           '<button class="btn btn-outline" style="height:32px;padding:0 14px;font-size:12px;margin-top:8px;" data-restore-inventory-item="' + item.id + '">' + dict.restoreAction + "</button>" +
@@ -3625,11 +3621,20 @@ document.getElementById("btnViewArchivedInventory").addEventListener("click", ()
   renderInventoryArchivedList();
 });
 
+/** 后端 inventory_items 表要求每个商品有一个公司内唯一的 SKU 编号(用于查重、排序等
+    内部用途),但绝大部分小餐饮/零售商家自己并不维护一套 SKU 编码体系,让管理员每次
+    新增商品都要自己想一个编号纯属额外负担、对经营决策也没有实际价值——所以这里改成
+    完全在后台自动生成,不再在表单上出现,管理员只需要关心"商品名称"这一个有意义的字段。 */
+function generateAutoSku() {
+  const timePart = Date.now().toString(36).toUpperCase();
+  const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return "ITEM-" + timePart + randomPart;
+}
+
 document.getElementById("form-inventory-item").addEventListener("submit", async e => {
   e.preventDefault();
   const dict = i18n[currentLang];
   const idVal = document.getElementById("inventoryItemId").value;
-  const sku = document.getElementById("invFieldSku").value.trim();
   const name = document.getElementById("invFieldName").value.trim();
   const categoryId = document.getElementById("invFieldCategoryId").value;
   const unit = document.getElementById("invFieldUnit").value;
@@ -3641,7 +3646,7 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
   // 只在"新增商品"时才读取和使用这个值——编辑已有商品时这个输入框是隐藏的,不应该被
   // 拿来当成"要把库存改成这个数字",库存的变动永远只能走"记录流水"。
   const initialQuantityRaw = idVal ? "" : document.getElementById("invFieldInitialQuantity").value;
-  if (!sku || !name) return;
+  if (!name) return;
   if (!accessToken || !currentUserCompanyId) {
     window.alert(dict.inventorySyncError);
     return;
@@ -3664,9 +3669,20 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
     if (idVal) {
       await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + idVal, { method: "PATCH", auth: true, body });
     } else {
-      const created = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items", {
-        method: "POST", auth: true, body: Object.assign({ sku: sku }, body),
-      });
+      // SKU 由系统自动生成,管理员不需要看到也不需要输入;极小概率撞到已存在的编号时
+      // 后端会返回 INVENTORY_DUPLICATE_SKU,这里再换一个自动生成的编号重试一次即可,
+      // 不需要让管理员知道"编号"这个纯内部概念的存在。
+      let created;
+      try {
+        created = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items", {
+          method: "POST", auth: true, body: Object.assign({ sku: generateAutoSku() }, body),
+        });
+      } catch (err) {
+        if (err.code !== "INVENTORY_DUPLICATE_SKU") throw err;
+        created = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items", {
+          method: "POST", auth: true, body: Object.assign({ sku: generateAutoSku() }, body),
+        });
+      }
       // "库存总量(可选)"不是直接把数字写进商品——新建商品的初始库存永远是 0,这里填了
       // 的话,紧接着调用和"记录流水"完全同一个接口,生成一笔类型为 RECEIPT、备注"期初库存"
       // 的流水,把现有库存正式记录进去,历史上依然查得到这一笔"库存是怎么来的"。
@@ -3681,9 +3697,7 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
     await syncInventoryFromBackend();
     closeModal(document.getElementById("modal-inventory-item"));
   } catch (err) {
-    if (err.code === "INVENTORY_DUPLICATE_SKU") {
-      window.alert(dict.duplicateSkuError);
-    } else if (err.code === "INVENTORY_CATEGORY_NOT_FOUND") {
+    if (err.code === "INVENTORY_CATEGORY_NOT_FOUND") {
       window.alert(dict.categoryNotFoundError);
     } else {
       window.alert(err.message);
@@ -3904,7 +3918,7 @@ function buildEmpInventoryWithdrawRowHtml(item) {
 
   return '<div class="leave-card" data-emp-inventory-row="' + item.id + '">' +
     '<div class="leave-card-head">' +
-      "<span><strong>" + item.name + "</strong> · " + item.sku + (categoryLabel ? " · " + categoryLabel : "") + "</span>" +
+      "<span><strong>" + item.name + "</strong>" + (categoryLabel ? " · " + categoryLabel : "") + "</span>" +
       '<span style="margin-left:auto;"><span class="badge ' + statusBadgeClass + '">' + statusLabel + "</span></span>" +
     "</div>" +
     '<div class="leave-card-reason">' + dict.colCurrentQty + ": " + currentQtyLabel + "</div>" +
