@@ -898,9 +898,14 @@
       <div class="form-grid">
         <div class="field"><label data-i18n="fieldSku">SKU 编号</label><input type="text" id="invFieldSku" required /></div>
         <div class="field"><label data-i18n="fieldItemName">商品名称</label><input type="text" id="invFieldName" required /></div>
-        <div class="field full">
+        <div class="field full" id="invCurrentQtyDisplayWrap">
           <label data-i18n="fieldCurrentQtyDisplay">当前库存总量</label>
           <div id="invCurrentQtyDisplay" style="padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:14px;">—</div>
+        </div>
+        <div class="field full hidden" id="invInitialQtyFieldWrap">
+          <label data-i18n="fieldInitialQuantity">库存总量(可选)</label>
+          <input type="number" min="0" step="0.01" id="invFieldInitialQuantity" placeholder="0" />
+          <div class="field-hint" data-i18n="initialQuantityHint">如果这个商品现在仓库里已经有货(比如把线下已有的库存搬进系统),可以直接在这里填一次现有总量——系统会自动生成一笔"期初库存"入库流水,不会破坏"库存只能通过流水变动"这条规则;留空表示这是全新的 0 库存,以后再用"记录流水"入库。</div>
         </div>
         <div class="field">
           <label data-i18n="fieldCategory">分类(可选)</label>
@@ -1142,6 +1147,8 @@ const i18n = {
     fieldSku: "SKU 编号", fieldItemName: "商品名称", fieldCategory: "分类(可选)", fieldUnit: "单位",
     fieldReorderThreshold: "进货阈值(可选)", fieldReorderQuantity: "建议进货数量(可选)", fieldLeadTimeDays: "采购提前期(天)",
     fieldCurrentQtyDisplay: "当前库存总量", sectionPackaging: "分包装数量", newItemStartsAtZero: "新建商品,库存从 0 开始",
+    fieldInitialQuantity: "库存总量(可选)",
+    initialQuantityHint: "如果这个商品现在仓库里已经有货(比如把线下已有的库存搬进系统),可以直接在这里填一次现有总量——系统会自动生成一笔\"期初库存\"入库流水,不会破坏\"库存只能通过流水变动\"这条规则;留空表示这是全新的 0 库存,以后再用\"记录流水\"入库。",
     reorderThresholdHint: "当前库存总量低于“进货阈值”时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。",
     inventoryItemHint: "库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过\"记录流水\"入库(员工每次从仓库补货到操作间,这里的总量也会相应减少)。",
     inventoryItemEditHint: function (qty, unit) { return "当前库存(" + qty + " " + unit + ")不能在这里直接改——如果盘点后发现数字不对,请用\"记录流水 → 盘点调整\"来修正,系统会自动算出差值并留下记录,不会出现来路不明的数字变动。"; },
@@ -1353,6 +1360,8 @@ const i18n = {
     fieldSku: "SKU", fieldItemName: "Item name", fieldCategory: "Category (optional)", fieldUnit: "Unit",
     fieldReorderThreshold: "Reorder threshold (optional)", fieldReorderQuantity: "Suggested reorder quantity (optional)", fieldLeadTimeDays: "Lead time (days)",
     fieldCurrentQtyDisplay: "Current total stock", sectionPackaging: "Pack size", newItemStartsAtZero: "New item — stock starts at 0",
+    fieldInitialQuantity: "Total stock (optional)",
+    initialQuantityHint: "If this item already has stock sitting in your warehouse right now (e.g. moving your existing offline inventory into the system), you can enter the current total here — the system will automatically record it as an \"opening stock\" receipt transaction, so it still follows the \"stock only changes via transactions\" rule. Leave it blank if this is a brand-new item starting at 0, and add stock later via \"Record transaction\".",
     reorderThresholdHint: "When current stock drops below the \"reorder threshold\", the system automatically works out a suggested reorder quantity and surfaces it in the inventory alerts — no manual math needed.",
     inventoryItemHint: "Stock quantity can't be set here directly — a new item always starts at 0, then goes up via \"Record transaction\" (each time an employee restocks from the warehouse to the prep area, this total goes down accordingly).",
     inventoryItemEditHint: function (qty, unit) { return "Current stock (" + qty + " " + unit + ") can't be edited here — if a stock count turns up a wrong number, use \"Record transaction → Adjustment\" instead; the system works out the difference and keeps a record, so there's never an untraceable change to the number."; },
@@ -3313,19 +3322,25 @@ function openInventoryItemModal(item) {
   document.getElementById("invFieldPackSize").value = (item && item.packSize !== null && item.packSize !== undefined) ? item.packSize : "";
   document.getElementById("invFieldPackUnitLabel").value = item ? (item.packUnitLabel || "") : "";
 
-  // "当前库存总量"是只读展示,不是表单字段——员工每次从仓库补货到操作间,这个数字会
-  // 相应减少(走的是 CONSUMPTION 流水,和公司后台"记录流水"是同一套数据),这里只是
-  // 让管理员编辑商品资料时也能顺便看一眼,不需要跳出去找。
-  const currentQtyDisplayEl = document.getElementById("invCurrentQtyDisplay");
+  // 编辑已有商品:"当前库存总量"是只读展示,不是表单字段——员工每次从仓库补货到操作间,
+  // 这个数字会相应减少(走的是 CONSUMPTION 流水),这里只是让管理员顺便看一眼。
+  // 新增商品:改成一个可以直接填的"库存总量(可选)"输入框——很多商品在加入系统的时候
+  // 仓库里已经有现货(比如把线下已有的库存搬进系统),不填的话就必须先建好商品、再单独
+  // 跑一次"记录流水"才能把现有库存补上,多一道没必要的手续。填了这里,提交表单时会
+  // 自动在创建商品之后,用同一个"记录流水"接口生成一笔标注为"期初库存"的入库流水——
+  // 库存数量本身依然不是直接写进去的,只是把"新建 + 补首笔库存"合并成一步,不违反
+  // "库存只能通过流水变动"这条规则。
+  document.getElementById("invCurrentQtyDisplayWrap").classList.toggle("hidden", !item);
+  document.getElementById("invInitialQtyFieldWrap").classList.toggle("hidden", !!item);
   if (item) {
     const view = computeInventoryView(item);
     let label = item.currentQuantity + " " + item.unit;
     if (view.currentQuantityInPacks !== null) {
       label += " " + dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
     }
-    currentQtyDisplayEl.textContent = label;
+    document.getElementById("invCurrentQtyDisplay").textContent = label;
   } else {
-    currentQtyDisplayEl.textContent = dict.newItemStartsAtZero;
+    document.getElementById("invFieldInitialQuantity").value = "";
   }
 
   // 编辑已有商品时,把"库存数量不能改"这句提示换成更有用的版本——直接告诉管理员
@@ -3623,6 +3638,9 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
   const leadTimeDays = Number(document.getElementById("invFieldLeadTimeDays").value) || 0;
   const packSizeRaw = document.getElementById("invFieldPackSize").value;
   const packUnitLabelRaw = document.getElementById("invFieldPackUnitLabel").value.trim();
+  // 只在"新增商品"时才读取和使用这个值——编辑已有商品时这个输入框是隐藏的,不应该被
+  // 拿来当成"要把库存改成这个数字",库存的变动永远只能走"记录流水"。
+  const initialQuantityRaw = idVal ? "" : document.getElementById("invFieldInitialQuantity").value;
   if (!sku || !name) return;
   if (!accessToken || !currentUserCompanyId) {
     window.alert(dict.inventorySyncError);
@@ -3646,9 +3664,19 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
     if (idVal) {
       await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + idVal, { method: "PATCH", auth: true, body });
     } else {
-      await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items", {
+      const created = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items", {
         method: "POST", auth: true, body: Object.assign({ sku: sku }, body),
       });
+      // "库存总量(可选)"不是直接把数字写进商品——新建商品的初始库存永远是 0,这里填了
+      // 的话,紧接着调用和"记录流水"完全同一个接口,生成一笔类型为 RECEIPT、备注"期初库存"
+      // 的流水,把现有库存正式记录进去,历史上依然查得到这一笔"库存是怎么来的"。
+      const initialQuantity = initialQuantityRaw !== "" ? Number(initialQuantityRaw) : 0;
+      if (initialQuantity > 0) {
+        await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + created.id + "/transactions", {
+          method: "POST", auth: true,
+          body: { type: "RECEIPT", quantity: initialQuantity, note: currentLang === "zh" ? "期初库存" : "Opening stock" },
+        });
+      }
     }
     await syncInventoryFromBackend();
     closeModal(document.getElementById("modal-inventory-item"));
