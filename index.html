@@ -458,7 +458,10 @@
           </div>
 
           <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0;flex-wrap:wrap;gap:8px;">
-            <button class="btn btn-outline" id="btnViewArchivedInventory" style="height:34px;padding:0 12px;font-size:12px;" data-i18n="viewArchivedItems">查看已归档商品</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-outline" id="btnViewArchivedInventory" style="height:34px;padding:0 12px;font-size:12px;" data-i18n="viewArchivedItems">查看已归档商品</button>
+              <button class="btn btn-outline" id="btnManageInventoryCategories" style="height:34px;padding:0 12px;font-size:12px;" data-i18n="manageCategories">分类管理</button>
+            </div>
             <button class="btn btn-primary" id="btnAddInventoryItem" data-i18n="addInventoryItem">+ 新增库存商品</button>
           </div>
           <div id="inventoryList"></div>
@@ -895,11 +898,19 @@
       <div class="form-grid">
         <div class="field"><label data-i18n="fieldSku">SKU 编号</label><input type="text" id="invFieldSku" required /></div>
         <div class="field"><label data-i18n="fieldItemName">商品名称</label><input type="text" id="invFieldName" required /></div>
-        <div class="field full">
+        <div class="field full" id="invCurrentQtyDisplayWrap">
           <label data-i18n="fieldCurrentQtyDisplay">当前库存总量</label>
           <div id="invCurrentQtyDisplay" style="padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:14px;">—</div>
         </div>
-        <div class="field"><label data-i18n="fieldCategory">分类(可选)</label><input type="text" id="invFieldCategory" /></div>
+        <div class="field full hidden" id="invInitialQtyFieldWrap">
+          <label data-i18n="fieldInitialQuantity">库存总量(可选)</label>
+          <input type="number" min="0" step="0.01" id="invFieldInitialQuantity" placeholder="0" />
+          <div class="field-hint" data-i18n="initialQuantityHint">如果这个商品现在仓库里已经有货(比如把线下已有的库存搬进系统),可以直接在这里填一次现有总量——系统会自动生成一笔"期初库存"入库流水,不会破坏"库存只能通过流水变动"这条规则;留空表示这是全新的 0 库存,以后再用"记录流水"入库。</div>
+        </div>
+        <div class="field">
+          <label data-i18n="fieldCategory">分类(可选)</label>
+          <select id="invFieldCategoryId"><option value="" data-i18n="noCategorySelected">不选择分类</option></select>
+        </div>
         <div class="field">
           <label data-i18n="fieldUnit">单位</label>
           <select id="invFieldUnit">
@@ -990,6 +1001,19 @@
     <h3 class="modal-title" data-i18n="viewArchivedItems">查看已归档商品</h3>
     <p class="modal-sub" data-i18n="archivedItemsSub">已归档的商品不会出现在日常库存列表和提醒里,但历史流水完整保留,可以随时恢复</p>
     <div id="inventoryArchivedList"></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-inventory-categories">
+  <div class="modal-box wide">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="manageCategories">分类管理</h3>
+    <p class="modal-sub" data-i18n="categoriesModalSub">分类清单完全由管理员自己维护(两级:大类 + 子类),新增商品时从这里选择;"停用"不会删除已经用过这个分类的商品历史,只是让它不再出现在选择列表里</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <button class="btn btn-primary" id="btnAddTopCategory" data-i18n="addTopCategory">+ 新建大类</button>
+      <button class="btn btn-outline" id="btnSeedInventoryCategoryTemplate" data-i18n="seedCategoryTemplate">一键生成示例分类</button>
+    </div>
+    <div id="inventoryCategoriesList"></div>
   </div>
 </div>
 
@@ -1123,6 +1147,8 @@ const i18n = {
     fieldSku: "SKU 编号", fieldItemName: "商品名称", fieldCategory: "分类(可选)", fieldUnit: "单位",
     fieldReorderThreshold: "进货阈值(可选)", fieldReorderQuantity: "建议进货数量(可选)", fieldLeadTimeDays: "采购提前期(天)",
     fieldCurrentQtyDisplay: "当前库存总量", sectionPackaging: "分包装数量", newItemStartsAtZero: "新建商品,库存从 0 开始",
+    fieldInitialQuantity: "库存总量(可选)",
+    initialQuantityHint: "如果这个商品现在仓库里已经有货(比如把线下已有的库存搬进系统),可以直接在这里填一次现有总量——系统会自动生成一笔\"期初库存\"入库流水,不会破坏\"库存只能通过流水变动\"这条规则;留空表示这是全新的 0 库存,以后再用\"记录流水\"入库。",
     reorderThresholdHint: "当前库存总量低于“进货阈值”时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。",
     inventoryItemHint: "库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过\"记录流水\"入库(员工每次从仓库补货到操作间,这里的总量也会相应减少)。",
     inventoryItemEditHint: function (qty, unit) { return "当前库存(" + qty + " " + unit + ")不能在这里直接改——如果盘点后发现数字不对,请用\"记录流水 → 盘点调整\"来修正,系统会自动算出差值并留下记录,不会出现来路不明的数字变动。"; },
@@ -1134,6 +1160,23 @@ const i18n = {
     fieldTransactionNote: "备注(可选)", submitTransaction: "保存流水",
     insufficientStockError: "这次操作会让库存变成负数,系统不允许——请检查填写的数量是否正确。",
     duplicateSkuError: "这个 SKU 编号在本公司已经存在,请换一个。",
+    manageCategories: "分类管理",
+    categoriesModalSub: "分类清单完全由管理员自己维护(两级:大类 + 子类),新增商品时从这里选择;\"停用\"不会删除已经用过这个分类的商品历史,只是让它不再出现在选择列表里",
+    addTopCategory: "+ 新建大类", addSubCategory: "+ 子类",
+    categoryNamePrompt: "请输入大类名称(例如:鱼类):",
+    subCategoryNamePrompt: function (parentName) { return "请输入「" + parentName + "」下的子类名称(例如:三文鱼):"; },
+    renameCategory: "重命名", renameCategoryPrompt: "请输入新的分类名称:",
+    deactivateCategory: "停用", reactivateCategory: "启用",
+    confirmDeactivateSubCategory: function (name) { return "确定要停用「" + name + "」吗?停用后新建商品时不会再看到它,但已经使用这个分类的商品历史保持不变。"; },
+    confirmDeactivateTopCategory: function (name) { return "确定要停用「" + name + "」吗?这会连同它下面的所有子类一并停用,已经使用这些分类的商品历史保持不变。"; },
+    noCategoriesYet: "还没有任何分类,点上面的「+ 新建大类」开始",
+    categoryInactiveBadge: "已停用",
+    noCategorySelected: "不选择分类", wholeCategoryOption: function (name) { return name + "(不细分子类)"; },
+    categoryDuplicateNameError: "同一层级下已经有一个同名的分类了,请换一个名称。",
+    categoryNotFoundError: "这个分类不存在或不属于本公司,请刷新分类列表后重试。",
+    inventorySyncError: "库存数据同步失败,请检查网络连接后重试。",
+    seedCategoryTemplate: "一键生成示例分类",
+    confirmSeedTemplate: "将会创建「鱼类/Poke Bowl消耗品/寿司消耗品/热食/包装盒/配料消耗品」这 6 个大类及其常见子类(已存在的会自动跳过,不会重复创建,也不会影响您已经改过的名字)。是否继续?",
     colCurrentQty: "当前库存", colDaysLeft: "预计断货天数", colSuggestedReorder: "建议采购量", daysUnit: "天",
     statusLowStock: "库存不足", statusOverstock: "库存积压", statusNormalStock: "正常",
     viewTransactionHistory: "查看流水记录", hideTransactionHistory: "收起流水记录", noTransactionsYet: "暂无流水记录",
@@ -1317,6 +1360,8 @@ const i18n = {
     fieldSku: "SKU", fieldItemName: "Item name", fieldCategory: "Category (optional)", fieldUnit: "Unit",
     fieldReorderThreshold: "Reorder threshold (optional)", fieldReorderQuantity: "Suggested reorder quantity (optional)", fieldLeadTimeDays: "Lead time (days)",
     fieldCurrentQtyDisplay: "Current total stock", sectionPackaging: "Pack size", newItemStartsAtZero: "New item — stock starts at 0",
+    fieldInitialQuantity: "Total stock (optional)",
+    initialQuantityHint: "If this item already has stock sitting in your warehouse right now (e.g. moving your existing offline inventory into the system), you can enter the current total here — the system will automatically record it as an \"opening stock\" receipt transaction, so it still follows the \"stock only changes via transactions\" rule. Leave it blank if this is a brand-new item starting at 0, and add stock later via \"Record transaction\".",
     reorderThresholdHint: "When current stock drops below the \"reorder threshold\", the system automatically works out a suggested reorder quantity and surfaces it in the inventory alerts — no manual math needed.",
     inventoryItemHint: "Stock quantity can't be set here directly — a new item always starts at 0, then goes up via \"Record transaction\" (each time an employee restocks from the warehouse to the prep area, this total goes down accordingly).",
     inventoryItemEditHint: function (qty, unit) { return "Current stock (" + qty + " " + unit + ") can't be edited here — if a stock count turns up a wrong number, use \"Record transaction → Adjustment\" instead; the system works out the difference and keeps a record, so there's never an untraceable change to the number."; },
@@ -1328,6 +1373,23 @@ const i18n = {
     fieldTransactionNote: "Note (optional)", submitTransaction: "Save transaction",
     insufficientStockError: "This would make stock go negative, which isn't allowed — please check the quantity you entered.",
     duplicateSkuError: "This SKU already exists for your company — please use a different one.",
+    manageCategories: "Manage categories",
+    categoriesModalSub: "The category list is fully maintained by admins (two levels: top category + sub-category) and used when adding items. \"Deactivate\" doesn't delete the history of items that already used it — it just stops it from showing up as a choice.",
+    addTopCategory: "+ Add top category", addSubCategory: "+ Sub-category",
+    categoryNamePrompt: "Enter a top category name (e.g. Fish):",
+    subCategoryNamePrompt: function (parentName) { return "Enter a sub-category name under \"" + parentName + "\" (e.g. Salmon):"; },
+    renameCategory: "Rename", renameCategoryPrompt: "Enter the new category name:",
+    deactivateCategory: "Deactivate", reactivateCategory: "Reactivate",
+    confirmDeactivateSubCategory: function (name) { return "Deactivate \"" + name + "\"? It won't show up when adding new items, but items that already use it are unaffected."; },
+    confirmDeactivateTopCategory: function (name) { return "Deactivate \"" + name + "\"? This also deactivates all of its sub-categories. Items that already use these categories are unaffected."; },
+    noCategoriesYet: "No categories yet — click \"+ Add top category\" above to start",
+    categoryInactiveBadge: "Deactivated",
+    noCategorySelected: "No category", wholeCategoryOption: function (name) { return name + " (whole category)"; },
+    categoryDuplicateNameError: "A category with this name already exists at this level — please use a different name.",
+    categoryNotFoundError: "This category doesn't exist or doesn't belong to your company — please refresh the category list and try again.",
+    inventorySyncError: "Failed to sync inventory data — please check your connection and try again.",
+    seedCategoryTemplate: "Generate suggested categories",
+    confirmSeedTemplate: "This will create 6 top categories (Fish / Poke Bowl supplies / Sushi supplies / Hot food / Packaging / Condiments) with their common sub-categories. Existing ones (including anything you've already renamed) will be skipped automatically. Continue?",
     colCurrentQty: "Current stock", colDaysLeft: "Days until stockout", colSuggestedReorder: "Suggested reorder", daysUnit: "days",
     statusLowStock: "Low stock", statusOverstock: "Overstocked", statusNormalStock: "Normal",
     viewTransactionHistory: "View transaction history", hideTransactionHistory: "Hide transaction history", noTransactionsYet: "No transactions yet",
@@ -1536,7 +1598,6 @@ function saveState() {
       payrollAdjustments, payrollAdjustmentIdCounter,
       inviteCodeDirectory, currentCompanyInviteCode,
       companyAdminEmail, companyAdminDemoPassword, companyDisplayName, companySloganText,
-      inventoryItems, inventoryIdCounter,
       platformAdminEmail, platformAdminPassword,
       employeeDemoPassword,
       accessToken, refreshToken, currentUserId, currentUserRole, currentUserCompanyId
@@ -1576,8 +1637,10 @@ function loadState() {
   if (typeof saved.companyAdminDemoPassword === "string") companyAdminDemoPassword = saved.companyAdminDemoPassword;
   if (typeof saved.companyDisplayName === "string") companyDisplayName = saved.companyDisplayName;
   if (typeof saved.companySloganText === "string") companySloganText = saved.companySloganText;
-  if (Array.isArray(saved.inventoryItems)) { inventoryItems.length = 0; inventoryItems.push(...saved.inventoryItems); }
-  if (typeof saved.inventoryIdCounter === "number") inventoryIdCounter = saved.inventoryIdCounter;
+  // 注:inventoryItems/inventoryIdCounter 不再持久化到 localStorage——库存分类系统上线后,
+  // 库存商品、分类清单、流水记录全部改为真实连接后端(InventoryModule/InventoryCategoryEntity),
+  // 每次进入库存相关页面都会用 syncInventoryFromBackend() 从数据库重新拉取最新数据,
+  // 不再需要浏览器本地缓存一份可能过期的库存快照。
   if (typeof saved.platformAdminEmail === "string") platformAdminEmail = saved.platformAdminEmail;
   if (typeof saved.platformAdminPassword === "string") platformAdminPassword = saved.platformAdminPassword;
   if (typeof saved.employeeDemoPassword === "string") employeeDemoPassword = saved.employeeDemoPassword;
@@ -2053,7 +2116,10 @@ document.getElementById("form-employee-login").addEventListener("submit", async 
     e.target.reset();
     closeModal(document.getElementById("modal-employee"));
     showView("view-employeeApp");
-    if (currentUserCompanyId) syncCompanyProfileFromBackend(currentUserCompanyId);
+    if (currentUserCompanyId) {
+      syncCompanyProfileFromBackend(currentUserCompanyId);
+      syncInventoryFromBackend(); // 员工仪表盘的"仓库补货"卡片需要真实库存数据
+    }
   } catch (err) {
     errorEl.classList.remove("hidden");
   }
@@ -2115,7 +2181,10 @@ document.getElementById("form-employee-register").addEventListener("submit", asy
     e.target.reset();
     closeModal(document.getElementById("modal-employee"));
     showView("view-employeeApp");
-    if (currentUserCompanyId) syncCompanyProfileFromBackend(currentUserCompanyId);
+    if (currentUserCompanyId) {
+      syncCompanyProfileFromBackend(currentUserCompanyId);
+      syncInventoryFromBackend();
+    }
   } catch (err) {
     if (err.code === "AUTH_INVITATION_CODE_INVALID" || err.code === "AUTH_INVITATION_CODE_EXHAUSTED") {
       errorEl.textContent = dict.employeeRegisterInviteCodeError;
@@ -2154,6 +2223,7 @@ document.getElementById("form-company-login").addEventListener("submit", async e
     if (currentUserCompanyId) {
       syncCompanyProfileFromBackend(currentUserCompanyId);
       syncEmployeesFromBackend();
+      syncInventoryFromBackend();
     }
   } catch (err) {
     errorEl.classList.remove("hidden");
@@ -2245,6 +2315,7 @@ document.getElementById("form-company-register").addEventListener("submit", asyn
     closeModal(document.getElementById("modal-company"));
     showView("view-companyAdminApp");
     syncEmployeesFromBackend();
+    syncInventoryFromBackend();
 
     const geocodingStatus = registerResult.company.geocodingStatus;
     if (geocodingStatus === "SUCCESS") {
@@ -2282,6 +2353,10 @@ function wireNavRail(prefix, viewId) {
       document.querySelectorAll('#' + viewId + ' [id^="' + prefix + '-"]').forEach(sec => sec.style.display = "none");
       document.getElementById(item.dataset.section).style.display = "block";
       if (item.dataset.section === "ca-gps") { initGpsMap(); }
+      // 每次点进"智能库存"都从后端重新拉一次最新数据(商品/分类/预警),而不是只在
+      // 登录那一刻拉一次——员工随时可能在手机上补货消耗库存,管理员切回这个页面时
+      // 应该看到当下真实的数字,不是登录那一刻的旧快照。
+      if (item.dataset.section === "ca-inventory") { syncInventoryFromBackend(); }
     });
   });
 }
@@ -3069,133 +3144,104 @@ document.getElementById("form-correct-attendance").addEventListener("submit", e 
   closeModal(document.getElementById("modal-correct-attendance"));
 });
 
-/* ---------- 智能库存:SKU 档案 + 只增不改的流水 + 规则引擎"AI 建议" ----------
-   对应后端 InventoryModule(inventory_items / inventory_transactions):
-   current_quantity 只是流水聚合后的快照,库存数量永远只能通过"记录流水"变动
-   (RECEIPT 入库/CONSUMPTION 消耗/WASTE 浪费/ADJUSTMENT 盘点调整),这里的算法
-   (消耗速率预测断货天数、固定阈值判断、积压判断、浪费率预警)和后端
-   InventoryService 的规则完全一致,只是数据是演示用的假数据。 */
-const INV_OVERSTOCK_BUFFER_DAYS = 21;
-const INV_REORDER_BUFFER_DAYS = 7;
-const INV_WASTE_RATIO_THRESHOLD = 0.1;
-const INV_QUALITY_ISSUE_RATIO_THRESHOLD = 0.2;
-/** 库存表格每页显示多少行——商品一多,一次性把几百行全塞进 DOM 既卡又不好找,分页是最基础的一道防线。 */
+/* ---------- 智能库存:分类(inventory_categories)+ SKU 档案 + 只增不改的流水 ----------
+   已连接真实后端(InventoryModule / InventoryCategoryService,见 backend/src/modules/inventory/):
+   分类清单、商品列表、断货天数/建议采购量/库存状态、以及低库存/积压/浪费/质量预警,
+   全部由后端计算并通过 GET .../inventory/categories、GET .../inventory/items、
+   GET .../inventory/insights 三个接口返回,前端不再重复计算这套算法、也不再用
+   本地演示数据——分类清单完全由公司管理员自己在下面的"分类管理"里维护,不写死在代码里。 */
 const INV_PAGE_SIZE = 4;
-/** 搜索/分类/状态筛选 + 当前页码——都是纯前端状态,不影响 inventoryItems 这份共享数据本身。 */
+/** 搜索/分类/状态筛选 + 当前页码——都是纯前端状态,不影响从后端拉回来的 inventoryItems 本身。 */
 let invSearchQuery = "";
-let invCategoryFilter = "";
+let invCategoryFilter = ""; // 现在存的是 categoryId(大类或子类的 id),不再是自由文本
 let invStatusFilter = "";
 let invCurrentPage = 1;
 
-let inventoryIdCounter = 500;
-const inventoryItems = [
-  // 三文鱼柳:近 14 天日均消耗 5kg,采购提前期 3 天,当前只剩 15kg -> 预计 3 天后不足 -> LOW_STOCK
-  // 演示"质量验收":最近两次入库里有一次不合格,触发质量预警(2/2 = 100% > 20% 阈值)。
-  { id: inventoryIdCounter++, sku: "SALMON-001", name: "三文鱼柳", category: "生鲜", unit: "kg", currentQuantity: 15, reorderThreshold: null, reorderQuantity: null, leadTimeDays: 3, avgDailyConsumption: 5, wasteRatio: 0, packSize: null, packUnitLabel: null, deletedAt: null, transactions: [
-    { time: "2026-07-20 09:00:00", type: "RECEIPT", typeLabel: "入库(采购到货)", signedQuantity: 20, note: "常规到货", qualityGrade: "REJECTED", qualityNote: "3 箱有异味,已拒收" },
-    { time: "2026-07-10 09:00:00", type: "RECEIPT", typeLabel: "入库(采购到货)", signedQuantity: 20, note: "常规到货", qualityGrade: "QUALIFIED", qualityNote: "" }
-  ] },
-  // 外卖包装盒:库存 500 个,日均只用 2 个 -> 能撑 250 天,远超阈值 -> OVERSTOCK(资金占用);每箱 50 个,演示箱数换算
-  { id: inventoryIdCounter++, sku: "PACKAGING-001", name: "外卖包装盒", category: "耗材", unit: "piece", currentQuantity: 500, reorderThreshold: null, reorderQuantity: null, leadTimeDays: 2, avgDailyConsumption: 2, wasteRatio: 0, packSize: 50, packUnitLabel: "箱", deletedAt: null, transactions: [] },
-  // 一次性手套:正常水位;每箱 100 只
-  { id: inventoryIdCounter++, sku: "GLOVES-001", name: "一次性手套", category: "耗材", unit: "piece", currentQuantity: 400, reorderThreshold: null, reorderQuantity: null, leadTimeDays: 2, avgDailyConsumption: 40, wasteRatio: 0, packSize: 100, packUnitLabel: "箱", deletedAt: null, transactions: [] },
-  // 生菜:库存天数正常,但近 30 天浪费占消耗量 20%,超过 10% 阈值 -> 浪费预警
-  { id: inventoryIdCounter++, sku: "LETTUCE-001", name: "生菜", category: "生鲜", unit: "kg", currentQuantity: 8, reorderThreshold: null, reorderQuantity: null, leadTimeDays: 1, avgDailyConsumption: 1, wasteRatio: 0.2, packSize: null, packUnitLabel: null, deletedAt: null, transactions: [] },
-  // 消毒纸巾:全新 SKU,还没有消耗历史,但管理员手动设置了固定阈值 -> 仍能判断库存不足;每包(pack)本身就是最小单位,不设箱
-  { id: inventoryIdCounter++, sku: "SANITIZER-001", name: "消毒纸巾", category: "清洁用品", unit: "pack", currentQuantity: 3, reorderThreshold: 10, reorderQuantity: 20, leadTimeDays: 2, avgDailyConsumption: null, wasteRatio: 0, packSize: null, packUnitLabel: null, deletedAt: null, transactions: [] }
-];
+let inventoryItems = []; // 每一项就是后端 InventoryItemView——status/daysUntilStockout/建议采购量都已经算好
+let inventoryCategoryTree = []; // GET .../inventory/categories?includeInactive=true 的树状结果(含已停用的,方便管理员重新启用)
+let inventoryInsightsData = { lowStockAlerts: [], overstockAlerts: [], wasteAlerts: [], qualityAlerts: [] };
+let inventorySyncInFlight = false; // 避免短时间内重复点击导致同时发出好几个相同的同步请求
 
+/** 后端已经把断货天数/状态/建议采购量都算好了,这里只是保留同一个函数名字方便调用方不用大改。 */
 function computeInventoryView(item) {
-  const avg = item.avgDailyConsumption;
-  const daysUntilStockout = avg && avg > 0 ? Math.round((item.currentQuantity / avg) * 10) / 10 : null;
-
-  const belowFixedThreshold = item.reorderThreshold !== null && item.reorderThreshold !== undefined
-    ? item.currentQuantity <= item.reorderThreshold
-    : false;
-  const belowLeadTimeDays = daysUntilStockout !== null ? daysUntilStockout <= item.leadTimeDays : false;
-
-  let status = "NORMAL";
-  let suggestedReorderQuantity = null;
-
-  if (belowFixedThreshold || belowLeadTimeDays) {
-    status = "LOW_STOCK";
-    suggestedReorderQuantity = (item.reorderQuantity !== null && item.reorderQuantity !== undefined)
-      ? item.reorderQuantity
-      : (avg && avg > 0 ? Math.max(0, Math.round(avg * (item.leadTimeDays + INV_REORDER_BUFFER_DAYS) - item.currentQuantity)) : null);
-  } else if (daysUntilStockout !== null && daysUntilStockout >= item.leadTimeDays + INV_OVERSTOCK_BUFFER_DAYS) {
-    status = "OVERSTOCK";
-  }
-
-  // 每箱/包数量是可选的换算,不是每个商品都用箱管理——当前库存永远向下取整(不满一箱的零头不能凑成整箱),
-  // 建议采购量永远向上取整(采购建议宁可多订一点,也不能因为四舍五入少订)。和后端 InventoryService 的算法完全一致。
-  const hasPackSize = item.packSize !== null && item.packSize !== undefined && item.packSize > 0;
-  const currentQuantityInPacks = hasPackSize ? Math.floor(item.currentQuantity / item.packSize) : null;
-  const suggestedReorderPacks = hasPackSize && suggestedReorderQuantity !== null
-    ? Math.ceil(suggestedReorderQuantity / item.packSize)
-    : null;
-
-  return { daysUntilStockout, status, suggestedReorderQuantity, currentQuantityInPacks, suggestedReorderPacks };
+  return {
+    daysUntilStockout: item.daysUntilStockout,
+    status: item.status,
+    suggestedReorderQuantity: item.suggestedReorderQuantity,
+    currentQuantityInPacks: item.currentQuantityInPacks,
+    suggestedReorderPacks: item.suggestedReorderPacks,
+  };
 }
 
-/** 只在 RECEIPT(入库)流水上有意义;没有任何一次入库打过质量等级时返回 null(不瞎猜)。 */
-function computeQualityIssueRatio(item) {
-  const graded = (item.transactions || []).filter(t => t.type === "RECEIPT" && t.qualityGrade);
-  if (graded.length === 0) return null;
-  const issueCount = graded.filter(t => t.qualityGrade === "MINOR_ISSUE" || t.qualityGrade === "REJECTED").length;
-  return issueCount / graded.length;
+/** "大类 / 子类"这样的展示文本;商品没有挂分类时返回空字符串。 */
+function categoryDisplayLabel(item) {
+  if (!item.categoryName) return "";
+  return item.parentCategoryName ? (item.parentCategoryName + " / " + item.categoryName) : item.categoryName;
 }
 
-/** 归档的商品不参与任何提醒/统计——和后端 getInsights() 只查 deletedAt IS NULL 的行为一致。 */
-function activeInventoryItems() {
-  return inventoryItems.filter(item => !item.deletedAt);
-}
-
-function buildInventoryInsights() {
-  const dict = i18n[currentLang];
-  const lowStock = [], overstock = [], waste = [], quality = [];
-  activeInventoryItems().forEach(item => {
-    const view = computeInventoryView(item);
-    if (view.status === "LOW_STOCK") {
-      let msg;
-      if (view.daysUntilStockout !== null && view.suggestedReorderQuantity !== null) {
-        msg = dict.insightLowStockWithQty(item.name, view.daysUntilStockout, view.suggestedReorderQuantity, item.unit);
-      } else if (view.daysUntilStockout !== null) {
-        msg = dict.insightLowStockDaysOnly(item.name, view.daysUntilStockout);
-      } else {
-        msg = dict.insightLowStockThresholdOnly(item.name, item.currentQuantity, item.unit);
+/** 分类树摊平成一份下拉菜单可以直接用的列表。activeOnly=true 只保留启用中的(用于筛选下拉、
+    新建商品时的默认可选范围);activeOnly=false 连已停用的也一起给出(用于编辑已有商品时,
+    避免这个商品原来挂的分类因为后来被停用就从下拉里消失、看起来像是"分类丢了"。 */
+function flattenCategoryOptions(tree, opts) {
+  const activeOnly = !!(opts && opts.activeOnly);
+  const result = [];
+  (tree || []).forEach(top => {
+    if (!activeOnly || top.isActive) {
+      result.push({ id: top.id, label: top.name, isActive: top.isActive });
+    }
+    (top.children || []).forEach(child => {
+      if (!activeOnly || (top.isActive && child.isActive)) {
+        result.push({ id: child.id, label: top.name + " / " + child.name, isActive: child.isActive });
       }
-      // 设置了每箱数量的商品,提醒里顺带换算成箱数,方便管理员直接按箱下单,和后端 InventoryService 的规则一致。
-      if (view.suggestedReorderPacks !== null) {
-        msg += " " + dict.packCountSuffix(view.suggestedReorderPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
-      }
-      lowStock.push(msg);
-    } else if (view.status === "OVERSTOCK") {
-      // "如何减少库存":把积压天数换算成具体该暂停采购多少天,和后端 InventoryService 的公式一致。
-      const healthyDaysOfSupply = item.leadTimeDays + INV_REORDER_BUFFER_DAYS;
-      const suggestedPauseDays = Math.max(0, Math.round(view.daysUntilStockout - healthyDaysOfSupply));
-      overstock.push(dict.insightOverstock(item.name, view.daysUntilStockout, suggestedPauseDays));
-    }
-    if (item.wasteRatio && item.wasteRatio >= INV_WASTE_RATIO_THRESHOLD) {
-      waste.push(dict.insightWaste(item.name, (item.wasteRatio * 100).toFixed(1)));
-    }
-    const qualityIssueRatio = computeQualityIssueRatio(item);
-    if (qualityIssueRatio !== null && qualityIssueRatio >= INV_QUALITY_ISSUE_RATIO_THRESHOLD) {
-      quality.push(dict.insightQuality(item.name, (qualityIssueRatio * 100).toFixed(1)));
-    }
+    });
   });
-  return { lowStock, overstock, waste, quality };
+  return result;
 }
 
+/** 归档的商品不参与任何提醒/统计——后端 listItems() 本身就只返回 deletedAt IS NULL 的商品。 */
+function activeInventoryItems() {
+  return inventoryItems;
+}
+
+/** 从后端(分类树 + 商品列表 + 预警)重新拉一遍最新数据,员工/管理员双方看到的永远是数据库里
+    真实的库存数字——员工在仓库补货页面扣一次库存,管理员这边下次同步就会看到少了一件。 */
+async function syncInventoryFromBackend() {
+  if (!accessToken || !currentUserCompanyId) return;
+  if (inventorySyncInFlight) return;
+  inventorySyncInFlight = true;
+  try {
+    const [categories, items, insights] = await Promise.all([
+      apiRequest("/companies/" + currentUserCompanyId + "/inventory/categories?includeInactive=true", { auth: true }),
+      apiRequest("/companies/" + currentUserCompanyId + "/inventory/items", { auth: true }),
+      apiRequest("/companies/" + currentUserCompanyId + "/inventory/insights", { auth: true }),
+    ]);
+    inventoryCategoryTree = categories;
+    inventoryItems = items;
+    inventoryInsightsData = insights;
+    renderInventoryTable();
+    renderEmpInventoryWithdrawList();
+    updateEmpInventoryDashboardNote();
+  } catch (err) {
+    // 同步失败(比如后端暂时没响应)不阻断已经登录成功这件事,继续显示上一次成功同步的数据;
+    // 用户切换页面、或者手动做一次库存相关操作时会自然再次触发重试。
+    console.warn("同步库存数据失败:", err);
+  } finally {
+    inventorySyncInFlight = false;
+  }
+}
+
+/** 后端 getInsights() 已经生成好每一条提醒文案(目前只有中文,和其余模块的后端错误文案一样,
+    英文界面下会退化显示中文原文——这不是这次改动引入的新限制,后端提示文案的国际化留到之后处理)。 */
 function renderInventoryInsights(containerId) {
   const container = document.getElementById(containerId || "inventoryInsights");
   if (!container) return;
   const dict = i18n[currentLang];
-  const { lowStock, overstock, waste, quality } = buildInventoryInsights();
+  const data = inventoryInsightsData || {};
   const all = []
-    .concat(lowStock.map(msg => ({ type: "low-stock", icon: "⚠️", msg: msg })))
-    .concat(overstock.map(msg => ({ type: "overstock", icon: "📦", msg: msg })))
-    .concat(waste.map(msg => ({ type: "waste", icon: "♻️", msg: msg })))
-    .concat(quality.map(msg => ({ type: "quality", icon: "🔍", msg: msg })));
+    .concat((data.lowStockAlerts || []).map(a => ({ type: "low-stock", icon: "⚠️", msg: a.message })))
+    .concat((data.overstockAlerts || []).map(a => ({ type: "overstock", icon: "📦", msg: a.message })))
+    .concat((data.wasteAlerts || []).map(a => ({ type: "waste", icon: "♻️", msg: a.message })))
+    .concat((data.qualityAlerts || []).map(a => ({ type: "quality", icon: "🔍", msg: a.message })));
   container.innerHTML = all.length
     ? all.map(a => '<div class="insight-card ' + a.type + '">' + a.icon + " " + a.msg + "</div>").join("")
     : '<div class="insight-empty">' + dict.noInsights + "</div>";
@@ -3227,10 +3273,10 @@ function buildInventoryRowHtml(item) {
     suggestedLabel += " " + dict.packCountSuffix(view.suggestedReorderPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
   }
 
-  const txCount = (item.transactions || []).length;
+  const categoryLabel = categoryDisplayLabel(item);
 
   return '<tr data-inventory-row="' + item.id + '">' +
-    '<td><strong>' + item.name + "</strong><br/><span style=\"font-size:12px;color:var(--text-2);\">" + item.sku + (item.category ? " · " + item.category : "") + "</span></td>" +
+    '<td><strong>' + item.name + "</strong><br/><span style=\"font-size:12px;color:var(--text-2);\">" + item.sku + (categoryLabel ? " · " + categoryLabel : "") + "</span></td>" +
     "<td>" + buildInventorySpecLabel(item, dict) + "</td>" +
     "<td>" + currentQtyLabel + "</td>" +
     '<td><span class="badge ' + statusBadgeClass + '">' + statusLabel + "</span></td>" +
@@ -3239,10 +3285,24 @@ function buildInventoryRowHtml(item) {
     '<td><div style="display:flex;gap:6px;flex-wrap:wrap;">' +
       '<button class="btn btn-primary" style="height:30px;padding:0 10px;font-size:12px;" data-record-transaction="' + item.id + '">' + dict.recordTransaction + "</button>" +
       '<button class="btn btn-outline" style="height:30px;padding:0 10px;font-size:12px;" data-edit-inventory-item="' + item.id + '">' + dict.editItem + "</button>" +
-      '<button class="btn btn-outline" style="height:30px;padding:0 10px;font-size:12px;" data-view-inventory-history="' + item.id + '">' + dict.viewTransactionHistory + " (" + txCount + ")</button>" +
+      '<button class="btn btn-outline" style="height:30px;padding:0 10px;font-size:12px;" data-view-inventory-history="' + item.id + '">' + dict.viewTransactionHistory + "</button>" +
       '<button class="btn btn-outline" style="height:30px;padding:0 10px;font-size:12px;color:var(--danger);" data-archive-inventory-item="' + item.id + '">' + dict.archiveAction + "</button>" +
     "</div></td>" +
   "</tr>";
+}
+
+/** 编辑/新增商品表单里的"分类"下拉——activeOnly:false 是故意的,已停用的分类如果正好是
+    这个商品当前挂着的那一个,也要出现在下拉里(打上"已停用"标签),不能让编辑表单突然
+    看起来"这个商品的分类丢了"。 */
+function populateInventoryCategorySelect(selectEl, currentCategoryId) {
+  const dict = i18n[currentLang];
+  const options = flattenCategoryOptions(inventoryCategoryTree, { activeOnly: false });
+  let html = '<option value="">' + dict.noCategorySelected + "</option>";
+  html += options.map(opt => {
+    const label = opt.label + (opt.isActive ? "" : " (" + dict.categoryInactiveBadge + ")");
+    return '<option value="' + opt.id + '"' + (opt.id === currentCategoryId ? " selected" : "") + ">" + label + "</option>";
+  }).join("");
+  selectEl.innerHTML = html;
 }
 
 function openInventoryItemModal(item) {
@@ -3254,7 +3314,7 @@ function openInventoryItemModal(item) {
   skuField.value = item ? item.sku : "";
   skuField.disabled = !!item; // SKU 是查重键,创建后不允许再改,和后端规则一致
   document.getElementById("invFieldName").value = item ? item.name : "";
-  document.getElementById("invFieldCategory").value = item ? (item.category || "") : "";
+  populateInventoryCategorySelect(document.getElementById("invFieldCategoryId"), item ? item.categoryId : null);
   document.getElementById("invFieldUnit").value = item ? item.unit : "kg";
   document.getElementById("invFieldReorderThreshold").value = (item && item.reorderThreshold !== null && item.reorderThreshold !== undefined) ? item.reorderThreshold : "";
   document.getElementById("invFieldReorderQuantity").value = (item && item.reorderQuantity !== null && item.reorderQuantity !== undefined) ? item.reorderQuantity : "";
@@ -3262,19 +3322,25 @@ function openInventoryItemModal(item) {
   document.getElementById("invFieldPackSize").value = (item && item.packSize !== null && item.packSize !== undefined) ? item.packSize : "";
   document.getElementById("invFieldPackUnitLabel").value = item ? (item.packUnitLabel || "") : "";
 
-  // "当前库存总量"是只读展示,不是表单字段——员工每次从仓库补货到操作间,这个数字会
-  // 相应减少(走的是 CONSUMPTION 流水,和公司后台"记录流水"是同一套数据),这里只是
-  // 让管理员编辑商品资料时也能顺便看一眼,不需要跳出去找。
-  const currentQtyDisplayEl = document.getElementById("invCurrentQtyDisplay");
+  // 编辑已有商品:"当前库存总量"是只读展示,不是表单字段——员工每次从仓库补货到操作间,
+  // 这个数字会相应减少(走的是 CONSUMPTION 流水),这里只是让管理员顺便看一眼。
+  // 新增商品:改成一个可以直接填的"库存总量(可选)"输入框——很多商品在加入系统的时候
+  // 仓库里已经有现货(比如把线下已有的库存搬进系统),不填的话就必须先建好商品、再单独
+  // 跑一次"记录流水"才能把现有库存补上,多一道没必要的手续。填了这里,提交表单时会
+  // 自动在创建商品之后,用同一个"记录流水"接口生成一笔标注为"期初库存"的入库流水——
+  // 库存数量本身依然不是直接写进去的,只是把"新建 + 补首笔库存"合并成一步,不违反
+  // "库存只能通过流水变动"这条规则。
+  document.getElementById("invCurrentQtyDisplayWrap").classList.toggle("hidden", !item);
+  document.getElementById("invInitialQtyFieldWrap").classList.toggle("hidden", !!item);
   if (item) {
     const view = computeInventoryView(item);
     let label = item.currentQuantity + " " + item.unit;
     if (view.currentQuantityInPacks !== null) {
       label += " " + dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
     }
-    currentQtyDisplayEl.textContent = label;
+    document.getElementById("invCurrentQtyDisplay").textContent = label;
   } else {
-    currentQtyDisplayEl.textContent = dict.newItemStartsAtZero;
+    document.getElementById("invFieldInitialQuantity").value = "";
   }
 
   // 编辑已有商品时,把"库存数量不能改"这句提示换成更有用的版本——直接告诉管理员
@@ -3314,41 +3380,61 @@ function qualityGradeBadgeHtml(t, dict) {
     (t.qualityNote ? ' <span style="font-size:12px;color:var(--text-2);">' + t.qualityNote + "</span>" : "");
 }
 
+/** 只有入库(RECEIPT)流水才可能带质量等级,历史流水里把类型代码换算成对应文案。 */
+function transactionTypeLabel(type, dict) {
+  const map = { RECEIPT: dict.typeReceipt, CONSUMPTION: dict.typeConsumption, WASTE: dict.typeWaste, ADJUSTMENT: dict.typeAdjustment };
+  return map[type] || type;
+}
+
 function wireInventoryCardEvents(container) {
   container.querySelectorAll("[data-view-inventory-history]").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const dict = i18n[currentLang];
-      const id = Number(btn.dataset.viewInventoryHistory);
+      const id = btn.dataset.viewInventoryHistory;
       const item = inventoryItems.find(i => i.id === id);
       if (!item) return;
       document.getElementById("inventoryHistoryModalTitle").textContent = dict.inventoryHistoryModalTitle(item.name);
-      const txHistory = item.transactions || [];
-      document.getElementById("inventoryHistoryList").innerHTML = txHistory.length
-        ? txHistory.map(t => '<div class="edit-history-item">' + t.time + " · " + t.typeLabel + " " + (t.signedQuantity >= 0 ? "+" : "") + t.signedQuantity + " " + item.unit + (t.note ? " (" + t.note + ")" : "") + qualityGradeBadgeHtml(t, dict) + "</div>").join("")
-        : '<div style="font-size:12px;color:var(--text-2);">' + dict.noTransactionsYet + "</div>";
+      document.getElementById("inventoryHistoryList").innerHTML = '<div style="font-size:12px;color:var(--text-2);">' + dict.noTransactionsYet + "</div>";
       openModal("modal-inventory-history");
+      // 流水历史现在按需从后端拉取(不再随商品列表一起返回全部历史),避免库存列表接口
+      // 因为动辄成百上千条流水而越来越重。
+      try {
+        const txHistory = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + id + "/transactions", { auth: true });
+        document.getElementById("inventoryHistoryList").innerHTML = txHistory.length
+          ? txHistory.map(t => {
+              const time = new Date(t.occurredAt).toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB");
+              return '<div class="edit-history-item">' + time + " · " + transactionTypeLabel(t.type, dict) + " " + (t.quantity >= 0 ? "+" : "") + t.quantity + " " + item.unit + (t.note ? " (" + t.note + ")" : "") + qualityGradeBadgeHtml(t, dict) + "</div>";
+            }).join("")
+          : '<div style="font-size:12px;color:var(--text-2);">' + dict.noTransactionsYet + "</div>";
+      } catch (err) {
+        document.getElementById("inventoryHistoryList").innerHTML = '<div style="font-size:12px;color:var(--danger);">' + err.message + "</div>";
+      }
     });
   });
   container.querySelectorAll("[data-archive-inventory-item]").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const dict = i18n[currentLang];
-      const id = Number(btn.dataset.archiveInventoryItem);
+      const id = btn.dataset.archiveInventoryItem;
       const item = inventoryItems.find(i => i.id === id);
       if (!item) return;
       if (!window.confirm(dict.archiveConfirmMessage(item.name))) return;
-      // 软删除:只打标记,不从数组里物理移除——历史流水永远保留可追溯,和后端 archiveItem() 的规则完全一致。
-      item.deletedAt = new Date();
-      item.isActive = false;
-      renderInventoryTable();
+      // 软删除交给后端做(DELETE .../inventory/items/:itemId 实际是打 deletedAt 标记,不是物理删除),
+      // 历史流水永远保留可追溯。
+      try {
+        await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + id, { method: "DELETE", auth: true });
+        await syncInventoryFromBackend();
+      } catch (err) {
+        window.alert(err.message);
+      }
     });
   });
   container.querySelectorAll("[data-record-transaction]").forEach(btn => {
     btn.addEventListener("click", () => {
       const dict = i18n[currentLang];
-      const id = Number(btn.dataset.recordTransaction);
+      const id = btn.dataset.recordTransaction;
       const item = inventoryItems.find(i => i.id === id);
       if (!item) return;
-      document.getElementById("transactionItemId").value = String(id);
+      document.getElementById("transactionItemId").value = id;
       document.getElementById("inventoryTransactionContext").textContent = item.name + " · " + item.sku + " · " + dict.colCurrentQty + ": " + item.currentQuantity + " " + item.unit;
       document.getElementById("invFieldTransactionType").value = "RECEIPT";
       document.getElementById("invFieldQuantity").value = "";
@@ -3360,7 +3446,7 @@ function wireInventoryCardEvents(container) {
   });
   container.querySelectorAll("[data-edit-inventory-item]").forEach(btn => {
     btn.addEventListener("click", () => {
-      const id = Number(btn.dataset.editInventoryItem);
+      const id = btn.dataset.editInventoryItem;
       const item = inventoryItems.find(i => i.id === id);
       if (!item) return;
       openInventoryItemModal(item);
@@ -3368,15 +3454,15 @@ function wireInventoryCardEvents(container) {
   });
 }
 
-/** 商品一多,类别下拉菜单也要跟着数据走,不能写死几个固定分类。 */
+/** 筛选下拉现在跟着后端真实的分类树走(只列出启用中的),不再从商品身上反推一份临时分类集合。 */
 function populateInventoryCategoryFilter() {
   const select = document.getElementById("invCategoryFilter");
   if (!select) return;
   const dict = i18n[currentLang];
-  const categories = [...new Set(activeInventoryItems().map(item => item.category).filter(Boolean))].sort();
+  const options = flattenCategoryOptions(inventoryCategoryTree, { activeOnly: true });
   const currentValue = invCategoryFilter;
   select.innerHTML = '<option value="">' + dict.invFilterAllCategories + "</option>" +
-    categories.map(c => '<option value="' + c + '"' + (c === currentValue ? " selected" : "") + ">" + c + "</option>").join("");
+    options.map(opt => '<option value="' + opt.id + '"' + (opt.id === currentValue ? " selected" : "") + ">" + opt.label + "</option>").join("");
 }
 
 /** 状态排序优先级:库存不足最该被看到,其次是积压,最后才是正常——商品一多,管理员真正想先看到的永远是"有问题的"。 */
@@ -3391,14 +3477,14 @@ function renderInventorySummaryCards(allActiveItems) {
   const container = document.getElementById("inventorySummaryCards");
   if (!container) return;
   const dict = i18n[currentLang];
-  const lowStockCount = allActiveItems.filter(item => computeInventoryView(item).status === "LOW_STOCK").length;
-  const overstockCount = allActiveItems.filter(item => computeInventoryView(item).status === "OVERSTOCK").length;
-  const { quality } = buildInventoryInsights();
+  const lowStockCount = allActiveItems.filter(item => item.status === "LOW_STOCK").length;
+  const overstockCount = allActiveItems.filter(item => item.status === "OVERSTOCK").length;
+  const qualityCount = ((inventoryInsightsData || {}).qualityAlerts || []).length;
   container.innerHTML =
     '<div class="metric-card"><div class="metric-label">' + dict.metricTotalItems + '</div><div class="metric-value">' + allActiveItems.length + "</div></div>" +
     '<div class="metric-card"><div class="metric-label">' + dict.metricLowStock + '</div><div class="metric-value">' + lowStockCount + "</div></div>" +
     '<div class="metric-card"><div class="metric-label">' + dict.metricOverstock + '</div><div class="metric-value">' + overstockCount + "</div></div>" +
-    '<div class="metric-card"><div class="metric-label">' + dict.metricQualityAlert + '</div><div class="metric-value">' + quality.length + "</div></div>";
+    '<div class="metric-card"><div class="metric-label">' + dict.metricQualityAlert + '</div><div class="metric-value">' + qualityCount + "</div></div>";
 }
 
 function renderInventoryPagination(totalPages) {
@@ -3428,15 +3514,16 @@ function renderInventoryTable() {
 
   const query = invSearchQuery.trim().toLowerCase();
   let filtered = allActiveItems.filter(item => {
-    const matchesQuery = !query || item.name.toLowerCase().includes(query) || item.sku.toLowerCase().includes(query) || (item.category || "").toLowerCase().includes(query);
-    const matchesCategory = !invCategoryFilter || item.category === invCategoryFilter;
-    const matchesStatus = !invStatusFilter || computeInventoryView(item).status === invStatusFilter;
+    const categoryLabel = categoryDisplayLabel(item).toLowerCase();
+    const matchesQuery = !query || item.name.toLowerCase().includes(query) || item.sku.toLowerCase().includes(query) || categoryLabel.includes(query);
+    const matchesCategory = !invCategoryFilter || item.categoryId === invCategoryFilter;
+    const matchesStatus = !invStatusFilter || item.status === invStatusFilter;
     return matchesQuery && matchesCategory && matchesStatus;
   });
 
   // 有问题的商品排在最前面,商品一多,管理员真正想先看到的永远是"库存不足/积压"这些需要处理的,而不是按字母顺序随便排。
   filtered = filtered.slice().sort((a, b) => {
-    const weightDiff = inventoryStatusSortWeight(computeInventoryView(a).status) - inventoryStatusSortWeight(computeInventoryView(b).status);
+    const weightDiff = inventoryStatusSortWeight(a.status) - inventoryStatusSortWeight(b.status);
     return weightDiff !== 0 ? weightDiff : a.name.localeCompare(b.name);
   });
 
@@ -3492,16 +3579,26 @@ document.querySelectorAll(".inv-status-filter-btn").forEach(btn => {
 });
 
 /** 已归档商品列表:供管理员查看历史上删除过的商品,并可以随时恢复。 */
-function renderInventoryArchivedList() {
+async function renderInventoryArchivedList() {
   const container = document.getElementById("inventoryArchivedList");
   if (!container) return;
   const dict = i18n[currentLang];
-  const archived = inventoryItems.filter(item => item.deletedAt);
+  if (!accessToken || !currentUserCompanyId) {
+    container.innerHTML = '<div style="color:var(--text-2);">' + dict.noArchivedItems + "</div>";
+    return;
+  }
+  let archived = [];
+  try {
+    archived = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items-archived", { auth: true });
+  } catch (err) {
+    container.innerHTML = '<div style="color:var(--danger);">' + err.message + "</div>";
+    return;
+  }
   container.innerHTML = archived.length
     ? archived.map(item => (
         '<div class="leave-card" data-archived-row="' + item.id + '">' +
           '<div class="leave-card-head">' +
-            "<span><strong>" + item.name + "</strong> · " + item.sku + (item.category ? " · " + item.category : "") + "</span>" +
+            "<span><strong>" + item.name + "</strong> · " + item.sku + (categoryDisplayLabel(item) ? " · " + categoryDisplayLabel(item) : "") + "</span>" +
           "</div>" +
           '<div class="leave-card-reason">' + dict.colCurrentQty + ": " + item.currentQuantity + " " + item.unit + "</div>" +
           '<button class="btn btn-outline" style="height:32px;padding:0 14px;font-size:12px;margin-top:8px;" data-restore-inventory-item="' + item.id + '">' + dict.restoreAction + "</button>" +
@@ -3510,74 +3607,96 @@ function renderInventoryArchivedList() {
     : '<div style="color:var(--text-2);">' + dict.noArchivedItems + "</div>";
 
   container.querySelectorAll("[data-restore-inventory-item]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = Number(btn.dataset.restoreInventoryItem);
-      const item = inventoryItems.find(i => i.id === id);
-      if (!item) return;
-      item.deletedAt = null;
-      item.isActive = true;
-      renderInventoryArchivedList();
-      renderInventoryTable();
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.restoreInventoryItem;
+      try {
+        await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + id + "/restore", { method: "POST", auth: true });
+        await renderInventoryArchivedList();
+        await syncInventoryFromBackend();
+      } catch (err) {
+        window.alert(err.message);
+      }
     });
   });
 }
 
 document.getElementById("btnViewArchivedInventory").addEventListener("click", () => {
-  renderInventoryArchivedList();
   openModal("modal-inventory-archived");
+  renderInventoryArchivedList();
 });
 
-document.getElementById("form-inventory-item").addEventListener("submit", e => {
+document.getElementById("form-inventory-item").addEventListener("submit", async e => {
   e.preventDefault();
   const dict = i18n[currentLang];
   const idVal = document.getElementById("inventoryItemId").value;
   const sku = document.getElementById("invFieldSku").value.trim();
   const name = document.getElementById("invFieldName").value.trim();
-  const category = document.getElementById("invFieldCategory").value.trim();
+  const categoryId = document.getElementById("invFieldCategoryId").value;
   const unit = document.getElementById("invFieldUnit").value;
   const reorderThresholdRaw = document.getElementById("invFieldReorderThreshold").value;
   const reorderQuantityRaw = document.getElementById("invFieldReorderQuantity").value;
   const leadTimeDays = Number(document.getElementById("invFieldLeadTimeDays").value) || 0;
   const packSizeRaw = document.getElementById("invFieldPackSize").value;
   const packUnitLabelRaw = document.getElementById("invFieldPackUnitLabel").value.trim();
-  const packSize = packSizeRaw !== "" ? Number(packSizeRaw) : null;
-  const packUnitLabel = packSize !== null ? (packUnitLabelRaw || dict.defaultPackUnitLabel) : null;
+  // 只在"新增商品"时才读取和使用这个值——编辑已有商品时这个输入框是隐藏的,不应该被
+  // 拿来当成"要把库存改成这个数字",库存的变动永远只能走"记录流水"。
+  const initialQuantityRaw = idVal ? "" : document.getElementById("invFieldInitialQuantity").value;
   if (!sku || !name) return;
-
-  if (idVal) {
-    const item = inventoryItems.find(i => i.id === Number(idVal));
-    if (!item) return;
-    item.name = name;
-    item.category = category || null;
-    item.unit = unit;
-    item.reorderThreshold = reorderThresholdRaw !== "" ? Number(reorderThresholdRaw) : null;
-    item.reorderQuantity = reorderQuantityRaw !== "" ? Number(reorderQuantityRaw) : null;
-    item.leadTimeDays = leadTimeDays;
-    item.packSize = packSize;
-    item.packUnitLabel = packUnitLabel;
-  } else {
-    const dupe = inventoryItems.some(i => i.sku.toLowerCase() === sku.toLowerCase());
-    if (dupe) {
-      window.alert(dict.duplicateSkuError);
-      return;
-    }
-    inventoryItems.push({
-      id: inventoryIdCounter++, sku: sku, name: name, category: category || null, unit: unit,
-      currentQuantity: 0,
-      reorderThreshold: reorderThresholdRaw !== "" ? Number(reorderThresholdRaw) : null,
-      reorderQuantity: reorderQuantityRaw !== "" ? Number(reorderQuantityRaw) : null,
-      leadTimeDays: leadTimeDays, avgDailyConsumption: null, wasteRatio: 0,
-      packSize: packSize, packUnitLabel: packUnitLabel, transactions: []
-    });
+  if (!accessToken || !currentUserCompanyId) {
+    window.alert(dict.inventorySyncError);
+    return;
   }
-  renderInventoryTable();
-  closeModal(document.getElementById("modal-inventory-item"));
+
+  const body = {
+    name, unit, leadTimeDays,
+    reorderThreshold: reorderThresholdRaw !== "" ? Number(reorderThresholdRaw) : null,
+    reorderQuantity: reorderQuantityRaw !== "" ? Number(reorderQuantityRaw) : null,
+    packSize: packSizeRaw !== "" ? Number(packSizeRaw) : null,
+    packUnitLabel: packSizeRaw !== "" ? (packUnitLabelRaw || dict.defaultPackUnitLabel) : null,
+  };
+  // 留空分类 = 新建时"暂不指定分类"、编辑时"不修改原有分类归属"——后端目前没有单独提供
+  // "把已经设置过的分类清空"的语义,这是一个已知的小限制,不影响正常的分类分配/切换。
+  if (categoryId) body.categoryId = categoryId;
+
+  const submitBtn = document.getElementById("btnSubmitInventoryItem");
+  submitBtn.disabled = true;
+  try {
+    if (idVal) {
+      await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + idVal, { method: "PATCH", auth: true, body });
+    } else {
+      const created = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items", {
+        method: "POST", auth: true, body: Object.assign({ sku: sku }, body),
+      });
+      // "库存总量(可选)"不是直接把数字写进商品——新建商品的初始库存永远是 0,这里填了
+      // 的话,紧接着调用和"记录流水"完全同一个接口,生成一笔类型为 RECEIPT、备注"期初库存"
+      // 的流水,把现有库存正式记录进去,历史上依然查得到这一笔"库存是怎么来的"。
+      const initialQuantity = initialQuantityRaw !== "" ? Number(initialQuantityRaw) : 0;
+      if (initialQuantity > 0) {
+        await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + created.id + "/transactions", {
+          method: "POST", auth: true,
+          body: { type: "RECEIPT", quantity: initialQuantity, note: currentLang === "zh" ? "期初库存" : "Opening stock" },
+        });
+      }
+    }
+    await syncInventoryFromBackend();
+    closeModal(document.getElementById("modal-inventory-item"));
+  } catch (err) {
+    if (err.code === "INVENTORY_DUPLICATE_SKU") {
+      window.alert(dict.duplicateSkuError);
+    } else if (err.code === "INVENTORY_CATEGORY_NOT_FOUND") {
+      window.alert(dict.categoryNotFoundError);
+    } else {
+      window.alert(err.message);
+    }
+  } finally {
+    submitBtn.disabled = false;
+  }
 });
 
-document.getElementById("form-inventory-transaction").addEventListener("submit", e => {
+document.getElementById("form-inventory-transaction").addEventListener("submit", async e => {
   e.preventDefault();
   const dict = i18n[currentLang];
-  const itemId = Number(document.getElementById("transactionItemId").value);
+  const itemId = document.getElementById("transactionItemId").value;
   const item = inventoryItems.find(i => i.id === itemId);
   if (!item) return;
   const type = document.getElementById("invFieldTransactionType").value;
@@ -3585,43 +3704,193 @@ document.getElementById("form-inventory-transaction").addEventListener("submit",
   const note = document.getElementById("invFieldNote").value.trim();
   const errorEl = document.getElementById("invStockError");
   errorEl.classList.add("hidden");
+  if (!accessToken || !currentUserCompanyId) return;
 
-  let signedQuantity;
-  if (type === "RECEIPT") signedQuantity = Math.abs(rawQuantity);
-  else if (type === "CONSUMPTION" || type === "WASTE") signedQuantity = -Math.abs(rawQuantity);
-  else signedQuantity = rawQuantity - item.currentQuantity; // ADJUSTMENT:rawQuantity 是盘点后的实际数量,差值才是真正落流水的量
-
-  const quantityAfter = Math.round((item.currentQuantity + signedQuantity) * 1000) / 1000;
-  if (quantityAfter < 0) {
-    errorEl.textContent = dict.insufficientStockError;
-    errorEl.classList.remove("hidden");
-    return;
-  }
-
-  const typeLabelMap = { RECEIPT: dict.typeReceipt, CONSUMPTION: dict.typeConsumption, WASTE: dict.typeWaste, ADJUSTMENT: dict.typeAdjustment };
   // 质量验收只在"入库"上有意义,和后端 recordTransaction() 的校验规则一致——其余类型永远不落质量字段。
-  const qualityGrade = type === "RECEIPT" ? document.getElementById("invFieldQualityGrade").value : null;
-  const qualityNote = type === "RECEIPT" ? document.getElementById("invFieldQualityNote").value.trim() : "";
-  item.transactions = item.transactions || [];
-  item.transactions.unshift({
-    time: new Date().toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB"),
-    type: type,
-    typeLabel: typeLabelMap[type],
-    signedQuantity: signedQuantity,
-    note: note,
-    qualityGrade: qualityGrade,
-    qualityNote: qualityNote || null
-  });
-  item.currentQuantity = quantityAfter;
+  const qualityGrade = type === "RECEIPT" ? document.getElementById("invFieldQualityGrade").value : undefined;
+  const qualityNote = type === "RECEIPT" ? document.getElementById("invFieldQualityNote").value.trim() : undefined;
 
-  renderInventoryTable();
-  closeModal(document.getElementById("modal-inventory-transaction"));
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    // 库存数量的加减、"是否会变成负数"这些校验现在完全交给后端(recordTransaction())来做——
+    // 前端不再自己算一遍签名量再判断,避免前后端算法哪天不小心算出不一样的结果。
+    await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + itemId + "/transactions", {
+      method: "POST", auth: true,
+      body: { type: type, quantity: rawQuantity, note: note || undefined, qualityGrade: qualityGrade, qualityNote: qualityNote || undefined },
+    });
+    await syncInventoryFromBackend();
+    closeModal(document.getElementById("modal-inventory-transaction"));
+  } catch (err) {
+    errorEl.textContent = err.code === "INVENTORY_INSUFFICIENT_STOCK" ? dict.insufficientStockError : err.message;
+    errorEl.classList.remove("hidden");
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
 });
 
+/* ---------- 分类管理:两级(大类/子类),完全由公司管理员自己维护,不写死在代码里 ----------
+   对应后端 InventoryCategoryService。"停用"是软删除:已经被商品引用过的分类不会真的消失,
+   只是不再出现在新建/编辑商品的下拉选择里;停用一个大类会连带停用它下面所有子类。 */
+const INV_CATEGORY_TEMPLATE = [
+  { name: "鱼类", children: ["三文鱼", "金枪鱼", "金枪鱼酱", "熏三文鱼"] },
+  { name: "Poke Bowl消耗品", children: ["无壳毛豆", "海菜丝", "玉米粒", "胡萝卜丝"] },
+  { name: "寿司消耗品", children: ["大米", "紫菜片", "炸鸡", "炸虾", "蟹棒", "鱼籽", "豆腐", "鸡蛋", "Mayo", "炸洋葱干", "辣粉", "芝麻粒", "葱", "青瓜", "辣汁", "芒果"] },
+  { name: "热食", children: ["有壳毛豆", "炸鸡丝", "炸虾", "饺子", "鸡串", "黄瓜"] },
+  { name: "包装盒", children: ["1号盒", "2号盒", "7号盒", "11号盒", "Pokebowl盒子"] },
+  { name: "配料消耗品", children: ["醋", "炸油"] },
+];
+
+function buildCategoryCardHtml(top, dict) {
+  const inactiveBadge = top.isActive ? "" : ' <span class="badge warning">' + dict.categoryInactiveBadge + "</span>";
+  const childrenHtml = (top.children || []).map(child => {
+    const childInactiveBadge = child.isActive ? "" : ' <span class="badge warning">' + dict.categoryInactiveBadge + "</span>";
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0 8px 20px;border-top:1px solid var(--border);flex-wrap:wrap;">' +
+      "<span>" + child.name + childInactiveBadge + "</span>" +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+        '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;" data-rename-category="' + child.id + '" data-current-name="' + child.name + '">' + dict.renameCategory + "</button>" +
+        '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;" data-toggle-category="' + child.id + '" data-current-name="' + child.name + '" data-is-top="false" data-currently-active="' + child.isActive + '">' + (child.isActive ? dict.deactivateCategory : dict.reactivateCategory) + "</button>" +
+      "</div>" +
+    "</div>";
+  }).join("");
+
+  return '<div class="leave-card" style="margin-bottom:12px;">' +
+    '<div class="leave-card-head">' +
+      "<span><strong>" + top.name + "</strong>" + inactiveBadge + "</span>" +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+        '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;" data-add-subcategory="' + top.id + '" data-parent-name="' + top.name + '">' + dict.addSubCategory + "</button>" +
+        '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;" data-rename-category="' + top.id + '" data-current-name="' + top.name + '">' + dict.renameCategory + "</button>" +
+        '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;" data-toggle-category="' + top.id + '" data-current-name="' + top.name + '" data-is-top="true" data-currently-active="' + top.isActive + '">' + (top.isActive ? dict.deactivateCategory : dict.reactivateCategory) + "</button>" +
+      "</div>" +
+    "</div>" +
+    (childrenHtml || '<div style="padding:6px 0 0 20px;font-size:12px;color:var(--text-2);">—</div>') +
+  "</div>";
+}
+
+function renderInventoryCategoriesModal() {
+  const container = document.getElementById("inventoryCategoriesList");
+  if (!container) return;
+  const dict = i18n[currentLang];
+  const tree = inventoryCategoryTree || [];
+  container.innerHTML = tree.length
+    ? tree.map(top => buildCategoryCardHtml(top, dict)).join("")
+    : '<div style="color:var(--text-2);">' + dict.noCategoriesYet + "</div>";
+
+  container.querySelectorAll("[data-add-subcategory]").forEach(btn => {
+    btn.addEventListener("click", () => handleAddSubCategory(btn.dataset.addSubcategory, btn.dataset.parentName));
+  });
+  container.querySelectorAll("[data-rename-category]").forEach(btn => {
+    btn.addEventListener("click", () => handleRenameCategory(btn.dataset.renameCategory, btn.dataset.currentName));
+  });
+  container.querySelectorAll("[data-toggle-category]").forEach(btn => {
+    btn.addEventListener("click", () => handleToggleCategory(btn.dataset.toggleCategory, btn.dataset.currentName, btn.dataset.isTop === "true", btn.dataset.currentlyActive === "true"));
+  });
+}
+
+document.getElementById("btnManageInventoryCategories").addEventListener("click", () => {
+  openModal("modal-inventory-categories");
+  renderInventoryCategoriesModal();
+});
+
+document.getElementById("btnAddTopCategory").addEventListener("click", async () => {
+  const dict = i18n[currentLang];
+  const name = window.prompt(dict.categoryNamePrompt);
+  if (!name || !name.trim()) return;
+  if (!accessToken || !currentUserCompanyId) return;
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/inventory/categories", { method: "POST", auth: true, body: { name: name.trim() } });
+    await syncInventoryFromBackend();
+    renderInventoryCategoriesModal();
+  } catch (err) {
+    window.alert(err.code === "INVENTORY_CATEGORY_DUPLICATE_NAME" ? dict.categoryDuplicateNameError : err.message);
+  }
+});
+
+async function handleAddSubCategory(parentId, parentName) {
+  const dict = i18n[currentLang];
+  const name = window.prompt(dict.subCategoryNamePrompt(parentName));
+  if (!name || !name.trim()) return;
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/inventory/categories", { method: "POST", auth: true, body: { name: name.trim(), parentId: parentId } });
+    await syncInventoryFromBackend();
+    renderInventoryCategoriesModal();
+  } catch (err) {
+    window.alert(err.code === "INVENTORY_CATEGORY_DUPLICATE_NAME" ? dict.categoryDuplicateNameError : err.message);
+  }
+}
+
+async function handleRenameCategory(categoryId, currentName) {
+  const dict = i18n[currentLang];
+  const name = window.prompt(dict.renameCategoryPrompt, currentName);
+  if (name === null || !name.trim() || name.trim() === currentName) return;
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/inventory/categories/" + categoryId, { method: "PATCH", auth: true, body: { name: name.trim() } });
+    await syncInventoryFromBackend();
+    renderInventoryCategoriesModal();
+  } catch (err) {
+    window.alert(err.code === "INVENTORY_CATEGORY_DUPLICATE_NAME" ? dict.categoryDuplicateNameError : err.message);
+  }
+}
+
+async function handleToggleCategory(categoryId, currentName, isTop, currentlyActive) {
+  const dict = i18n[currentLang];
+  if (currentlyActive) {
+    const confirmMsg = isTop ? dict.confirmDeactivateTopCategory(currentName) : dict.confirmDeactivateSubCategory(currentName);
+    if (!window.confirm(confirmMsg)) return;
+  }
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/inventory/categories/" + categoryId, { method: "PATCH", auth: true, body: { isActive: !currentlyActive } });
+    await syncInventoryFromBackend();
+    renderInventoryCategoriesModal();
+  } catch (err) {
+    window.alert(err.message);
+  }
+}
+
+/** 一键按照之前沟通过的分类结构(鱼类/Poke Bowl消耗品/寿司消耗品/热食/包装盒/配料消耗品)
+    创建好大类和常见子类,省得管理员一个一个手动敲几十次——同名的大类/子类会自动跳过,
+    所以这个按钮可以放心重复点击,不会重复创建,也不会覆盖已经手动改过名字的分类。 */
+async function handleSeedCategoryTemplate() {
+  const dict = i18n[currentLang];
+  if (!window.confirm(dict.confirmSeedTemplate)) return;
+  if (!accessToken || !currentUserCompanyId) return;
+  const btn = document.getElementById("btnSeedInventoryCategoryTemplate");
+  if (btn) btn.disabled = true;
+  try {
+    for (const top of INV_CATEGORY_TEMPLATE) {
+      let topCategory = (inventoryCategoryTree || []).find(c => c.name === top.name);
+      if (!topCategory) {
+        topCategory = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/categories", {
+          method: "POST", auth: true, body: { name: top.name },
+        });
+        topCategory.children = [];
+      }
+      for (const childName of top.children) {
+        const exists = (topCategory.children || []).some(c => c.name === childName);
+        if (exists) continue;
+        try {
+          await apiRequest("/companies/" + currentUserCompanyId + "/inventory/categories", {
+            method: "POST", auth: true, body: { name: childName, parentId: topCategory.id },
+          });
+        } catch (err) {
+          if (err.code !== "INVENTORY_CATEGORY_DUPLICATE_NAME") throw err;
+        }
+      }
+    }
+    await syncInventoryFromBackend();
+    renderInventoryCategoriesModal();
+  } catch (err) {
+    window.alert(err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+document.getElementById("btnSeedInventoryCategoryTemplate").addEventListener("click", handleSeedCategoryTemplate);
+
 /* ---------- 员工端"仓库补货":从仓库取货到操作间时点一下,直接生成一笔 CONSUMPTION 流水 ----------
-   和公司后台"记录流水"走的是完全同一套数据(inventoryItems)和同一套算法(computeInventoryView),
-   不是另外发明一套假库存——员工这边扣一次,后台数字立刻同步减少,达到警戒线会在后台的库存提醒里
-   出现,也会在员工自己的仪表盘卡片上提示"还有几项库存偏低",不需要员工另外口头通知管理员。 */
+   现在真正调用后端 POST .../inventory/items/:itemId/transactions,和公司后台"记录流水"
+   走的是完全同一个接口——员工这边扣一次,数据库里的库存立刻减少,管理员下次同步(切换到
+   "智能库存"页面、或者刷新)看到的就是扣减之后的真实数字,不再是各自维护一份假数据。 */
 function buildEmpInventoryWithdrawRowHtml(item) {
   const dict = i18n[currentLang];
   const view = computeInventoryView(item);
@@ -3631,18 +3900,14 @@ function buildEmpInventoryWithdrawRowHtml(item) {
   if (view.currentQuantityInPacks !== null) {
     currentQtyLabel += " " + dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
   }
-  const lastTx = (item.transactions || [])[0];
-  const lastActionHtml = lastTx
-    ? '<div style="font-size:12px;color:var(--text-2);margin-top:2px;">' + dict.empInventoryLastAction(Math.abs(lastTx.signedQuantity), item.unit, lastTx.time) + "</div>"
-    : "";
+  const categoryLabel = categoryDisplayLabel(item);
 
   return '<div class="leave-card" data-emp-inventory-row="' + item.id + '">' +
     '<div class="leave-card-head">' +
-      "<span><strong>" + item.name + "</strong> · " + item.sku + (item.category ? " · " + item.category : "") + "</span>" +
+      "<span><strong>" + item.name + "</strong> · " + item.sku + (categoryLabel ? " · " + categoryLabel : "") + "</span>" +
       '<span style="margin-left:auto;"><span class="badge ' + statusBadgeClass + '">' + statusLabel + "</span></span>" +
     "</div>" +
     '<div class="leave-card-reason">' + dict.colCurrentQty + ": " + currentQtyLabel + "</div>" +
-    lastActionHtml +
     '<div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;">' +
       '<input type="number" min="0" step="0.01" placeholder="0" style="width:100px;" id="empInvWithdrawQty-' + item.id + '" />' +
       '<span style="font-size:12px;color:var(--text-2);">' + item.unit + "</span>" +
@@ -3656,17 +3921,17 @@ function renderEmpInventoryWithdrawList() {
   const container = document.getElementById("empInventoryWithdrawList");
   if (!container) return;
   const dict = i18n[currentLang];
-  const items = activeInventoryItems(); // 已归档(删除)的商品不再出现在员工补货清单里
+  const items = activeInventoryItems(); // 已归档的商品不再出现在员工补货清单里(后端 listItems() 本身就不返回它们)
   container.innerHTML = items.length
     ? items.map(item => buildEmpInventoryWithdrawRowHtml(item)).join("")
     : '<div style="color:var(--text-2);">' + dict.empInventoryNoItems + "</div>";
 
   container.querySelectorAll("[data-emp-withdraw-btn]").forEach(btn => {
-    btn.addEventListener("click", () => handleEmpInventoryWithdraw(Number(btn.dataset.empWithdrawBtn)));
+    btn.addEventListener("click", () => handleEmpInventoryWithdraw(btn.dataset.empWithdrawBtn));
   });
 }
 
-function handleEmpInventoryWithdraw(itemId) {
+async function handleEmpInventoryWithdraw(itemId) {
   const dict = i18n[currentLang];
   const item = inventoryItems.find(i => i.id === itemId);
   if (!item) return;
@@ -3680,32 +3945,22 @@ function handleEmpInventoryWithdraw(itemId) {
     errorEl.classList.remove("hidden");
     return;
   }
-
-  const signedQuantity = -Math.abs(rawQuantity);
-  const quantityAfter = Math.round((item.currentQuantity + signedQuantity) * 1000) / 1000;
-  if (quantityAfter < 0) {
-    errorEl.textContent = dict.empInventoryInsufficientStock;
+  if (!accessToken || !currentUserCompanyId) {
+    errorEl.textContent = dict.inventorySyncError;
     errorEl.classList.remove("hidden");
     return;
   }
 
-  // 和公司后台"记录流水"用的是同一套流水结构(type=CONSUMPTION),员工补货本质上就是一次消耗流水,
-  // 不需要为员工端单独设计一套数据模型。
-  item.transactions = item.transactions || [];
-  item.transactions.unshift({
-    time: new Date().toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB"),
-    type: "CONSUMPTION",
-    typeLabel: dict.typeConsumption,
-    signedQuantity: signedQuantity,
-    note: currentLang === "zh" ? "员工仓库补货" : "Employee warehouse restock",
-    qualityGrade: null,
-    qualityNote: null,
-    recordedByEmployee: true
-  });
-  item.currentQuantity = quantityAfter;
-
-  renderEmpInventoryWithdrawList();
-  renderInventoryTable(); // 公司后台的库存表格与提醒共用同一份数据,立刻同步刷新
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + itemId + "/transactions", {
+      method: "POST", auth: true,
+      body: { type: "CONSUMPTION", quantity: rawQuantity, note: currentLang === "zh" ? "员工仓库补货" : "Employee warehouse restock" },
+    });
+    await syncInventoryFromBackend(); // 重新拉取后,员工列表和公司后台的库存表格/提醒会一起刷新成最新数字
+  } catch (err) {
+    errorEl.textContent = err.code === "INVENTORY_INSUFFICIENT_STOCK" ? dict.empInventoryInsufficientStock : err.message;
+    errorEl.classList.remove("hidden");
+  }
 }
 
 /** 员工仪表盘上的"仓库补货"卡片:平时显示通用提示,一旦有库存进入警戒线就换成更醒目的数字提示,
@@ -3714,13 +3969,13 @@ function updateEmpInventoryDashboardNote() {
   const noteEl = document.getElementById("empInventoryLowStockNote");
   if (!noteEl) return;
   const dict = i18n[currentLang];
-  const lowStockCount = activeInventoryItems().filter(item => computeInventoryView(item).status === "LOW_STOCK").length;
+  const lowStockCount = activeInventoryItems().filter(item => item.status === "LOW_STOCK").length;
   noteEl.textContent = lowStockCount > 0 ? dict.empInventoryLowStockCount(lowStockCount) : dict.empInventoryNote;
 }
 
 document.getElementById("btnOpenInventoryWithdraw").addEventListener("click", () => {
-  renderEmpInventoryWithdrawList();
   openModal("modal-inventory-withdraw");
+  syncInventoryFromBackend(); // 每次打开补货清单都拉一次最新库存,员工看到的是当下真实数字
 });
 
 /* ---------- 每日经营报告:GPS 异常停留 + 工时/工资成本 + 库存提醒 ----------
