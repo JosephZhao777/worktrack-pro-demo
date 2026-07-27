@@ -1273,11 +1273,12 @@ const i18n = {
     prevPage: "上一页", nextPage: "下一页", noResultsFound: "没有符合条件的商品。",
     metricTotalItems: "商品总数", metricLowStock: "库存不足", metricQualityAlert: "质量预警",
     navDailyReport: "每日经营报告",
-    dailyReportSub: "整合当天的 GPS 异常停留、员工工时与工资成本、库存预警,老板打开 App 30 秒内就能看到今天需要关注什么。以下算法与后端 ReportsModule/GpsModule/PayrollModule 完全一致,只是用的是演示假数据。",
+    dailyReportSub: "整合当天的 GPS 异常停留、员工工时与工资成本、库存预警,老板打开 App 30 秒内就能看到今天需要关注什么。以下全部是数据库里的真实数据,来自后端 ReportsModule/GpsModule/PayrollModule 的真实接口。",
     dailyReportGpsTitle: "GPS 异常停留", dailyReportGpsSub: "连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)",
     dailyReportWageTitle: "今日工时与工资成本", dailyReportInventoryTitle: "库存提醒",
     noGpsAnomalies: "今天没有检测到异常停留,配送情况正常。",
     gpsAnomalyMessage: function (name, start, end, minutes) { return name + " 在 " + start + " 至 " + end + "(共 " + minutes + " 分钟)几乎没有移动,存在异常停留,建议核实是否配送延误、路况拥堵或其他情况;如果同一路段反复出现异常停留,建议考虑调整配送路线。"; },
+    missingWageConfigNotice: function (names) { return "以下员工今天有打卡记录,但还没有设置时薪,暂未计入工资成本:" + names + "——请去\"员工管理\"点\"编辑时薪\"补上。"; },
     colWageCost: "工资成本", totalRow: "合计",
     navAccountSettings: "账号设置",
     accountSecurity: "账号安全", accountSecuritySub: "您可以随时修改自己的登录密码。",
@@ -1497,11 +1498,12 @@ const i18n = {
     prevPage: "Previous", nextPage: "Next", noResultsFound: "No items match your filters.",
     metricTotalItems: "Total items", metricLowStock: "Low stock", metricQualityAlert: "Quality alerts",
     navDailyReport: "Daily Report",
-    dailyReportSub: "Rolls up today's GPS dwell anomalies, employee hours and wage cost, and inventory alerts — the owner can see what needs attention within 30 seconds of opening the app. The logic below matches the backend ReportsModule/GpsModule/PayrollModule exactly, just with demo data.",
+    dailyReportSub: "Rolls up today's GPS dwell anomalies, employee hours and wage cost, and inventory alerts — the owner can see what needs attention within 30 seconds of opening the app. Everything below is real data straight from the database, via the backend ReportsModule/GpsModule/PayrollModule.",
     dailyReportGpsTitle: "GPS dwell anomalies", dailyReportGpsSub: "20+ consecutive minutes below 3 km/h counts as one dwell anomaly (advisory only, never an automatic violation)",
     dailyReportWageTitle: "Today's hours & wage cost", dailyReportInventoryTitle: "Inventory alerts",
     noGpsAnomalies: "No dwell anomalies detected today — deliveries look normal.",
     gpsAnomalyMessage: function (name, start, end, minutes) { return name + " barely moved from " + start + " to " + end + " (" + minutes + " minutes) — worth checking whether this was a delivery delay, traffic, or something else. If the same stretch keeps flagging, consider adjusting the delivery route."; },
+    missingWageConfigNotice: function (names) { return "These employees clocked in today but don't have an hourly rate set yet, so they're not included in the wage cost: " + names + " — set a rate for them under \"Employees\" (\"Edit rate\")."; },
     colWageCost: "Wage cost", totalRow: "Total",
     navAccountSettings: "Account settings",
     accountSecurity: "Account security", accountSecuritySub: "You can change your own login password anytime.",
@@ -2090,7 +2092,7 @@ function renderEmployeeTable() {
     });
   });
   tbody.querySelectorAll("[data-edit-rate]").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const dict2 = i18n[currentLang];
       const targetId = Number(btn.dataset.editRate);
       const emp = employees.find(e => e.id === targetId);
@@ -2100,7 +2102,25 @@ function renderEmployeeTable() {
       if (input === null) return;
       const parsed = Number(input);
       if (Number.isNaN(parsed) || parsed < 0) return;
-      emp.hourlyRateCents = Math.round(parsed * 100);
+      const newRateCents = Math.round(parsed * 100);
+      // Bug 修复(用户实测反馈:"每日经营报告"工资成本一直是 €0.00,不是真实报告):
+      // 这里以前只改本地 employees 数组这一份展示数据,从来没有真正调用后端
+      // POST /payroll/wage-configs——"每日经营报告"读的是数据库里的 wage_configs 表,
+      // 本地这份改动它完全看不到,无论怎么调时薪,报告里的工资成本永远是 0。
+      // emp.backendId 对"已加入"的员工来说就是真实的 employeeId(见
+      // CompaniesService.listEmployees),这里真正把这条记录写进后端。
+      if (emp.backendId && accessToken && currentUserCompanyId) {
+        try {
+          await apiRequest("/companies/" + currentUserCompanyId + "/payroll/wage-configs", {
+            method: "POST", auth: true,
+            body: { employeeId: emp.backendId, hourlyRateCents: newRateCents },
+          });
+        } catch (err) {
+          window.alert(err.message);
+          return;
+        }
+      }
+      emp.hourlyRateCents = newRateCents;
       renderEmployeeTable();
       renderPayrollTable();
     });
@@ -2129,9 +2149,13 @@ document.getElementById("form-add-employee").addEventListener("submit", async e 
     // 已经连接真实后端:调用 POST /companies/:companyId/employees,后端生成一次性
     // 邀请码(员工凭码自助注册、自己设置密码,绝不会由后台代为生成/重置密码)。
     try {
+      // Bug 修复(用户实测反馈:"每日经营报告"工资成本一直是 €0.00,不是真实报告):
+      // 这里以前只把时薪存进本地 employees 数组,从来没有传给后端——现在把它一并
+      // 发过去,后端会暂存在这次生成的邀请码上,等这名员工真正完成注册时自动创建
+      // 对应的 wage_configs 记录(见后端 AuthService.registerEmployee 的改动)。
       const result = await apiRequest("/companies/" + currentUserCompanyId + "/employees", {
         method: "POST", auth: true,
-        body: { fullName: name, employeeCode, phone: phone || undefined },
+        body: { fullName: name, employeeCode, phone: phone || undefined, hourlyRateCents: rateInput ? hourlyRateCents : undefined },
       });
       employees.push({
         id: employeeIdCounter++, name, role, status: "pending", employmentType: "full_time",
@@ -2487,6 +2511,10 @@ function wireNavRail(prefix, viewId) {
       // 登录那一刻拉一次——员工随时可能在手机上补货消耗库存,管理员切回这个页面时
       // 应该看到当下真实的数字,不是登录那一刻的旧快照。
       if (item.dataset.section === "ca-inventory") { syncInventoryFromBackend(); }
+      // Bug 修复(同上道理):"每日经营报告"之前只在登录那一刻渲染过一次,管理员切到
+      // 别的页面再切回来,看到的还是登录那一刻的旧数字——现在每次点进这个页面都重新
+      // 拉一次真实数据(工时/工资成本/GPS异常/库存预警四块全是当下最新状态)。
+      if (item.dataset.section === "ca-daily-report") { renderDailyReport(); }
     });
   });
 }
@@ -4887,29 +4915,59 @@ document.getElementById("form-payroll-adjustment").addEventListener("submit", e 
   closeModal(document.getElementById("modal-payroll-adjustment"));
 });
 
-/** 今日工时与工资成本表格——每日经营报告、GPS 看板两处都会用到同一份数据和同一套算法,
-    只是挂载的表格 id 不同,传进来的 tableId 决定渲染到哪一个 <table> 上。
-    Bug 反馈:"GPS看板还是没有工资"——GPS 看板以前只有地图,没有任何工时/工资信息,
-    现在直接把这张表格加到 GPS 看板页面里,和"每日经营报告"页面共用同一份实时数据
-    (包括打卡中还没下班这段进行中的工时,见 computeDailyWageCost() 里的说明)。 */
-function renderWageTable(tableId) {
+/** 今日工时与工资成本表格。
+ *
+ * Bug 修复(用户明确反馈:"每日经营报告里的信息是随着后台数据改变而改变吗?我不需要
+ * 死代码,我需要真正的报告"):这里以前是纯前端本地计算——从浏览器自己的
+ * attendanceRecords(只有这一台设备上发生过的打卡才会有)+ employees 数组里的
+ * hourlyRateCents(这个字段之前也从未真正传给后端,见下面两处 bug 修复说明)拼出来的
+ * 数字,换一台电脑登录、或者员工用手机打卡而管理员用另一台电脑看报告,这张表就会
+ * 是空的或者不对——算法虽然和后端一致,喂给它的却是这台设备本地的假象,不是数据库
+ * 里真实发生的打卡。现在改成直接调用后端真实接口 GET .../payroll/daily-cost?date=,
+ * 数据来自数据库里真实的 attendance_sessions + wage_configs 两张表,无论谁在哪台
+ * 设备上看,数字都完全一致。
+ *
+ * missingWageConfigEmployeeIds:有真实工时记录、但还没设置时薪的员工,如实列出来
+ * 提醒管理员去"员工管理"里补一个时薪(点"编辑时薪"),而不是假装费率是 0。
+ */
+async function renderWageTable(tableId) {
   const dict = i18n[currentLang];
   const table = document.getElementById(tableId);
   if (!table) return;
-  const rows = computeDailyWageCost();
-  let totalCostCents = 0;
+  if (!currentUserCompanyId || !accessToken) { table.innerHTML = ""; return; }
+
+  let report;
+  try {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    report = await apiRequest("/companies/" + currentUserCompanyId + "/payroll/daily-cost?date=" + todayStr, { auth: true });
+  } catch (err) {
+    console.warn("获取今日工时与工资成本失败:", err);
+    table.innerHTML = "";
+    return;
+  }
+
   let html = "<tr><th>" + dict.colName + "</th><th>" + dict.colRegular + "</th><th>" + dict.colOvertime + "</th><th>" + dict.colWageCost + "</th></tr>";
-  rows.forEach(r => {
-    totalCostCents += r.costCents;
-    html += "<tr><td>" + r.employeeName + "</td><td>" + r.regularHours.toFixed(2) + "h</td><td>" + r.overtimeHours.toFixed(2) + "h</td><td>€" + (r.costCents / 100).toFixed(2) + "</td></tr>";
+  (report.breakdown || []).forEach(r => {
+    const name = employeeNameByBackendId(r.employeeId);
+    html += "<tr><td>" + name + "</td><td>" + r.regularHours.toFixed(2) + "h</td><td>" + r.overtimeHours.toFixed(2) + "h</td><td>€" + (r.costCents / 100).toFixed(2) + "</td></tr>";
   });
-  html += "<tr><td><strong>" + dict.totalRow + "</strong></td><td></td><td></td><td><strong>€" + (totalCostCents / 100).toFixed(2) + "</strong></td></tr>";
+  html += "<tr><td><strong>" + dict.totalRow + "</strong></td><td></td><td></td><td><strong>€" + (report.totalCostCents / 100).toFixed(2) + "</strong></td></tr>";
+  if ((report.missingWageConfigEmployeeIds || []).length) {
+    const names = report.missingWageConfigEmployeeIds.map(employeeNameByBackendId).join("、");
+    html += "<tr><td colspan=\"4\" style=\"color:var(--warning);font-size:12.5px;\">" + dict.missingWageConfigNotice(names) + "</td></tr>";
+  }
   table.innerHTML = html;
 }
 
-function renderDailyReport() {
+// Bug 修复(用户明确反馈:"我不需要死代码,我需要真正的报告"):这三块以前分别是:
+// GPS 异常停留(已经是真实接口)、工时与工资成本(本地假算法,见 renderWageTable()
+// 的说明)、库存提醒(已经是真实接口,但依赖别的页面之前访问过才会有数据)。现在
+// 三块全部来自数据库真实数据:库存这里主动先 syncInventoryFromBackend() 拉一次最新的,
+// 不依赖管理员有没有先点过"智能库存"页面。
+async function renderDailyReport() {
   renderGpsAnomalyReport("dailyReportGpsList");
   renderWageTable("dailyReportWageTable");
+  await syncInventoryFromBackend();
   renderInventoryInsights("dailyReportInventoryList");
 }
 
