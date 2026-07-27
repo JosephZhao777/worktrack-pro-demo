@@ -318,6 +318,8 @@
         <div style="text-align:center;font-size:13px;opacity:.75;margin-top:-8px;">
           <span data-i18n="todayWorked">今日已工作</span>: <span id="todayTimer">00:00:00</span>
         </div>
+        <div style="font-weight:600;font-size:13px;margin:12px 0 4px;" data-i18n="todayAttendanceTitle">今日打卡记录</div>
+        <div id="empTodayAttendanceList" style="margin-bottom:6px;"></div>
 
         <div class="metric-grid">
           <div class="metric-card"><div class="metric-label" data-i18n="weekHours">本周工时</div><div class="metric-value" id="empWeekHoursValue">—</div></div>
@@ -534,6 +536,16 @@
               <div class="field full"><label data-i18n="fieldCompanyName">公司名称</label><input type="text" id="settingsCompanyName" value="Delicious Poke Co." /></div>
               <div class="field full"><label data-i18n="fieldSlogan">公司口号</label><input type="text" id="settingsCompanySlogan" value="新鲜每一天" /></div>
               <div class="field"><label data-i18n="settingsAnnualQuota">默认年假天数</label><input type="number" id="settingsAnnualQuota" value="21" min="0" /></div>
+            </div>
+            <div class="form-grid" style="margin-top:10px;">
+              <div class="field"><label data-i18n="fieldCountry">国家(可选)</label><input type="text" id="settingsCompanyCountry" placeholder="Netherlands" /></div>
+              <div class="field"><label data-i18n="fieldCity">城市(可选)</label><input type="text" id="settingsCompanyCity" placeholder="Amsterdam" /></div>
+              <div class="field"><label data-i18n="fieldPostalCode">邮编(可选)</label><input type="text" id="settingsCompanyPostalCode" placeholder="1012 AB" /></div>
+              <div class="field full">
+                <label data-i18n="fieldAddress">完整地址(可选)</label>
+                <input type="text" id="settingsCompanyAddress" placeholder="Damrak 1" />
+              </div>
+              <p class="section-sub" style="margin:0;" data-i18n="settingsAddressHint">填写完整地址后保存,系统会自动匹配 GPS 坐标,用于 GPS 看板上标出真实的店铺位置。</p>
             </div>
             <button class="btn btn-outline" id="btnSaveCompanyProfile" style="margin-top:6px;" data-i18n="saveChanges">保存修改</button>
             <span class="field-hint hidden" id="profileSaveNotice" style="color:var(--success);margin-left:10px;"></span>
@@ -1058,6 +1070,7 @@ const i18n = {
     footerText: "© 2026 WorkTrack AI",
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "欢迎回来", clockIn: "上班打卡", clockOut: "下班打卡",
     todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "工资摘要", attendanceRate: "出勤率",
+    todayAttendanceTitle: "今日打卡记录", inProgressLabel: "进行中", noAttendanceToday: "今天还没有打卡记录",
     leaveBalance: "请假余额", annual: "年假", sick: "病假", personal: "事假", days: "天",
     announcements: "公司公告", announcementSample: "下周三全员培训,请准时参加。",
     navDashboard: "首页", navEmployees: "员工管理", navGps: "GPS 看板", navPayroll: "工资管理", navLeave: "请假审批",
@@ -1091,7 +1104,9 @@ const i18n = {
     caLeaveSub: "年假 / 病假 / 事假 / 培训 / 出差统一在这里审批,每条请求都有留言板可与员工沟通",
     settingsSub: "公司资料与员工邀请码管理",
     companyProfile: "公司资料", settingsAnnualQuota: "默认年假天数(每个公司可自行设置)", saveChanges: "保存修改",
-    profileSaved: "已保存(演示环境,数据不会持久化)",
+    profileSaved: "已保存,公司名称/口号/地址已同步到服务器",
+    settingsAddressHint: "填写完整地址后保存,系统会自动匹配 GPS 坐标,用于 GPS 看板上标出真实的店铺位置。",
+    profileSaveError: "保存失败,请检查网络后重试",
     inviteCodeManagement: "邀请码管理",
     inviteCodeManagementSub: "注册公司时已自动生成一个常用邀请码(公司名前缀 + 随机数字),员工凭此码即可自动归属到本公司,无需从列表里选择,不会混淆。可随时重新生成,或为单个新员工单独生成一次性邀请码。",
     currentInviteCode: "当前公司邀请码", copyCode: "复制", regenerateCode: "重新生成",
@@ -1270,6 +1285,7 @@ const i18n = {
     footerText: "© 2026 WorkTrack AI",
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "Welcome back", clockIn: "Clock in", clockOut: "Clock out",
     todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "Salary summary", attendanceRate: "Attendance rate",
+    todayAttendanceTitle: "Today's clock-ins", inProgressLabel: "In progress", noAttendanceToday: "No clock-ins yet today",
     leaveBalance: "Leave balance", annual: "Annual", sick: "Sick", personal: "Personal", days: "days",
     announcements: "Announcements", announcementSample: "Company-wide training next Wednesday, please attend on time.",
     navDashboard: "Dashboard", navEmployees: "Employees", navGps: "GPS dashboard", navPayroll: "Payroll", navLeave: "Leave approval",
@@ -1303,7 +1319,9 @@ const i18n = {
     caLeaveSub: "Annual, sick, personal, training and business-trip requests all live here, each with a message thread to the employee",
     settingsSub: "Company profile and employee invitation codes",
     companyProfile: "Company profile", settingsAnnualQuota: "Default annual leave days (configurable per company)", saveChanges: "Save changes",
-    profileSaved: "Saved (demo only — not persisted)",
+    profileSaved: "Saved — company name/slogan/address synced to the server",
+    settingsAddressHint: "Enter a complete address and save — the system will automatically match GPS coordinates, used to plot the real shop location on the GPS dashboard.",
+    profileSaveError: "Save failed — please check your connection and try again",
     inviteCodeManagement: "Invitation code management",
     inviteCodeManagementSub: "A standing invitation code (company-name prefix + random digits) was auto-generated the moment your company registered — employees who enter it are placed in your company automatically, no picking from a list, no cross-company mix-ups. Regenerate it any time, or mint a one-time code for a single new hire.",
     currentInviteCode: "Current company invitation code", copyCode: "Copy", regenerateCode: "Regenerate",
@@ -1578,6 +1596,16 @@ async function syncCompanyProfileFromBackend(companyId) {
     if (nameInput) nameInput.value = companyDisplayName;
     const sloganInput = document.getElementById("settingsCompanySlogan");
     if (sloganInput) sloganInput.value = companySloganText;
+    // Bug 修复:"设置"页面之前根本没有地址输入框,这里把后端已经存的地址回填进去,
+    // 管理员打开设置页就能看到当前地址是什么,而不是一片空白、以为从没填过。
+    const countryInput = document.getElementById("settingsCompanyCountry");
+    if (countryInput) countryInput.value = company.countryCode || "";
+    const cityInput = document.getElementById("settingsCompanyCity");
+    if (cityInput) cityInput.value = company.city || "";
+    const postalInput = document.getElementById("settingsCompanyPostalCode");
+    if (postalInput) postalInput.value = company.postalCode || "";
+    const addressInput = document.getElementById("settingsCompanyAddress");
+    if (addressInput) addressInput.value = company.addressLine || "";
     const empNameEl = document.getElementById("employeeCompanyName");
     if (empNameEl) empNameEl.textContent = companyDisplayName;
     saveState();
@@ -1614,7 +1642,12 @@ function saveState() {
       companyAdminEmail, companyAdminDemoPassword, companyDisplayName, companySloganText,
       platformAdminEmail, platformAdminPassword,
       employeeDemoPassword,
-      accessToken, refreshToken, currentUserId, currentUserRole, currentUserCompanyId
+      accessToken, refreshToken, currentUserId, currentUserRole, currentUserCompanyId,
+      // Bug 修复:打卡中(还没下班)这段状态以前只存在浏览器这一次运行的内存里,刷新
+      // 页面/关掉浏览器重开就会丢失,员工会以为"打卡完全没有被记录下来"。现在也存进
+      // localStorage——currentClockInAt 存成 ISO 字符串,重新打开页面时按真实经过的
+      // 时间重新接上秒表,而不是简单地清零或者假装还是 0 秒。
+      clockedIn, currentClockInAtIso: currentClockInAt ? currentClockInAt.toISOString() : null,
     };
     window.localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(state));
   } catch (err) {
@@ -1663,6 +1696,10 @@ function loadState() {
   if (typeof saved.currentUserId === "string") currentUserId = saved.currentUserId;
   if (typeof saved.currentUserRole === "string") currentUserRole = saved.currentUserRole;
   if (typeof saved.currentUserCompanyId === "string") currentUserCompanyId = saved.currentUserCompanyId;
+  // 打卡中的状态一并恢复——只恢复原始数据,不在这里启动秒表/改按钮样式(loadState()
+  // 只管数据,不碰 DOM),真正"接上秒表"的动作在 resumeActiveClockSession() 里做。
+  if (typeof saved.clockedIn === "boolean") clockedIn = saved.clockedIn;
+  if (typeof saved.currentClockInAtIso === "string") currentClockInAt = new Date(saved.currentClockInAtIso);
 
   // 把恢复出来的公司资料同步回设置页面的输入框、以及员工端头部的公司名/口号展示。
   const nameInput = document.getElementById("settingsCompanyName");
@@ -1749,6 +1786,7 @@ function applyI18n() {
   // 正确处理 null(显示"—"/空状态),不会报错,所以这里不需要额外判断再调用。
   updateLeaveBalanceDisplays(currentEmployeeName());
   updateEmployeeSummaryCards();
+  renderTodayAttendanceList();
   updateWelcomeTitle();
   renderLeaveTypeConfigPanel();
   renderEmployeeBalanceOverrideForm();
@@ -2398,6 +2436,29 @@ function formatHhMm(d) {
   return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
 }
 
+/** Bug 修复:员工仪表盘以前只有一个抽象的"今日已工作 00:18:10"秒表,完全看不出
+    "我到底几点上的班"——这个信息其实一直有(attendanceRecords 里的 clockIn/clockOut),
+    只是没有展示出来。这里把当前登录员工今天的每一次上班-下班记录列出来;如果现在
+    正打卡中,额外加一条"HH:MM → 进行中"。 */
+function renderTodayAttendanceList() {
+  const dict = i18n[currentLang];
+  const container = document.getElementById("empTodayAttendanceList");
+  if (!container) return;
+  const employeeName = currentEmployeeName();
+  if (!employeeName) { container.innerHTML = ""; return; }
+
+  const todayStr = new Date().toISOString().slice(0, 10); // 和打卡时写入 attendanceRecords 用的是同一个日期换算方式
+  const todayRecords = attendanceRecords.filter(r => r.employeeName === employeeName && r.date === todayStr && !r.voided);
+
+  const rows = todayRecords.map(r =>
+    '<div class="list-item"><span>' + r.clockIn + ' → ' + r.clockOut + '</span><span style="margin-left:auto;opacity:.7;">' + r.hours + '</span></div>'
+  );
+  if (clockedIn && currentClockInAt) {
+    rows.push('<div class="list-item"><span>' + formatHhMm(currentClockInAt) + ' → ' + dict.inProgressLabel + '</span></div>');
+  }
+  container.innerHTML = rows.length ? rows.join("") : '<div class="insight-empty">' + dict.noAttendanceToday + '</div>';
+}
+
 // Bug 修复:之前这个按钮只管理一个纯前端的计时器显示,从来没有真正往 attendanceRecords
 // 里写过一条记录——员工打卡本该是考勤数据最主要的来源,结果考勤记录、工资表、员工仪表盘
 // 卡片全部只能靠管理员"补录"才有数据。现在下班打卡时会为"当前登录的这名员工"真实生成
@@ -2435,8 +2496,30 @@ clockBtn.addEventListener("click", () => {
     currentClockInAt = null;
     elapsedSeconds = 0;
   }
+  saveState(); // 立刻落盘,不等下一次别的操作顺带触发——避免"刚点完上班打卡就关App"这个最容易丢数据的场景
   applyI18n();
 });
+
+/**
+ * Bug 修复:员工点"上班打卡"后如果直接关掉浏览器/App(不点"下班打卡"),之前
+ * clockedIn/currentClockInAt/elapsedSeconds 这几个变量只存在内存里,重新打开页面
+ * 会回到"没有打卡"的初始状态——秒表清零、按钮变回"上班打卡",打卡这件事像是完全
+ * 没发生过,而且这段时间永远不会被记进 attendanceRecords。现在 loadState() 已经把
+ * clockedIn/currentClockInAt 从 localStorage 恢复出来了,这个函数负责把秒表和按钮
+ * 样式真正"接上"——elapsedSeconds 按"现在时间 - 真实上班打卡时间"重新算,不是简单
+ * 恢复成 0,这样重新打开页面看到的工作时长和实际经过的时间是一致的。
+ */
+function resumeActiveClockSession() {
+  if (!clockedIn || !currentClockInAt) return;
+  elapsedSeconds = Math.max(0, Math.floor((Date.now() - currentClockInAt.getTime()) / 1000));
+  clockBtn.classList.add("clocked-in");
+  timerEl.textContent = formatElapsed(elapsedSeconds);
+  timerHandle = setInterval(() => {
+    elapsedSeconds++;
+    timerEl.textContent = formatElapsed(elapsedSeconds);
+    updateEmployeeSummaryCards();
+  }, 1000);
+}
 
 document.getElementById("todayDate").textContent = new Date().toLocaleDateString(
   currentLang === "zh" ? "zh-CN" : "en-GB",
@@ -2964,27 +3047,88 @@ document.getElementById("btnCopyInviteCode").addEventListener("click", () => {
 // 额度设置"表格那一份。结果管理员在这里改了数字、看到"已保存",但员工的余额卡片、
 // 请假中心、请假申请校验全都没有变化,是一个看得见摸不着的假保存。现在统一写回同一份
 // leaveTypeConfigs,并联动刷新所有读取它的地方。
-document.getElementById("btnSaveCompanyProfile").addEventListener("click", () => {
+// Bug 修复:这个按钮点击之前只把公司名称/口号/年假天数存进浏览器 localStorage,
+// 地址(国家/城市/邮编/详细地址)这几个输入框根本不存在——"设置里根本没有地址设置的
+// 记录"说的就是这个。现在补上地址字段,保存时真正 PATCH 给后端 /companies/:id,
+// 地址一旦变化后端会重新地理编码,GPS 看板的店铺位置标记才会真正更新。
+document.getElementById("btnSaveCompanyProfile").addEventListener("click", async () => {
   const quotaInput = document.getElementById("settingsAnnualQuota");
   const newQuota = Math.max(0, Number(quotaInput.value) || 0);
   leaveTypeConfigs.ANNUAL.quota = newQuota;
-  // Bug 修复:公司名称/口号这两个输入框之前改了之后哪里都没同步——员工端头部的公司名
-  // 永远显示注册时的旧值(或演示默认值),现在保存时一并读取、同步、持久化。
-  companyDisplayName = document.getElementById("settingsCompanyName").value.trim() || companyDisplayName;
-  companySloganText = document.getElementById("settingsCompanySlogan").value.trim();
-  const empNameEl = document.getElementById("employeeCompanyName");
-  if (empNameEl) empNameEl.textContent = companyDisplayName;
-  const empSloganEl = document.getElementById("employeeCompanySlogan");
-  if (empSloganEl) empSloganEl.textContent = companySloganText;
-  renderLeaveTypeConfigPanel();
-  updateLeaveBalanceDisplays(currentEmployeeName());
-  renderLeaveRequests();
-  renderLeaveHistory();
-  saveState();
+  const dict = i18n[currentLang];
   const notice = document.getElementById("profileSaveNotice");
-  notice.textContent = i18n[currentLang].profileSaved;
-  notice.classList.remove("hidden");
-  setTimeout(() => { notice.classList.add("hidden"); }, 2500);
+  const newName = document.getElementById("settingsCompanyName").value.trim() || companyDisplayName;
+  const newSlogan = document.getElementById("settingsCompanySlogan").value.trim();
+  const countryInput = document.getElementById("settingsCompanyCountry").value.trim();
+  const city = document.getElementById("settingsCompanyCity").value.trim();
+  const postalCode = document.getElementById("settingsCompanyPostalCode").value.trim();
+  const addressLine = document.getElementById("settingsCompanyAddress").value.trim();
+  const saveBtn = document.getElementById("btnSaveCompanyProfile");
+
+  const applyLocalUpdates = () => {
+    companyDisplayName = newName;
+    companySloganText = newSlogan;
+    const empNameEl = document.getElementById("employeeCompanyName");
+    if (empNameEl) empNameEl.textContent = companyDisplayName;
+    const empSloganEl = document.getElementById("employeeCompanySlogan");
+    if (empSloganEl) empSloganEl.textContent = companySloganText;
+    renderLeaveTypeConfigPanel();
+    updateLeaveBalanceDisplays(currentEmployeeName());
+    renderLeaveRequests();
+    renderLeaveHistory();
+    saveState();
+  };
+
+  // 没有登录态(比如还没连上后端账号的极端情况)时,退回到只存本地,不让保存按钮
+  // 报错卡住——但正常登录后走的都是下面真正 PATCH 后端的分支。
+  if (!currentUserCompanyId || !accessToken) {
+    applyLocalUpdates();
+    notice.textContent = dict.profileSaved;
+    notice.classList.remove("hidden");
+    setTimeout(() => { notice.classList.add("hidden"); }, 2500);
+    return;
+  }
+
+  saveBtn.disabled = true;
+  try {
+    const orUndef = v => (v ? v : v === "" ? "" : undefined);
+    const updated = await apiRequest("/companies/" + currentUserCompanyId, {
+      method: "PATCH",
+      auth: true,
+      body: {
+        name: newName,
+        slogan: newSlogan,
+        countryCode: countryInput ? normalizeCountryCode(countryInput) : undefined,
+        city: orUndef(city),
+        postalCode: orUndef(postalCode),
+        addressLine: orUndef(addressLine),
+      },
+    });
+    applyLocalUpdates();
+    // 地址保存成功后,立刻用后端返回的最新经纬度刷新 GPS 看板的店铺位置标记,
+    // 不需要用户重新登录或刷新页面才能看到地图更新。
+    companyGpsLocation =
+      typeof updated.latitude === "number" && typeof updated.longitude === "number"
+        ? { latitude: updated.latitude, longitude: updated.longitude }
+        : null;
+    if (gpsMap) { gpsMap.remove(); gpsMap = null; initGpsMap(); }
+    notice.textContent = dict.profileSaved;
+    notice.style.color = "var(--success)";
+    notice.classList.remove("hidden");
+    setTimeout(() => { notice.classList.add("hidden"); }, 3000);
+    if (addressLine && updated.geocodingStatus === "SUCCESS") {
+      window.alert(dict.geocodeSuccessAlert);
+    } else if (addressLine && updated.geocodingStatus === "FAILED") {
+      window.alert(dict.geocodeFailedAlert);
+    }
+  } catch (err) {
+    notice.textContent = dict.profileSaveError;
+    notice.style.color = "var(--danger, #c0392b)";
+    notice.classList.remove("hidden");
+    setTimeout(() => { notice.classList.add("hidden"); }, 3500);
+  } finally {
+    saveBtn.disabled = false;
+  }
 });
 /** 让"设置"页的默认年假天数输入框始终显示 leaveTypeConfigs.ANNUAL.quota 的当前值,
     这样管理员在"请假类型与额度设置"表格里改了年假天数后,这里不会继续显示旧数字。 */
@@ -3114,6 +3258,7 @@ function refreshHoursDependentViews() {
   renderEmployeeTable();
   renderPayrollTable();
   updateEmployeeSummaryCards();
+  renderTodayAttendanceList();
 }
 
 /** 补录打卡的员工下拉框,和请假余额调整表单的员工下拉框(renderEmployeeBalanceOverrideForm)
@@ -4517,6 +4662,7 @@ document.getElementById("form-forgot-password-reset").addEventListener("submit",
 // 回各个数组/变量,否则页面一加载还是用脚本里写的初始值(公司/员工注册的内容就会
 // "消失"),第一次渲染就已经是错的了。
 loadState();
+resumeActiveClockSession(); // 必须在 applyI18n() 之前:先把 clocked-in 样式/秒表接上,applyI18n() 才能据此显示"下班打卡"文案
 applyI18n();
 updateAnnualBalanceDisplay();
 </script>
