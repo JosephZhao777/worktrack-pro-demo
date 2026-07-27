@@ -423,12 +423,15 @@
           <p class="section-sub" data-i18n="gpsSub">仅在员工"上班打卡"到"下班打卡"期间追踪,地图数据来自 OpenStreetMap</p>
           <div class="gps-map" id="gpsMap"></div>
           <div class="gps-legend">
+            <span><span class="dot" style="background:#2B5FA8;"></span><span data-i18n="gpsLegendShop">店铺位置</span></span>
             <span><span class="dot" style="background:#3E7D5C;"></span><span data-i18n="gpsLegendMoving">配送中</span></span>
             <span><span class="dot" style="background:#B8863C;"></span><span data-i18n="gpsLegendStopped">短暂停留</span></span>
             <span><span class="dot" style="background:#B23A4E;"></span><span data-i18n="gpsLegendFlagged">异常停留(仅提示,非自动判违规)</span></span>
           </div>
-          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportWageTitle">今日工时与工资成本</div>
-          <table class="data-table" id="gpsWageTable"></table>
+          <p class="section-sub" id="gpsShopMissingHint" style="display:none;color:var(--brand-blue);" data-i18n="gpsShopMissingHint">尚未定位到店铺地址——去"设置"里检查公司地址是否填写完整,系统会自动重新匹配 GPS 坐标。</p>
+          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportGpsTitle">GPS 异常停留</div>
+          <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportGpsSub">连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)</p>
+          <div id="gpsAnomalyList"></div>
         </div>
         <div class="glass ca-section" id="ca-attendance" style="display:none;margin-top:20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -1059,7 +1062,8 @@ const i18n = {
     announcements: "公司公告", announcementSample: "下周三全员培训,请准时参加。",
     navDashboard: "首页", navEmployees: "员工管理", navGps: "GPS 看板", navPayroll: "工资管理", navLeave: "请假审批",
     gpsSub: "仅在员工\"上班打卡\"到\"下班打卡\"期间追踪,地图数据来自 OpenStreetMap",
-    gpsLegendMoving: "配送中", gpsLegendStopped: "短暂停留", gpsLegendFlagged: "异常停留(仅提示,非自动判违规)",
+    gpsLegendShop: "店铺位置", gpsLegendMoving: "配送中", gpsLegendStopped: "短暂停留", gpsLegendFlagged: "异常停留(仅提示,非自动判违规)",
+    gpsShopMissingHint: "尚未定位到店铺地址——去\"设置\"里检查公司地址是否填写完整,系统会自动重新匹配 GPS 坐标。",
     inviteCodeMatch: "即将加入:", inviteCodeNoMatch: "未识别该邀请码,请向公司管理员确认",
     caDashboardTitle: "公司概览", caDashboardSub: "关键运营指标一览",
     headcount: "在职员工", onDuty: "当前在岗", pendingLeave: "待审批请假",
@@ -1214,7 +1218,7 @@ const i18n = {
     dailyReportGpsTitle: "GPS 异常停留", dailyReportGpsSub: "连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)",
     dailyReportWageTitle: "今日工时与工资成本", dailyReportInventoryTitle: "库存提醒",
     noGpsAnomalies: "今天没有检测到异常停留,配送情况正常。",
-    gpsAnomalyMessage: function (name, start, end, minutes) { return name + " 在 " + start + " 至 " + end + "(共 " + minutes + " 分钟)几乎没有移动,存在异常停留,建议核实是否配送延误或其他情况。"; },
+    gpsAnomalyMessage: function (name, start, end, minutes) { return name + " 在 " + start + " 至 " + end + "(共 " + minutes + " 分钟)几乎没有移动,存在异常停留,建议核实是否配送延误、路况拥堵或其他情况;如果同一路段反复出现异常停留,建议考虑调整配送路线。"; },
     colWageCost: "工资成本", totalRow: "合计",
     navAccountSettings: "账号设置",
     accountSecurity: "账号安全", accountSecuritySub: "您可以随时修改自己的登录密码。",
@@ -1270,7 +1274,8 @@ const i18n = {
     announcements: "Announcements", announcementSample: "Company-wide training next Wednesday, please attend on time.",
     navDashboard: "Dashboard", navEmployees: "Employees", navGps: "GPS dashboard", navPayroll: "Payroll", navLeave: "Leave approval",
     gpsSub: "Tracking only runs from clock-in to clock-out. Map data © OpenStreetMap contributors.",
-    gpsLegendMoving: "En route", gpsLegendStopped: "Brief stop", gpsLegendFlagged: "Flagged long stop (hint only, not automatic)",
+    gpsLegendShop: "Shop location", gpsLegendMoving: "En route", gpsLegendStopped: "Brief stop", gpsLegendFlagged: "Flagged long stop (hint only, not automatic)",
+    gpsShopMissingHint: "The shop's address hasn't been located yet — check that your company address is complete under \"Settings\", and it will be automatically re-matched to GPS coordinates.",
     inviteCodeMatch: "You're about to join:", inviteCodeNoMatch: "Code not recognized — check with your company admin",
     caDashboardTitle: "Company overview", caDashboardSub: "Key operating metrics at a glance",
     headcount: "Headcount", onDuty: "Currently on duty", pendingLeave: "Pending leave requests",
@@ -1425,7 +1430,7 @@ const i18n = {
     dailyReportGpsTitle: "GPS dwell anomalies", dailyReportGpsSub: "20+ consecutive minutes below 3 km/h counts as one dwell anomaly (advisory only, never an automatic violation)",
     dailyReportWageTitle: "Today's hours & wage cost", dailyReportInventoryTitle: "Inventory alerts",
     noGpsAnomalies: "No dwell anomalies detected today — deliveries look normal.",
-    gpsAnomalyMessage: function (name, start, end, minutes) { return name + " barely moved from " + start + " to " + end + " (" + minutes + " minutes) — worth checking whether this was a delivery delay or something else."; },
+    gpsAnomalyMessage: function (name, start, end, minutes) { return name + " barely moved from " + start + " to " + end + " (" + minutes + " minutes) — worth checking whether this was a delivery delay, traffic, or something else. If the same stretch keeps flagging, consider adjusting the delivery route."; },
     colWageCost: "Wage cost", totalRow: "Total",
     navAccountSettings: "Account settings",
     accountSecurity: "Account security", accountSecuritySub: "You can change your own login password anytime.",
@@ -1470,6 +1475,10 @@ let platformAdminEmail = "vavdenhaag@gmail.com";
 // 保存公司资料时都会同步写入,配合 saveState() 才能真正跨刷新记住。
 let companyDisplayName = "Delicious Poke Co.";
 let companySloganText = "新鲜每一天";
+/** 公司地址地理编码得到的真实坐标(GET /companies/:id 返回的 latitude/longitude)。
+    没有成功定位过(地址没填/解析失败)时是 null——GPS 看板据此决定要不要画"店铺位置"这个标记,
+    不会用一个瞎猜的坐标冒充真实位置。 */
+let companyGpsLocation = null;
 // 当前生效的邀请码——重新生成时要用它把 inviteCodeDirectory 里的旧码删掉,否则旧码会
 // 一直有效,造成"作废的邀请码还能用"这个新问题。
 let currentCompanyInviteCode = null;
@@ -1556,6 +1565,15 @@ async function syncCompanyProfileFromBackend(companyId) {
     const company = await apiRequest("/companies/" + companyId, { auth: true });
     companyDisplayName = company.name;
     companySloganText = company.slogan || companySloganText;
+    // Bug 修复:注册时地址地理编码成功后,经纬度其实一直有真正存进数据库,只是以前
+    // 没有任何接口把它读出来给前端——GPS 看板因此从来没有真实的"店铺位置"可画,
+    // 只有员工配送路线的假数据。现在后端 GET /companies/:id 已经会把 latitude/longitude
+    // 一并返回,这里存下来,initGpsMap() 会用它在地图上标出真实的店铺位置。
+    companyGpsLocation =
+      typeof company.latitude === "number" && typeof company.longitude === "number"
+        ? { latitude: company.latitude, longitude: company.longitude }
+        : null;
+    if (gpsMap) { gpsMap.remove(); gpsMap = null; initGpsMap(); } // 地图已经初始化过的话,先销毁旧实例再重新画一次,把店铺标记加上
     const nameInput = document.getElementById("settingsCompanyName");
     if (nameInput) nameInput.value = companyDisplayName;
     const sloganInput = document.getElementById("settingsCompanySlogan");
@@ -1726,7 +1744,7 @@ function applyI18n() {
   renderCaDashboardMetrics();
   renderInventoryTable();
   renderDailyReport();
-  renderGpsWageTable();
+  renderGpsAnomalyReport("gpsAnomalyList");
   // 未登录(比如还停留在首页)时 currentEmployeeName() 是 null,这些展示函数各自都能
   // 正确处理 null(显示"—"/空状态),不会报错,所以这里不需要额外判断再调用。
   updateLeaveBalanceDisplays(currentEmployeeName());
@@ -2351,7 +2369,7 @@ function wireNavRail(prefix, viewId) {
       item.classList.add("active");
       document.querySelectorAll('#' + viewId + ' [id^="' + prefix + '-"]').forEach(sec => sec.style.display = "none");
       document.getElementById(item.dataset.section).style.display = "block";
-      if (item.dataset.section === "ca-gps") { initGpsMap(); renderGpsWageTable(); }
+      if (item.dataset.section === "ca-gps") { initGpsMap(); renderGpsAnomalyReport("gpsAnomalyList"); }
       // 每次点进"智能库存"都从后端重新拉一次最新数据(商品/分类/预警),而不是只在
       // 登录那一刻拉一次——员工随时可能在手机上补货消耗库存,管理员切回这个页面时
       // 应该看到当下真实的数字,不是登录那一刻的旧快照。
@@ -2448,15 +2466,35 @@ const gpsRoutes = [
 let gpsMap = null;
 let gpsAnimHandle = null;
 
+/** Bug 修复:公司注册时地址地理编码成功后经纬度确实存进了数据库,但以前没有任何接口
+    把它读出来给前端——GPS 看板因此一直没有真实的"店铺位置"可画,地图中心只是写死的
+    一个坐标。现在如果 companyGpsLocation 有值(见 syncCompanyProfileFromBackend()),
+    地图会以店铺真实位置为中心,并画一个明显区别于员工配送标记的店铺图钉;没有定位到
+    地址时如实不画这个标记,并在下方提示去"设置"里补全地址,而不是用假坐标冒充。 */
 function initGpsMap() {
   if (gpsMap) { gpsMap.invalidateSize(); return; }
   if (typeof L === "undefined") { return; }
 
-  gpsMap = L.map("gpsMap", { zoomControl: true, attributionControl: true }).setView([52.368, 4.895], 13);
+  const shopCenter = companyGpsLocation ? [companyGpsLocation.latitude, companyGpsLocation.longitude] : [52.368, 4.895];
+  gpsMap = L.map("gpsMap", { zoomControl: true, attributionControl: true }).setView(shopCenter, 13);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "&copy; OpenStreetMap contributors"
   }).addTo(gpsMap);
+
+  const dict = i18n[currentLang];
+  const shopHintEl = document.getElementById("gpsShopMissingHint");
+  if (companyGpsLocation) {
+    const shopIcon = L.divIcon({
+      className: "",
+      html: '<div style="width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#2B5FA8;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.15);"></div>',
+      iconSize: [22, 22], iconAnchor: [11, 22]
+    });
+    L.marker(shopCenter, { icon: shopIcon, zIndexOffset: 1000 }).addTo(gpsMap).bindPopup("<b>" + dict.gpsLegendShop + "</b>");
+    if (shopHintEl) shopHintEl.style.display = "none";
+  } else if (shopHintEl) {
+    shopHintEl.style.display = "block";
+  }
 
   const markers = gpsRoutes.map(route => {
     L.polyline(route.path, { color: route.color, weight: 3, opacity: .55 }).addTo(gpsMap);
@@ -4069,9 +4107,13 @@ function formatHm(d) {
   return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
 }
 
-function renderDailyReportGps() {
+/** GPS 异常停留报告——"每日经营报告"、"GPS 看板"两处都会用到同一份算法和同一份数据,
+    只是挂载的容器 id 不同。应用户要求:GPS 看板不需要工资信息,只需要真实反映"店铺位置/
+    员工配送位置/异常停留(该不该调整路线)",所以这份报告直接搬到 GPS 看板页面上,
+    工资相关内容(computeDailyWageCost 那一套)不出现在这个页面。 */
+function renderGpsAnomalyReport(containerId) {
   const dict = i18n[currentLang];
-  const container = document.getElementById("dailyReportGpsList");
+  const container = document.getElementById(containerId);
   if (!container) return;
   const anomalies = computeGpsDwellAnomalies(gpsPingsDemo);
   container.innerHTML = anomalies.length
@@ -4259,12 +4301,8 @@ function renderWageTable(tableId) {
   table.innerHTML = html;
 }
 
-function renderGpsWageTable() {
-  renderWageTable("gpsWageTable");
-}
-
 function renderDailyReport() {
-  renderDailyReportGps();
+  renderGpsAnomalyReport("dailyReportGpsList");
   renderWageTable("dailyReportWageTable");
   renderInventoryInsights("dailyReportInventoryList");
 }
