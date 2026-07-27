@@ -144,6 +144,18 @@
   }
   .field input:focus, .field select:focus { outline: 2px solid var(--brand-blue); outline-offset: 1px; }
   .field-hint { font-size: 11.5px; color: var(--text-2); margin-top: 5px; line-height: 1.5; }
+  /* Bug 修复(用户明确要求):登录/注册/改密码这些密码输入框之前完全没有"显示密码"的
+     小眼睛图标,用户打错了字符也看不出来。这里给密码框统一加一个可点击切换明文/密文
+     的按钮,不改变原来 .field/input 的布局,只是在输入框内部右侧叠一个图标按钮。 */
+  .password-wrap { position: relative; }
+  .password-wrap input { padding-right: 40px !important; }
+  .password-toggle-btn {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: var(--text-2); border-radius: 6px;
+  }
+  .password-toggle-btn:hover { background: rgba(120,130,160,.12); }
+  .password-toggle-btn svg { width: 18px; height: 18px; }
   .logo-upload {
     display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius-sm);
     border: 1px dashed var(--border-c); font-size: 13px; color: var(--text-2); cursor: pointer;
@@ -328,6 +340,22 @@
           <div class="metric-card"><div class="metric-label" data-i18n="attendanceRate">出勤率</div><div class="metric-value" id="empAttendanceRateValue">—</div></div>
         </div>
 
+        <!-- Bug 修复(用户明确要求):员工登录后之前只看得到"今日"一天的打卡记录,
+             想知道这周/这个月每天几点上班几点下班、当天合计多少小时,完全没有地方看——
+             只能靠上面两张卡片里两个孤零零的总数,看不到明细是怎么来的。这里按真实的
+             自然周(周一到周日)/自然月边界,把每天的打卡明细列出来,可以在"本周"和
+             "本月"之间切换查看。 -->
+        <div class="glass" style="padding:12px 14px;margin-top:10px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
+            <div style="font-weight:700;font-size:13px;" data-i18n="attendanceSummaryTitle">打卡明细</div>
+            <div class="tab-switch" style="width:140px;margin-bottom:0;">
+              <button type="button" class="attendance-range-tab active" data-range="week" data-i18n="tabThisWeek">本周</button>
+              <button type="button" class="attendance-range-tab" data-range="month" data-i18n="tabThisMonth">本月</button>
+            </div>
+          </div>
+          <div id="empAttendanceRangeList"></div>
+        </div>
+
         <div class="glass" style="padding:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);cursor:pointer;" id="btnOpenLeaveCenter">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
             <div style="font-weight:600;" data-i18n="leaveBalance">请假余额</div>
@@ -370,7 +398,7 @@
         <div class="nav-item active" data-section="ca-dashboard"><span data-i18n="navDashboard">首页</span></div>
         <div class="nav-item" data-section="ca-daily-report"><span data-i18n="navDailyReport">每日经营报告</span></div>
         <div class="nav-item" data-section="ca-employees"><span data-i18n="navEmployees">员工管理</span></div>
-        <div class="nav-item" data-section="ca-gps"><span data-i18n="navGps">GPS 看板</span></div>
+        <div class="nav-item" data-section="ca-gps"><span data-i18n="navGps">GPS 看板</span><span id="gpsAnomalyBadge" class="hidden" style="display:inline-block;margin-left:6px;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:var(--danger,#c0392b);color:#fff;font-size:10px;text-align:center;padding:0 4px;">0</span></div>
         <div class="nav-item" data-section="ca-attendance"><span data-i18n="navAttendance">考勤记录</span></div>
         <div class="nav-item" data-section="ca-inventory"><span data-i18n="navInventory">智能库存</span></div>
         <div class="nav-item" data-section="ca-payroll"><span data-i18n="navPayroll">工资管理</span></div>
@@ -426,11 +454,18 @@
           <div class="gps-map" id="gpsMap"></div>
           <div class="gps-legend">
             <span><span class="dot" style="background:#2B5FA8;"></span><span data-i18n="gpsLegendShop">店铺位置</span></span>
-            <span><span class="dot" style="background:#3E7D5C;"></span><span data-i18n="gpsLegendMoving">配送中</span></span>
-            <span><span class="dot" style="background:#B8863C;"></span><span data-i18n="gpsLegendStopped">短暂停留</span></span>
-            <span><span class="dot" style="background:#B23A4E;"></span><span data-i18n="gpsLegendFlagged">异常停留(仅提示,非自动判违规)</span></span>
+            <span><span class="dot" style="background:#3E7D5C;"></span><span data-i18n="gpsLegendMoving">员工实时位置(打卡上班期间)</span></span>
           </div>
           <p class="section-sub" id="gpsShopMissingHint" style="display:none;color:var(--brand-blue);" data-i18n="gpsShopMissingHint">尚未定位到店铺地址——去"设置"里检查公司地址是否填写完整,系统会自动重新匹配 GPS 坐标。</p>
+          <p class="section-sub" id="gpsNoOnlineEmployeesHint" style="display:none;" data-i18n="gpsNoOnlineEmployeesHint">目前没有员工在打卡上班中,地图上暂时不会显示员工位置——员工上班打卡并授权定位权限后,这里会显示真实位置。</p>
+
+          <!-- Bug 修复(用户明确要求):地图上的圆点只能看出"人在哪",看不出"这个人现在
+               正不正常"——需要放大地图、点开每一个标记才知道有没有异常。这里加一个列表,
+               每一位在线员工一行,直接把 GPS离线/低电量/超速/已到店 这几种状态用颜色和
+               文字标出来,管理员扫一眼列表就知道谁需要关注,不需要挨个点地图标记。 -->
+          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="gpsEmployeeStatusTitle">员工实时状态</div>
+          <div id="gpsEmployeeStatusList"></div>
+
           <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportGpsTitle">GPS 异常停留</div>
           <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportGpsSub">连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)</p>
           <div id="gpsAnomalyList"></div>
@@ -1071,12 +1106,19 @@ const i18n = {
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "欢迎回来", clockIn: "上班打卡", clockOut: "下班打卡",
     todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "工资摘要", attendanceRate: "出勤率",
     todayAttendanceTitle: "今日打卡记录", inProgressLabel: "进行中", noAttendanceToday: "今天还没有打卡记录",
+    attendanceSummaryTitle: "打卡明细", tabThisWeek: "本周", tabThisMonth: "本月",
+    noAttendanceInRange: "这段时间还没有打卡记录", dailyTotalLabel: "当日合计",
+    gpsForegroundNoticeTitle: "WorkTrack AI · 打卡追踪中", gpsForegroundNoticeText: "上班打卡期间会持续记录您的位置,点击下班打卡即可停止",
     leaveBalance: "请假余额", annual: "年假", sick: "病假", personal: "事假", days: "天",
     announcements: "公司公告", announcementSample: "下周三全员培训,请准时参加。",
     navDashboard: "首页", navEmployees: "员工管理", navGps: "GPS 看板", navPayroll: "工资管理", navLeave: "请假审批",
     gpsSub: "仅在员工\"上班打卡\"到\"下班打卡\"期间追踪,地图数据来自 OpenStreetMap",
-    gpsLegendShop: "店铺位置", gpsLegendMoving: "配送中", gpsLegendStopped: "短暂停留", gpsLegendFlagged: "异常停留(仅提示,非自动判违规)",
+    gpsLegendShop: "店铺位置", gpsLegendMoving: "员工实时位置(打卡上班期间)",
     gpsShopMissingHint: "尚未定位到店铺地址——去\"设置\"里检查公司地址是否填写完整,系统会自动重新匹配 GPS 坐标。",
+    gpsNoOnlineEmployeesHint: "目前没有员工在打卡上班中,地图上暂时不会显示员工位置——员工上班打卡并授权定位权限后,这里会显示真实位置。",
+    gpsEmployeeStatusTitle: "员工实时状态", noOnlineEmployeesStatus: "目前没有员工在打卡上班中",
+    statusOnDelivery: "配送中", statusAtStore: "已到店", statusOffline: "GPS 离线", statusLowBattery: "电量低", statusOverspeed: "超速",
+    lastUpdatedLabel: "更新于",
     inviteCodeMatch: "即将加入:", inviteCodeNoMatch: "未识别该邀请码,请向公司管理员确认",
     caDashboardTitle: "公司概览", caDashboardSub: "关键运营指标一览",
     headcount: "在职员工", onDuty: "当前在岗", pendingLeave: "待审批请假",
@@ -1286,12 +1328,19 @@ const i18n = {
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "Welcome back", clockIn: "Clock in", clockOut: "Clock out",
     todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "Salary summary", attendanceRate: "Attendance rate",
     todayAttendanceTitle: "Today's clock-ins", inProgressLabel: "In progress", noAttendanceToday: "No clock-ins yet today",
+    attendanceSummaryTitle: "Clock-in details", tabThisWeek: "This week", tabThisMonth: "This month",
+    noAttendanceInRange: "No clock-ins in this period yet", dailyTotalLabel: "Daily total",
+    gpsForegroundNoticeTitle: "WorkTrack AI · Tracking your shift", gpsForegroundNoticeText: "Your location is recorded while clocked in — tap clock-out to stop",
     leaveBalance: "Leave balance", annual: "Annual", sick: "Sick", personal: "Personal", days: "days",
     announcements: "Announcements", announcementSample: "Company-wide training next Wednesday, please attend on time.",
     navDashboard: "Dashboard", navEmployees: "Employees", navGps: "GPS dashboard", navPayroll: "Payroll", navLeave: "Leave approval",
     gpsSub: "Tracking only runs from clock-in to clock-out. Map data © OpenStreetMap contributors.",
-    gpsLegendShop: "Shop location", gpsLegendMoving: "En route", gpsLegendStopped: "Brief stop", gpsLegendFlagged: "Flagged long stop (hint only, not automatic)",
+    gpsLegendShop: "Shop location", gpsLegendMoving: "Employee live location (while clocked in)",
     gpsShopMissingHint: "The shop's address hasn't been located yet — check that your company address is complete under \"Settings\", and it will be automatically re-matched to GPS coordinates.",
+    gpsNoOnlineEmployeesHint: "No employees are currently clocked in, so no location markers are shown — once someone clocks in and grants location permission, their real position will appear here.",
+    gpsEmployeeStatusTitle: "Employee live status", noOnlineEmployeesStatus: "No employees are currently clocked in",
+    statusOnDelivery: "On delivery", statusAtStore: "At store", statusOffline: "GPS offline", statusLowBattery: "Low battery", statusOverspeed: "Overspeed",
+    lastUpdatedLabel: "Updated",
     inviteCodeMatch: "You're about to join:", inviteCodeNoMatch: "Code not recognized — check with your company admin",
     caDashboardTitle: "Company overview", caDashboardSub: "Key operating metrics at a glance",
     headcount: "Headcount", onDuty: "Currently on duty", pendingLeave: "Pending leave requests",
@@ -1648,6 +1697,7 @@ function saveState() {
       // localStorage——currentClockInAt 存成 ISO 字符串,重新打开页面时按真实经过的
       // 时间重新接上秒表,而不是简单地清零或者假装还是 0 秒。
       clockedIn, currentClockInAtIso: currentClockInAt ? currentClockInAt.toISOString() : null,
+      currentAttendanceSessionId,
     };
     window.localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(state));
   } catch (err) {
@@ -1700,6 +1750,7 @@ function loadState() {
   // 只管数据,不碰 DOM),真正"接上秒表"的动作在 resumeActiveClockSession() 里做。
   if (typeof saved.clockedIn === "boolean") clockedIn = saved.clockedIn;
   if (typeof saved.currentClockInAtIso === "string") currentClockInAt = new Date(saved.currentClockInAtIso);
+  if (typeof saved.currentAttendanceSessionId === "string") currentAttendanceSessionId = saved.currentAttendanceSessionId;
 
   // 把恢复出来的公司资料同步回设置页面的输入框、以及员工端头部的公司名/口号展示。
   const nameInput = document.getElementById("settingsCompanyName");
@@ -1744,8 +1795,16 @@ function updateEmployeeSummaryCards() {
   const attendanceRate = records.length
     ? Math.round((records.filter(r => !r.voided).length / records.length) * 100) + "%"
     : "—"; // 还没有任何打卡记录时没有出勤率可算,不要显示一个假的 100%
-  setText("empWeekHoursValue", summary.totalHours.toFixed(1) + "h");
-  setText("empMonthHoursValue", summary.totalHours.toFixed(1) + "h");
+  // Bug 修复:这两张卡片以前叫"本周工时/本月工时",算法却是"这名员工历史上所有未作废
+  // 打卡记录的总和"——跟真正的自然周/自然月完全无关,员工工作满一个月之后这两个数字
+  // 会永远相等,一眼就能看出不对。现在改成按真实日期边界(周一到周日/自然月)统计。
+  const today = new Date();
+  const weekStart = startOfWeek(today);
+  const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7);
+  const monthStart = startOfMonth(today);
+  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+  setText("empWeekHoursValue", sumEmployeeHoursInRange(employeeName, weekStart, weekEnd).toFixed(1) + "h");
+  setText("empMonthHoursValue", sumEmployeeHoursInRange(employeeName, monthStart, monthEnd).toFixed(1) + "h");
   setText("empSalaryValue", "€" + (summary.totalCostCents / 100).toFixed(2));
   setText("empAttendanceRateValue", attendanceRate);
 }
@@ -1787,6 +1846,7 @@ function applyI18n() {
   updateLeaveBalanceDisplays(currentEmployeeName());
   updateEmployeeSummaryCards();
   renderTodayAttendanceList();
+  renderAttendanceRangeList();
   updateWelcomeTitle();
   renderLeaveTypeConfigPanel();
   renderEmployeeBalanceOverrideForm();
@@ -1803,7 +1863,11 @@ function showView(id) {
   document.getElementById(id).classList.add("active");
   window.scrollTo({ top: 0, behavior: "instant" });
 }
-document.querySelectorAll("[data-back-home]").forEach(btn => btn.addEventListener("click", () => showView("view-home")));
+document.querySelectorAll("[data-back-home]").forEach(btn => btn.addEventListener("click", () => {
+  showView("view-home");
+  stopAnomalyPolling(); // 离开公司后台就不需要继续在后台轮询异常停留了
+  stopGpsLiveRefresh();
+}));
 
 /* ---------- 员工管理:添加 / 删除 ----------
    对应权限文档:公司管理员有权直接添加新员工(生成邀请码,员工自行完成注册与设置密码),
@@ -2275,6 +2339,7 @@ document.getElementById("form-company-login").addEventListener("submit", async e
     e.target.reset();
     closeModal(document.getElementById("modal-company"));
     showView("view-companyAdminApp");
+    startAnomalyPolling(); // 登录成功就开始主动检查异常停留,不用管理员自己想起来去点 GPS 看板
     if (currentUserCompanyId) {
       syncCompanyProfileFromBackend(currentUserCompanyId);
       syncEmployeesFromBackend();
@@ -2369,6 +2434,7 @@ document.getElementById("form-company-register").addEventListener("submit", asyn
     e.target.reset();
     closeModal(document.getElementById("modal-company"));
     showView("view-companyAdminApp");
+    startAnomalyPolling();
     syncEmployeesFromBackend();
     syncInventoryFromBackend();
 
@@ -2407,7 +2473,12 @@ function wireNavRail(prefix, viewId) {
       item.classList.add("active");
       document.querySelectorAll('#' + viewId + ' [id^="' + prefix + '-"]').forEach(sec => sec.style.display = "none");
       document.getElementById(item.dataset.section).style.display = "block";
-      if (item.dataset.section === "ca-gps") { initGpsMap(); renderGpsAnomalyReport("gpsAnomalyList"); }
+      if (item.dataset.section === "ca-gps") {
+        initGpsMap(); renderGpsAnomalyReport("gpsAnomalyList");
+        startGpsLiveRefresh(); // 停留在 GPS 看板这个页面时,每 20 秒自动刷新一次真实在线员工位置
+      } else {
+        stopGpsLiveRefresh(); // 离开 GPS 看板就停掉定时刷新,不在后台空转浪费请求
+      }
       // 每次点进"智能库存"都从后端重新拉一次最新数据(商品/分类/预警),而不是只在
       // 登录那一刻拉一次——员工随时可能在手机上补货消耗库存,管理员切回这个页面时
       // 应该看到当下真实的数字,不是登录那一刻的旧快照。
@@ -2422,8 +2493,148 @@ let clockedIn = false;
 let elapsedSeconds = 0;
 let timerHandle = null;
 let currentClockInAt = null; // 上班打卡时刻(Date对象),下班打卡时用来算真实工时并写入 attendanceRecords
+// Bug 修复:后端 AttendanceModule/GpsModule 其实早就写好了(clock-in/clock-out/GPS 打点/
+// 异常停留检测全部是真代码,不是占位),但前端打卡按钮之前只操作本地的 attendanceRecords
+// 数组,从来没有调用过这些真实接口——所以"员工打卡之后 GPS 里找不到任何痕迹"。现在
+// currentAttendanceSessionId 记录后端真正创建的这条打卡记录 id,打卡期间的 GPS 打点
+// 都要挂在这个 id 下面;和 clockedIn 一样存进 localStorage,刷新页面后能继续上报。
+let currentAttendanceSessionId = null;
+let gpsPingIntervalHandle = null;
 const clockBtn = document.getElementById("clockBtn");
 const timerEl = document.getElementById("todayTimer");
+
+/** 打卡期间上报 GPS 位置的间隔——不是固定值。移动中(速度高于"静止"阈值)每 15 秒上报
+    一次,保证轨迹够密、异常检测够准;确认静止不动之后拉长到每 2 分钟一次,省电量/流量——
+    员工整个配送过程里大部分时候要么在骑车移动,要么在等餐/等电梯这种短暂停留,没必要
+    一直按最高频率打点。用 setTimeout 递归调用而不是固定的 setInterval,是因为每一次都要
+    根据"刚刚这一次是移动还是静止"决定下一次间隔多长,setInterval 做不到动态改间隔。 */
+const GPS_PING_INTERVAL_MOVING_MS = 15_000;
+const GPS_PING_INTERVAL_STATIONARY_MS = 120_000;
+const GPS_STATIONARY_SPEED_THRESHOLD_KMH = 3; // 和后端 GpsService 判断"停留"用的是同一个阈值,口径一致
+
+/** 统一的浏览器定位封装:拿不到定位权限、设备没有 GPS、超时,都不应该让打卡这个核心
+    动作失败——这里永远 resolve(不 reject),失败时返回 null,调用方按"没有位置信息"处理。 */
+function getCurrentPositionSafe(timeoutMs) {
+  return new Promise(resolve => {
+    if (!("geolocation" in navigator)) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, speedKmh: typeof pos.coords.speed === "number" && pos.coords.speed >= 0 ? pos.coords.speed * 3.6 : undefined, accuracyM: pos.coords.accuracy }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: timeoutMs || 8000, maximumAge: 30000 },
+    );
+  });
+}
+
+/** 如实说明:浏览器的 Battery Status API(navigator.getBattery)出于隐私考虑,Chrome/
+    Firefox 等主流浏览器早就已经限制或移除了——这里做了特性检测,拿不到就返回
+    undefined(不上报电量),不会因此报错或者编造一个假电量。原生 App 壳里可以用
+    Capacitor 的 Device 插件读到真实电量,更可靠,这是网页版 vs 原生版在这一点上
+    唯一的差别,已经在 mobile-app/README.md 里说明过。 */
+async function getBatteryPctSafe() {
+  try {
+    if (navigator.getBattery) {
+      const battery = await navigator.getBattery();
+      return Math.round(battery.level * 100);
+    }
+  } catch (err) {
+    // 忽略——大多数现代浏览器已经不支持这个 API 了,这不是一个需要提醒用户的错误
+  }
+  return undefined;
+}
+
+/** 打卡期间周期性上报真实 GPS 位置给后端 /gps/pings——GPS 看板"员工实时位置"、
+    "异常停留检测"这两块功能都要靠这些真实打点数据驱动,不再是前端写死的假路线。 */
+function startGpsPingCapture(sessionId) {
+  stopGpsPingCapture();
+  const send = async () => {
+    if (!currentUserCompanyId || !accessToken || !sessionId) return;
+    const pos = await getCurrentPositionSafe();
+    let nextDelayMs = GPS_PING_INTERVAL_MOVING_MS;
+    if (pos) {
+      const batteryPct = await getBatteryPctSafe();
+      try {
+        await apiRequest("/companies/" + currentUserCompanyId + "/gps/pings", {
+          method: "POST",
+          auth: true,
+          body: {
+            attendanceSessionId: sessionId,
+            latitude: pos.latitude,
+            longitude: pos.longitude,
+            speedKmh: pos.speedKmh,
+            accuracyM: pos.accuracyM,
+            batteryPct,
+          },
+        });
+      } catch (err) {
+        console.warn("GPS 打点上报失败(不影响打卡本身):", err);
+      }
+      const isStationary = typeof pos.speedKmh === "number" && pos.speedKmh <= GPS_STATIONARY_SPEED_THRESHOLD_KMH;
+      nextDelayMs = isStationary ? GPS_PING_INTERVAL_STATIONARY_MS : GPS_PING_INTERVAL_MOVING_MS;
+    } // 拿不到位置就跳过这一次上报,不用报错打扰员工,但仍然按"移动中"的短间隔尽快重试
+    gpsPingIntervalHandle = setTimeout(send, nextDelayMs);
+  };
+  send(); // 打卡的瞬间立刻打一个点,不用等第一个间隔过去
+}
+
+function stopGpsPingCapture() {
+  if (gpsPingIntervalHandle) { clearTimeout(gpsPingIntervalHandle); gpsPingIntervalHandle = null; }
+}
+
+/* ---------- 原生 App 桥接:App 被关闭/切到后台之后仍持续追踪 GPS ----------
+   Bug 修复(用户明确要求):浏览器网页版的 GPS 追踪(上面 startGpsPingCapture 那一套)
+   只能在这个网页标签页开着的时候运行——一旦标签页被关掉或者手机把它清出后台,JS 全部
+   停止执行,这是所有网页应用共同的系统限制,不是代码没写好。真要做到"员工把 App 图标
+   关掉,GPS 仍在后台持续追踪、异常轨迹自动报警,直到点了下班打卡才停止",只有原生手机
+   App 通过操作系统的后台定位服务才能做到——这里是网页代码需要调用的桥接层,真正的原生
+   壳工程见 worktrack-pro/mobile-app/(用 Capacitor 把这个网页包装成可安装的原生 App)。
+   纯浏览器打开(网页版 demo、桌面浏览器)检测不到 window.Capacitor,下面这些函数直接
+   跳过、返回 false,调用方会自动退回到 startGpsPingCapture() 这套前台轮询方案兜底,
+   不影响网页版原有的打卡流程。 */
+function isNativeApp() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
+function nativeBackgroundGeolocationPlugin() {
+  return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) || null;
+}
+
+/** 打卡时调用:如果是原生 App 壳且插件可用,把追踪整个交给操作系统级的后台定位服务——
+    不管员工之后把 App 切到后台、锁屏,还是被系统完全终止,只要没点"下班打卡",位置
+    持续直接上报同一个后端 /gps/pings 接口,和网页版走的是同一份数据、同一张 GPS 看板,
+    管理员不需要区分这条记录是网页版还是 App 版报上来的。返回 false 表示当前不是原生
+    环境(或插件初始化失败),调用方需要自己退回前台轮询方案。 */
+async function startNativeBackgroundTracking(sessionId, companyId, token) {
+  const plugin = nativeBackgroundGeolocationPlugin();
+  if (!plugin) return false;
+  const dict = i18n[currentLang];
+  try {
+    await plugin.ready({
+      reset: true,
+      distanceFilter: 30, // 移动超过 30 米才打一个点,兼顾追踪精度和电量/流量消耗
+      stopOnTerminate: false, // 核心配置:App 被系统终止后不停止追踪(Android 由前台服务自动重启)
+      startOnBoot: false,
+      url: API_BASE_URL + "/companies/" + companyId + "/gps/pings",
+      headers: { Authorization: "Bearer " + token },
+      params: { attendanceSessionId: sessionId },
+      autoSync: true,
+      // Android 系统要求:持续的后台定位必须配一个常驻通知,让员工随时清楚看到"打卡追踪中",
+      // 不能偷偷摸摸地定位——这也是应用商店审核后台定位权限的硬性要求之一。
+      foregroundService: true,
+      notification: { title: dict.gpsForegroundNoticeTitle, text: dict.gpsForegroundNoticeText },
+    });
+    await plugin.start();
+    return true;
+  } catch (err) {
+    console.warn("原生后台定位启动失败,退回网页版前台定位兜底:", err);
+    return false;
+  }
+}
+
+async function stopNativeBackgroundTracking() {
+  const plugin = nativeBackgroundGeolocationPlugin();
+  if (!plugin) return;
+  try { await plugin.stop(); } catch (err) { console.warn("停止原生后台定位失败:", err); }
+}
 
 function formatElapsed(total) {
   const h = String(Math.floor(total / 3600)).padStart(2, "0");
@@ -2459,45 +2670,187 @@ function renderTodayAttendanceList() {
   container.innerHTML = rows.length ? rows.join("") : '<div class="insight-empty">' + dict.noAttendanceToday + '</div>';
 }
 
+/* ---------- 打卡日/周/月总结报表 ----------
+   Bug 修复(用户明确要求):员工登录后只能看到"今天"一天的打卡记录,想知道这周/这个月
+   每天几点上班几点下班、当天合计多少小时,完全没有地方看;"本周工时/本月工时"两张卡片
+   之前也不是按真实的自然周/自然月边界算的,而是把这名员工历史上所有未作废的打卡记录
+   全部加总(见旧版注释"演示环境里没有真实的'周/月边界'概念")——这是一个和 GPS 看板
+   同一类"看起来能用但数字不是真的"的问题,这次一并修正为真实的日期边界。 */
+
+/** 本周的起点(周一 00:00),按 ISO 周一为一周的第一天计算,不是很多地区习惯的周日。 */
+function startOfWeek(d) {
+  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = date.getDay(); // 0=周日..6=周六
+  const diff = (day === 0 ? -6 : 1) - day;
+  date.setDate(date.getDate() + diff);
+  return date;
+}
+
+function startOfMonth(d) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+/** 按真实日期范围([start, end) 左闭右开)统计某个员工的工时——只统计未作废的打卡记录,
+    如果"现在"这一刻落在范围内且正在打卡中,把进行中的这一段也算进去(和"今日已工作"
+    秒表保持一致,不会出现"卡片没算上正在进行的这一段"这种脱节)。 */
+function sumEmployeeHoursInRange(employeeName, rangeStart, rangeEndExclusive) {
+  let total = 0;
+  attendanceRecords.forEach(r => {
+    if (r.employeeName !== employeeName || r.voided) return;
+    const recordDate = new Date(r.date + "T00:00:00");
+    if (recordDate >= rangeStart && recordDate < rangeEndExclusive) total += parseFloat(r.hours) || 0;
+  });
+  const now = new Date();
+  if (now >= rangeStart && now < rangeEndExclusive) total += liveInProgressHoursFor(employeeName);
+  return total;
+}
+
+let attendanceRangeTab = "week"; // "week" | "month" —— 打卡明细面板当前展示的是本周还是本月
+
+/** 把某个日期范围内(本周/本月)的打卡记录按日期分组,每天一张小卡片:日期 + 当天每一次
+    上班-下班(或"进行中")+ 当天合计工时,按日期从近到远排序,方便一眼看到最近的记录。 */
+function renderAttendanceRangeList() {
+  const dict = i18n[currentLang];
+  const container = document.getElementById("empAttendanceRangeList");
+  if (!container) return;
+  const employeeName = currentEmployeeName();
+  if (!employeeName) { container.innerHTML = ""; return; }
+
+  const today = new Date();
+  const rangeStart = attendanceRangeTab === "week" ? startOfWeek(today) : startOfMonth(today);
+  const rangeEnd = attendanceRangeTab === "week"
+    ? new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 7)
+    : new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 1);
+
+  const byDate = {};
+  attendanceRecords.forEach(r => {
+    if (r.employeeName !== employeeName || r.voided) return;
+    const recordDate = new Date(r.date + "T00:00:00");
+    if (recordDate < rangeStart || recordDate >= rangeEnd) return;
+    if (!byDate[r.date]) byDate[r.date] = [];
+    byDate[r.date].push(r);
+  });
+  const todayStr = today.toISOString().slice(0, 10);
+  if (clockedIn && currentClockInAt && today >= rangeStart && today < rangeEnd) {
+    if (!byDate[todayStr]) byDate[todayStr] = [];
+    byDate[todayStr].push({ clockIn: formatHhMm(currentClockInAt), clockOut: dict.inProgressLabel, hours: null, inProgress: true });
+  }
+
+  const dateKeys = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+  if (!dateKeys.length) { container.innerHTML = '<div class="insight-empty">' + dict.noAttendanceInRange + '</div>'; return; }
+
+  container.innerHTML = dateKeys.map(dateStr => {
+    const sessions = byDate[dateStr];
+    const dayTotal = sessions.reduce((sum, r) => sum + (r.inProgress ? liveInProgressHoursFor(employeeName) : (parseFloat(r.hours) || 0)), 0);
+    const sessionRows = sessions.map(r =>
+      '<div class="list-item" style="padding-left:10px;"><span>' + r.clockIn + ' → ' + r.clockOut + '</span>' +
+      (r.inProgress ? '' : '<span style="margin-left:auto;opacity:.7;">' + r.hours + '</span>') + '</div>'
+    ).join("");
+    return '<div style="margin-bottom:8px;">' +
+      '<div style="display:flex;justify-content:space-between;font-weight:600;font-size:12.5px;padding:4px 0;">' +
+      '<span>' + dateStr + '</span><span>' + dict.dailyTotalLabel + ': ' + dayTotal.toFixed(2) + 'h</span></div>' +
+      sessionRows + '</div>';
+  }).join("");
+}
+
+document.querySelectorAll(".attendance-range-tab").forEach(tabBtn => {
+  tabBtn.addEventListener("click", () => {
+    document.querySelectorAll(".attendance-range-tab").forEach(b => b.classList.remove("active"));
+    tabBtn.classList.add("active");
+    attendanceRangeTab = tabBtn.dataset.range;
+    renderAttendanceRangeList();
+  });
+});
+
 // Bug 修复:之前这个按钮只管理一个纯前端的计时器显示,从来没有真正往 attendanceRecords
 // 里写过一条记录——员工打卡本该是考勤数据最主要的来源,结果考勤记录、工资表、员工仪表盘
 // 卡片全部只能靠管理员"补录"才有数据。现在下班打卡时会为"当前登录的这名员工"真实生成
 // 一条打卡记录,和考勤/工资/仪表盘三处联动刷新。
-clockBtn.addEventListener("click", () => {
-  clockedIn = !clockedIn;
-  clockBtn.classList.toggle("clocked-in", clockedIn);
-  if (clockedIn) {
-    currentClockInAt = new Date();
-    // 每秒不仅刷新"今日已工作"这个秒表,也顺带刷新"本周工时/本月工时/工资摘要"三张卡片——
-    // 否则打卡中这段时间秒表在走、其他卡片却像是没反应,容易让人以为打卡没生效。
-    timerHandle = setInterval(() => {
-      elapsedSeconds++;
-      timerEl.textContent = formatElapsed(elapsedSeconds);
-      updateEmployeeSummaryCards();
-    }, 1000);
-  } else {
-    clearInterval(timerHandle);
-    const employeeName = currentEmployeeName();
-    if (employeeName && currentClockInAt) {
-      const clockOutAt = new Date();
-      const clockInStr = formatHhMm(currentClockInAt);
-      const clockOutStr = formatHhMm(clockOutAt);
-      const hours = computeHoursBetween(clockInStr, clockOutStr);
-      attendanceRecords.push({
-        id: attendanceIdCounter++,
-        employeeName,
-        date: clockOutAt.toISOString().slice(0, 10),
-        clockIn: clockInStr, clockOut: clockOutStr,
-        hours: hours.toFixed(2) + "h", voided: false, voidReason: "", edits: []
-      });
-      renderAttendanceTable();
-      refreshHoursDependentViews();
+clockBtn.addEventListener("click", async () => {
+  const goingToClockIn = !clockedIn;
+  clockBtn.disabled = true; // 防止定位/请求还没返回时被连续点第二下,造成重复打卡
+  try {
+    // Bug 修复:打卡按钮之前只是切换本地状态,从来没有调用后端真正的
+    // AttendanceModule——这里先尝试拿一次真实定位、再真正调用 clock-in/clock-out 接口,
+    // 只有网络/后端确实不可用时才退回本地模拟,不让"后端暂时连不上"挡住员工打卡。
+    const pos = await getCurrentPositionSafe();
+    if (goingToClockIn) {
+      let sessionId = null;
+      if (currentUserCompanyId && accessToken) {
+        try {
+          const session = await apiRequest("/companies/" + currentUserCompanyId + "/attendance/clock-in", {
+            method: "POST",
+            auth: true,
+            body: pos ? { latitude: pos.latitude, longitude: pos.longitude } : {},
+          });
+          sessionId = session.id;
+        } catch (err) {
+          console.warn("打卡请求后端失败,退回本地记录(不阻断打卡本身):", err);
+        }
+      }
+      currentAttendanceSessionId = sessionId;
+      clockedIn = true;
+      clockBtn.classList.add("clocked-in");
+      currentClockInAt = new Date();
+      // Bug 修复(用户明确要求"关闭 App 之后 GPS 仍要持续追踪"):只有真正拿到后端
+      // session id 才开始上报 GPS 打点。优先尝试原生后台定位(App 被关闭/切后台也能
+      // 继续追踪),只有不是原生环境(比如纯网页版demo)或者原生插件初始化失败时,
+      // 才退回到网页版的前台轮询方案——网页版方案的已知限制是标签页/App 被关闭后
+      // 就会停止,这是浏览器的系统限制,不是这里的兜底逻辑写错了。
+      if (sessionId) {
+        startNativeBackgroundTracking(sessionId, currentUserCompanyId, accessToken).then(nativeStarted => {
+          if (!nativeStarted) startGpsPingCapture(sessionId);
+        });
+      }
+      // 每秒不仅刷新"今日已工作"这个秒表,也顺带刷新"本周工时/本月工时/工资摘要"三张卡片——
+      // 否则打卡中这段时间秒表在走、其他卡片却像是没反应,容易让人以为打卡没生效。
+      timerHandle = setInterval(() => {
+        elapsedSeconds++;
+        timerEl.textContent = formatElapsed(elapsedSeconds);
+        updateEmployeeSummaryCards();
+      }, 1000);
+    } else {
+      stopGpsPingCapture();
+      await stopNativeBackgroundTracking(); // 下班打卡才是唯一停止追踪的时机——GPS 不工作,和用户的要求一致
+      if (currentUserCompanyId && accessToken) {
+        try {
+          await apiRequest("/companies/" + currentUserCompanyId + "/attendance/clock-out", {
+            method: "POST",
+            auth: true,
+            body: pos ? { latitude: pos.latitude, longitude: pos.longitude } : {},
+          });
+        } catch (err) {
+          console.warn("下班打卡请求后端失败(本地记录仍然正常保存):", err);
+        }
+      }
+      clearInterval(timerHandle);
+      clockedIn = false;
+      clockBtn.classList.remove("clocked-in");
+      const employeeName = currentEmployeeName();
+      if (employeeName && currentClockInAt) {
+        const clockOutAt = new Date();
+        const clockInStr = formatHhMm(currentClockInAt);
+        const clockOutStr = formatHhMm(clockOutAt);
+        const hours = computeHoursBetween(clockInStr, clockOutStr);
+        attendanceRecords.push({
+          id: attendanceIdCounter++,
+          employeeName,
+          date: clockOutAt.toISOString().slice(0, 10),
+          clockIn: clockInStr, clockOut: clockOutStr,
+          hours: hours.toFixed(2) + "h", voided: false, voidReason: "", edits: []
+        });
+        renderAttendanceTable();
+        refreshHoursDependentViews();
+      }
+      currentClockInAt = null;
+      currentAttendanceSessionId = null;
+      elapsedSeconds = 0;
     }
-    currentClockInAt = null;
-    elapsedSeconds = 0;
+    saveState(); // 立刻落盘,不等下一次别的操作顺带触发——避免"刚点完上班打卡就关App"这个最容易丢数据的场景
+    applyI18n();
+  } finally {
+    clockBtn.disabled = false;
   }
-  saveState(); // 立刻落盘,不等下一次别的操作顺带触发——避免"刚点完上班打卡就关App"这个最容易丢数据的场景
-  applyI18n();
 });
 
 /**
@@ -2519,6 +2872,16 @@ function resumeActiveClockSession() {
     timerEl.textContent = formatElapsed(elapsedSeconds);
     updateEmployeeSummaryCards();
   }, 1000);
+  // Bug 修复:刷新页面/重新打开 App 之后,如果打卡状态是"进行中",GPS 打点也要跟着
+  // 恢复上报,不然只要中途刷新过一次页面,GPS 看板上这名员工的位置就会停在刷新前的
+  // 最后一个点、再也不更新,看起来像是"人已经离线了"。原生 App 环境下,后台定位服务
+  // 本来就应该是一直在跑的(这正是"关闭 App 也能继续追踪"的意义所在),这里只是让
+  // 网页这一层的状态和它对齐,不会重复启动。
+  if (currentAttendanceSessionId) {
+    startNativeBackgroundTracking(currentAttendanceSessionId, currentUserCompanyId, accessToken).then(nativeStarted => {
+      if (!nativeStarted) startGpsPingCapture(currentAttendanceSessionId);
+    });
+  }
 }
 
 document.getElementById("todayDate").textContent = new Date().toLocaleDateString(
@@ -2527,27 +2890,169 @@ document.getElementById("todayDate").textContent = new Date().toLocaleDateString
 );
 
 /* ---------- GPS 看板:真实地图(Leaflet + OpenStreetMap,免费,无需 API Key) ----------
-   演示的是架构文档里已经设计好的机制:员工上班打卡后每隔一段时间上报一次 GPS 坐标,
-   服务端把连续坐标串成路线(routes/route_stops),停留超过阈值的点标记为"异常停留"
-   仅供管理员复核参考,绝不自动判定违规或扣款。 */
-const gpsRoutes = [
-  {
-    name: "Alex Chen", color: "#3E7D5C",
-    path: [[52.3731,4.8926],[52.3712,4.8952],[52.3695,4.8981],[52.3676,4.8963],[52.3654,4.8952],[52.3644,4.8920],[52.3612,4.8901],[52.3557,4.8930]],
-    flaggedStopIndex: 5, flaggedLabel: "停留 18 分钟 · 建议管理员核实"
-  },
-  {
-    name: "Maria Santos", color: "#54606B",
-    path: [[52.3791,4.9003],[52.3769,4.9036],[52.3735,4.9065],[52.3702,4.9081],[52.3670,4.9074],[52.3644,4.9048]]
-  },
-  {
-    name: "Jonas Weber", color: "#B8863C",
-    path: [[52.3579,4.8686],[52.3600,4.8735],[52.3628,4.8790],[52.3652,4.8834],[52.3661,4.8880],[52.3676,4.8926]]
-  }
-];
-
+   Bug 修复(应用户明确要求:"我需要真实的,不要虚假的三个点"):这里以前是三条写死的
+   演示路线(Alex Chen/Maria Santos/Jonas Weber),每 1.4 秒沿着固定坐标循环动画,和
+   公司真实的员工、真实的打卡记录完全没有关系——不管有没有人真的在打卡上班,地图上
+   永远显示这三个点在移动。现在改成调用后端真实接口:GET .../gps/latest-locations
+   返回"当前正在打卡上班中"的每一位员工最近一条真实 GPS 打点,画在地图上;没有人在
+   打卡上班时,地图上就应该是空的,而不是继续显示假数据营造"系统在正常工作"的假象。 */
 let gpsMap = null;
-let gpsAnimHandle = null;
+let gpsLiveMarkers = {}; // employeeId -> Leaflet marker,刷新时按 employeeId 增删/移动,不用每次重建整个地图
+let gpsLiveRefreshHandle = null;
+
+function employeeNameByBackendId(employeeId) {
+  const emp = employees.find(e => e.backendId === employeeId);
+  return emp ? emp.name : employeeId;
+}
+
+/** 两点之间的直线距离(米),用来判断员工当前位置是否落在店铺 100 米范围内("已到店")——
+    Haversine 公式,不需要额外的地图库支持,精度对这个用途完全够用。 */
+function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = d => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+const GPS_AT_STORE_RADIUS_M = 100;
+
+/** 每隔一段时间重新拉一次"当前在线员工的真实位置",增量更新地图标记——员工下班
+    打卡之后(不再是 OPEN 状态)不会再出现在这个接口的返回结果里,标记要跟着移除,
+    不能让下班的员工继续"挂"在地图上,看起来像是还在配送。
+    Bug 修复(用户明确要求"GPS离线/低电量/超速/到店提醒"):后端已经把离线/低电量/超速
+    这三个状态算好了,这里再补一个"是否在店铺 100 米范围内"(纯前端算,因为店铺坐标
+    companyGpsLocation 本来就在浏览器里),四种状态一起决定地图标记的颜色,并且渲染成
+    一份"员工实时状态"列表——地图上的圆点缩小看不清楚状态时,列表能让管理员一眼扫到。 */
+async function refreshGpsLiveEmployeeMarkers() {
+  if (!gpsMap || !currentUserCompanyId || !accessToken) return;
+  let locations = [];
+  try {
+    locations = await apiRequest("/companies/" + currentUserCompanyId + "/gps/latest-locations", { auth: true });
+  } catch (err) {
+    console.warn("获取员工实时位置失败:", err);
+    return;
+  }
+  const seenIds = new Set(locations.map(loc => loc.employeeId));
+  Object.keys(gpsLiveMarkers).forEach(employeeId => {
+    if (!seenIds.has(employeeId)) { gpsMap.removeLayer(gpsLiveMarkers[employeeId]); delete gpsLiveMarkers[employeeId]; }
+  });
+
+  const dict = i18n[currentLang];
+  const statusRows = locations.map(loc => {
+    const isAtStore = !!companyGpsLocation &&
+      haversineDistanceMeters(loc.latitude, loc.longitude, companyGpsLocation.latitude, companyGpsLocation.longitude) <= GPS_AT_STORE_RADIUS_M;
+    // 优先级:离线 > 低电量 > 超速 > 到店 > 正常配送中——同一时间只挑最需要管理员关注的
+    // 一种状态显示成主色,其余状态仍然会在列表里的文字里全部列出来,不会漏报。
+    const color = loc.isOffline ? "#B23A4E" : loc.isLowBattery ? "#B8863C" : loc.isOverspeed ? "#B23A4E" : isAtStore ? "#2B5FA8" : "#3E7D5C";
+    const labels = [];
+    if (loc.isOffline) labels.push(dict.statusOffline);
+    if (loc.isLowBattery) labels.push(dict.statusLowBattery + (loc.batteryPct !== null ? " " + loc.batteryPct + "%" : ""));
+    if (loc.isOverspeed) labels.push(dict.statusOverspeed + (loc.speedKmh !== null ? " " + Math.round(loc.speedKmh) + "km/h" : ""));
+    if (!labels.length) labels.push(isAtStore ? dict.statusAtStore : dict.statusOnDelivery);
+    return { loc, color, labels, isAtStore };
+  });
+
+  statusRows.forEach(({ loc, color }) => {
+    const latLng = [loc.latitude, loc.longitude];
+    const name = employeeNameByBackendId(loc.employeeId);
+    if (gpsLiveMarkers[loc.employeeId]) {
+      gpsLiveMarkers[loc.employeeId].setLatLng(latLng);
+      const el = gpsLiveMarkers[loc.employeeId].getElement();
+      if (el) { const dot = el.querySelector("div"); if (dot) dot.style.background = color; }
+    } else {
+      const icon = L.divIcon({
+        className: "",
+        html: '<div style="width:16px;height:16px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 0 0 3px rgba(0,0,0,.12);"></div>',
+        iconSize: [16, 16], iconAnchor: [8, 8]
+      });
+      gpsLiveMarkers[loc.employeeId] = L.marker(latLng, { icon }).addTo(gpsMap).bindPopup("<b>" + name + "</b>");
+    }
+    gpsLiveMarkers[loc.employeeId].setPopupContent("<b>" + name + "</b>");
+  });
+
+  const statusListEl = document.getElementById("gpsEmployeeStatusList");
+  if (statusListEl) {
+    statusListEl.innerHTML = statusRows.length
+      ? statusRows.map(({ loc, color, labels }) => {
+          const name = employeeNameByBackendId(loc.employeeId);
+          const updatedSecondsAgo = loc.secondsSinceLastPing !== undefined ? loc.secondsSinceLastPing : Math.round((Date.now() - new Date(loc.recordedAt).getTime()) / 1000);
+          return '<div class="list-item"><span><span class="dot" style="background:' + color + ';display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;"></span>' +
+            name + ' · ' + labels.join(' / ') + '</span>' +
+            '<span style="margin-left:auto;opacity:.6;font-size:11.5px;">' + dict.lastUpdatedLabel + ' ' + Math.max(0, Math.round(updatedSecondsAgo / 60)) + 'min</span></div>';
+        }).join("")
+      : '<div class="insight-empty">' + dict.noOnlineEmployeesStatus + '</div>';
+  }
+
+  const emptyHintEl = document.getElementById("gpsNoOnlineEmployeesHint");
+  if (emptyHintEl) emptyHintEl.style.display = locations.length ? "none" : "block";
+}
+
+function startGpsLiveRefresh() {
+  stopGpsLiveRefresh();
+  refreshGpsLiveEmployeeMarkers();
+  gpsLiveRefreshHandle = setInterval(refreshGpsLiveEmployeeMarkers, 20000);
+}
+
+function stopGpsLiveRefresh() {
+  if (gpsLiveRefreshHandle) { clearInterval(gpsLiveRefreshHandle); gpsLiveRefreshHandle = null; }
+}
+
+/* ---------- 异常停留主动提醒(用户明确要求:"一旦有异常运行轨迹要通知管理员") ----------
+   Bug 修复:之前异常停留报告只有管理员自己点进 GPS 看板才看得到,是"被动查看",不是
+   "主动通知"——如果管理员当天没想起来去点这个页面,异常停留可能永远没人知道。这里加一层
+   轮询:公司管理员登录之后,不管当前停留在哪个页面,每 30 秒后台检查一次今天的异常停留,
+   有新出现的(之前没见过的)就在导航栏"GPS 看板"上标红点+弹一条提示,点进 GPS 看板会
+   自动清除红点。
+   如实说明这里的限制:这仍然是"管理员打开着这个网页/App"前提下的应用内提醒,不是真正
+   意义上"即使没在看手机也会收到通知"的推送/短信/邮件提醒——那需要接入 Web Push /
+   APNs·FCM 推送或短信/邮件服务,是一个独立的通知系统项目,这次没有包含在内。 */
+let seenGpsAnomalyKeys = new Set();
+let anomalyPollHandle = null;
+let anomalyPollIsFirstRun = true;
+
+function anomalyKey(a) { return a.employeeId + "|" + a.startTime; }
+
+async function pollForNewGpsAnomalies() {
+  if (!currentUserCompanyId || !accessToken) return;
+  let raw = [];
+  try {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    raw = await apiRequest("/companies/" + currentUserCompanyId + "/gps/anomalies?date=" + todayStr, { auth: true });
+  } catch (err) {
+    return; // 轮询失败静默跳过,不打扰管理员,下一轮再试
+  }
+  const newOnes = raw.filter(a => !seenGpsAnomalyKeys.has(anomalyKey(a)));
+  raw.forEach(a => seenGpsAnomalyKeys.add(anomalyKey(a)));
+
+  const badge = document.getElementById("gpsAnomalyBadge");
+  if (badge) {
+    const unread = raw.length; // 徽章显示"今天总共有多少条异常",不是只算新增的,方便管理员一眼看到总数
+    badge.textContent = String(unread);
+    badge.classList.toggle("hidden", unread === 0);
+  }
+
+  // 第一次轮询(刚登录)不弹提示,只是把"今天已经存在的异常"标进徽章——避免一登录就
+  // 被一串历史提示轰炸;真正的"新增"提醒从第二次轮询开始,针对真正新出现的异常。
+  if (!anomalyPollIsFirstRun && newOnes.length) {
+    const dict = i18n[currentLang];
+    const a = newOnes[newOnes.length - 1];
+    window.alert(dict.gpsAnomalyMessage(employeeNameByBackendId(a.employeeId), formatHm(new Date(a.startTime)), formatHm(new Date(a.endTime)), a.durationMinutes));
+  }
+  anomalyPollIsFirstRun = false;
+}
+
+function startAnomalyPolling() {
+  stopAnomalyPolling();
+  seenGpsAnomalyKeys = new Set();
+  anomalyPollIsFirstRun = true;
+  pollForNewGpsAnomalies();
+  anomalyPollHandle = setInterval(pollForNewGpsAnomalies, 30000);
+}
+
+function stopAnomalyPolling() {
+  if (anomalyPollHandle) { clearInterval(anomalyPollHandle); anomalyPollHandle = null; }
+}
 
 /** Bug 修复:公司注册时地址地理编码成功后经纬度确实存进了数据库,但以前没有任何接口
     把它读出来给前端——GPS 看板因此一直没有真实的"店铺位置"可画,地图中心只是写死的
@@ -2579,31 +3084,8 @@ function initGpsMap() {
     shopHintEl.style.display = "block";
   }
 
-  const markers = gpsRoutes.map(route => {
-    L.polyline(route.path, { color: route.color, weight: 3, opacity: .55 }).addTo(gpsMap);
-
-    if (route.flaggedStopIndex !== undefined) {
-      const stopPoint = route.path[route.flaggedStopIndex];
-      L.circle(stopPoint, { radius: 60, color: "#B23A4E", fillColor: "#B23A4E", fillOpacity: .18, weight: 1 })
-        .addTo(gpsMap)
-        .bindPopup("<b>" + route.name + "</b><br/>" + route.flaggedLabel);
-    }
-
-    const icon = L.divIcon({
-      className: "",
-      html: '<div style="width:16px;height:16px;border-radius:50%;background:' + route.color + ';border:3px solid #fff;box-shadow:0 0 0 3px rgba(0,0,0,.12);"></div>',
-      iconSize: [16, 16], iconAnchor: [8, 8]
-    });
-    const marker = L.marker(route.path[0], { icon }).addTo(gpsMap).bindPopup("<b>" + route.name + "</b>");
-    return { marker, route, index: 0 };
-  });
-
-  gpsAnimHandle = setInterval(() => {
-    markers.forEach(m => {
-      m.index = (m.index + 1) % m.route.path.length;
-      m.marker.setLatLng(m.route.path[m.index]);
-    });
-  }, 1400);
+  gpsLiveMarkers = {}; // 地图是刚重新创建的,之前的标记引用都已经失效,清空重新开始追踪
+  refreshGpsLiveEmployeeMarkers(); // 地图一创建就立刻拉一次真实在线员工位置,不用等第一个 20 秒定时器
 }
 
 /* ---------- 邀请码 → 所属公司预览 ----------
@@ -3259,6 +3741,7 @@ function refreshHoursDependentViews() {
   renderPayrollTable();
   updateEmployeeSummaryCards();
   renderTodayAttendanceList();
+  renderAttendanceRangeList();
 }
 
 /** 补录打卡的员工下拉框,和请假余额调整表单的员工下拉框(renderEmployeeBalanceOverrideForm)
@@ -4178,89 +4661,40 @@ document.getElementById("btnOpenInventoryWithdraw").addEventListener("click", ()
 
 /* ---------- 每日经营报告:GPS 异常停留 + 工时/工资成本 + 库存提醒 ----------
    对应后端新增的 ReportsModule(聚合 AttendanceModule + GpsModule + PayrollModule +
-   InventoryModule)。GPS 异常停留检测算法和后端 GpsService.computeDwellAnomaliesFromPings
-   完全一致(连续低速打点合并成停留窗口,>=20 分钟判定异常),工资成本计算规则也和
-   后端 PayrollService.getDailyWageCost 一致(每日 8 小时内正常工资,超出部分 1.5 倍)。
-   这里只是用演示假数据跑同一套算法,不是另外发明一套。 */
-const GPS_STATIONARY_SPEED_THRESHOLD_KMH = 3;
-const GPS_DWELL_ANOMALY_MINUTES = 20;
+   InventoryModule)。
 
-function gpsPing(employeeName, sessionId, hh, mm, speedKmh) {
-  const d = new Date();
-  d.setHours(hh, mm, 0, 0);
-  return { employeeName: employeeName, sessionId: sessionId, recordedAt: d, speedKmh: speedKmh };
-}
-
-// 演示数据:Sam Park 送外卖途中在 13:10-13:38(28 分钟)几乎没有移动 -> 异常停留;
-// Maria Santos 只是正常的短暂停留(5 分钟)-> 不算异常。
-const gpsPingsDemo = [
-  gpsPing("Sam Park", "sess-sam-1", 13, 0, 18),
-  gpsPing("Sam Park", "sess-sam-1", 13, 5, 15),
-  gpsPing("Sam Park", "sess-sam-1", 13, 10, 2),
-  gpsPing("Sam Park", "sess-sam-1", 13, 15, 1),
-  gpsPing("Sam Park", "sess-sam-1", 13, 20, 0.5),
-  gpsPing("Sam Park", "sess-sam-1", 13, 25, 1),
-  gpsPing("Sam Park", "sess-sam-1", 13, 28, 2),
-  gpsPing("Sam Park", "sess-sam-1", 13, 38, 1),
-  gpsPing("Sam Park", "sess-sam-1", 13, 40, 22),
-  gpsPing("Maria Santos", "sess-maria-1", 9, 0, 20),
-  gpsPing("Maria Santos", "sess-maria-1", 9, 5, 1),
-  gpsPing("Maria Santos", "sess-maria-1", 9, 10, 2),
-  gpsPing("Maria Santos", "sess-maria-1", 9, 15, 18)
-];
-
-function computeGpsDwellAnomalies(pings) {
-  const anomalies = [];
-  let windowStart = null, prevPing = null, currentEmployee = null, currentSession = null;
-
-  const flush = (endPing) => {
-    if (windowStart && endPing && currentEmployee && currentSession) {
-      const durationMinutes = Math.round((endPing.recordedAt.getTime() - windowStart.recordedAt.getTime()) / 60000);
-      if (durationMinutes >= GPS_DWELL_ANOMALY_MINUTES) {
-        anomalies.push({
-          employeeName: currentEmployee,
-          sessionId: currentSession,
-          startTime: windowStart.recordedAt,
-          endTime: endPing.recordedAt,
-          durationMinutes: durationMinutes
-        });
-      }
-    }
-    windowStart = null;
-  };
-
-  pings.forEach(ping => {
-    const isStationary = ping.speedKmh !== null && ping.speedKmh !== undefined && ping.speedKmh <= GPS_STATIONARY_SPEED_THRESHOLD_KMH;
-    if (currentEmployee !== ping.employeeName || currentSession !== ping.sessionId) {
-      flush(prevPing);
-      currentEmployee = ping.employeeName;
-      currentSession = ping.sessionId;
-      windowStart = isStationary ? ping : null;
-    } else if (isStationary) {
-      if (!windowStart) windowStart = ping;
-    } else {
-      flush(prevPing);
-    }
-    prevPing = ping;
-  });
-  flush(prevPing);
-
-  return anomalies;
-}
-
+   Bug 修复(应用户明确要求:"现在网页上显示的是虚假的三个点,我需要真实的"):这里
+   以前是一份写死的演示数据(Sam Park/Maria Santos 两个人的假 GPS 打点),在浏览器里
+   本地跑一遍和后端 GpsService.computeDwellAnomaliesFromPings 一样的算法——算法是对的,
+   但喂给它的数据完全是假的,不管公司里有没有真人在打卡送货,报告永远显示同样两条
+   "异常停留"。现在改成直接调用后端真实接口 GET .../gps/anomalies?date=,后端会用
+   同一套算法去查真实的 gps_pings 表——这份报告不存在了就是不存在,不再有假数据撑场面。 */
 function formatHm(d) {
   return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
 }
 
-/** GPS 异常停留报告——"每日经营报告"、"GPS 看板"两处都会用到同一份算法和同一份数据,
-    只是挂载的容器 id 不同。应用户要求:GPS 看板不需要工资信息,只需要真实反映"店铺位置/
-    员工配送位置/异常停留(该不该调整路线)",所以这份报告直接搬到 GPS 看板页面上,
-    工资相关内容(computeDailyWageCost 那一套)不出现在这个页面。 */
-function renderGpsAnomalyReport(containerId) {
+/** GPS 异常停留报告——"每日经营报告"、"GPS 看板"两处都会调用这个函数,只是挂载的
+    容器 id 不同,数据来源现在统一是后端真实接口,不再各自跑一份本地假数据。 */
+async function renderGpsAnomalyReport(containerId) {
   const dict = i18n[currentLang];
   const container = document.getElementById(containerId);
   if (!container) return;
-  const anomalies = computeGpsDwellAnomalies(gpsPingsDemo);
+  if (!currentUserCompanyId || !accessToken) { container.innerHTML = '<div class="insight-empty">' + dict.noGpsAnomalies + "</div>"; return; }
+  let anomalies = [];
+  try {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const raw = await apiRequest("/companies/" + currentUserCompanyId + "/gps/anomalies?date=" + todayStr, { auth: true });
+    anomalies = raw.map(a => ({
+      employeeName: employeeNameByBackendId(a.employeeId),
+      startTime: new Date(a.startTime),
+      endTime: new Date(a.endTime),
+      durationMinutes: a.durationMinutes,
+    }));
+  } catch (err) {
+    console.warn("获取 GPS 异常停留报告失败:", err);
+    container.innerHTML = '<div class="insight-empty">' + dict.noGpsAnomalies + "</div>";
+    return;
+  }
   container.innerHTML = anomalies.length
     ? anomalies.map(a => '<div class="insight-card low-stock">⚠️ ' + dict.gpsAnomalyMessage(a.employeeName, formatHm(a.startTime), formatHm(a.endTime), a.durationMinutes) + "</div>").join("")
     : '<div class="insight-empty">' + dict.noGpsAnomalies + "</div>";
@@ -4661,6 +5095,39 @@ document.getElementById("form-forgot-password-reset").addEventListener("submit",
 // Bug 修复的核心:必须在第一次 applyI18n() 渲染之前把 localStorage 里保存的数据恢复
 // 回各个数组/变量,否则页面一加载还是用脚本里写的初始值(公司/员工注册的内容就会
 // "消失"),第一次渲染就已经是错的了。
+/* ---------- 密码输入框:显示/隐藏切换小眼睛 ----------
+   Bug 修复(用户明确要求):登录/注册/改密码这些密码框之前只能看到一串圆点,填错了
+   字符(大小写、多打/少打一个字符)完全看不出来,体验很差。这里给每一个密码输入框
+   套一层 wrap、加一个眼睛图标按钮,点击切换 input.type 在 password/text 之间切换,
+   不需要逐个手改 10 处 HTML 标记,统一在这里给已知的密码框 id 各加一个。 */
+const EYE_OPEN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61C3.06 8.94 1 12 1 12s4 8 11 8a9.1 9.1 0 0 0 5.39-1.61"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+function setupPasswordVisibilityToggle(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const wrap = document.createElement("div");
+  wrap.className = "password-wrap";
+  input.parentNode.insertBefore(wrap, input);
+  wrap.appendChild(input);
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "password-toggle-btn";
+  btn.setAttribute("aria-label", "Show/hide password");
+  btn.innerHTML = EYE_OPEN_SVG;
+  wrap.appendChild(btn);
+  btn.addEventListener("click", () => {
+    const showing = input.type === "text";
+    input.type = showing ? "password" : "text";
+    btn.innerHTML = showing ? EYE_OPEN_SVG : EYE_OFF_SVG;
+  });
+}
+
+[
+  "empLoginPassword", "empRegPassword", "companyLoginPassword", "regCompanyPassword", "platformPassword",
+  "currentPasswordInput", "newPasswordInput", "confirmPasswordInput", "resetNewPasswordInput", "resetConfirmPasswordInput",
+].forEach(setupPasswordVisibilityToggle);
+
 loadState();
 resumeActiveClockSession(); // 必须在 applyI18n() 之前:先把 clocked-in 样式/秒表接上,applyI18n() 才能据此显示"下班打卡"文案
 applyI18n();
