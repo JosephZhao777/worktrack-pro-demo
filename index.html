@@ -436,13 +436,17 @@
               <h2 class="section-title" data-i18n="navEmployees">员工管理</h2>
               <p class="section-sub" style="margin:0;" data-i18n="employeesSub">管理员可以添加新员工、调整权限,或删除员工的全部记录</p>
             </div>
-            <button class="btn btn-primary" id="btnAddEmployee" data-i18n="addEmployee">+ 添加员工</button>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span id="employeeHoursRefreshedNotice" class="hidden" style="font-size:12px;color:var(--success,#3E7D5C);"></span>
+              <button class="btn btn-outline" id="btnRefreshEmployeeHours" data-i18n="refreshEmployeeHoursNow">立即刷新工时</button>
+              <button class="btn btn-primary" id="btnAddEmployee" data-i18n="addEmployee">+ 添加员工</button>
+            </div>
           </div>
           <table class="data-table">
             <thead>
               <tr>
                 <th data-i18n="colName">姓名</th><th data-i18n="colRole">角色</th><th data-i18n="colType">用工类型</th><th data-i18n="colStatus">状态</th>
-                <th data-i18n="colHours">本周工时</th><th data-i18n="colMonthHoursShort">本月工时</th><th data-i18n="colActions">操作</th>
+                <th data-i18n="colTodayHoursShort">今日工时</th><th data-i18n="colHours">本周工时</th><th data-i18n="colMonthHoursShort">本月工时</th><th data-i18n="colActions">操作</th>
               </tr>
             </thead>
             <tbody id="employeeTableBody"></tbody>
@@ -1143,7 +1147,8 @@ const i18n = {
     colCompany: "公司", colPlan: "订阅状态", colEmployees: "员工数", churn: "流失率",
     adsSub: "仅支持 Banner 广告,不支持弹窗或全屏广告。",
     navSettings: "设置",
-    colType: "用工类型", colMonthHoursShort: "本月工时",
+    colType: "用工类型", colMonthHoursShort: "本月工时", colTodayHoursShort: "今日工时",
+    refreshEmployeeHoursNow: "立即刷新工时", refreshedJustNow: "已刷新",
     typeFullTime: "正式员工", typePartTime: "兼职", typeTemporary: "临时工",
     caLeaveSub: "年假 / 病假 / 事假 / 培训 / 出差统一在这里审批,每条请求都有留言板可与员工沟通",
     settingsSub: "公司资料与员工邀请码管理",
@@ -1369,7 +1374,8 @@ const i18n = {
     colCompany: "Company", colPlan: "Subscription", colEmployees: "Employees", churn: "Churn rate",
     adsSub: "Banner ads only — no popups, no fullscreen ads.",
     navSettings: "Settings",
-    colType: "Employment type", colMonthHoursShort: "Hours this month",
+    colType: "Employment type", colMonthHoursShort: "Hours this month", colTodayHoursShort: "Hours today",
+    refreshEmployeeHoursNow: "Refresh hours now", refreshedJustNow: "Refreshed",
     typeFullTime: "Full-time", typePartTime: "Part-time", typeTemporary: "Temporary",
     caLeaveSub: "Annual, sick, personal, training and business-trip requests all live here, each with a message thread to the employee",
     settingsSub: "Company profile and employee invitation codes",
@@ -1994,6 +2000,8 @@ async function refreshRealAttendanceData() {
   }
   realAttendanceSessions = sessions;
 
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayEnd = new Date(todayStart.getFullYear(), todayStart.getMonth(), todayStart.getDate() + 1);
   const weekStart = startOfWeek(now);
   const monthStart = startOfMonth(now);
   const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
@@ -2001,7 +2009,13 @@ async function refreshRealAttendanceData() {
   const employeeIds = new Set(realAttendanceSessions.map(s => s.employeeId));
   realAttendanceHoursByEmployeeId = {};
   employeeIds.forEach(employeeId => {
+    // Bug 修复(用户明确反馈:"员工管理这张表只有本周、本月,没有今日工作时间"):
+    // 以前这里只算了 week/month 两个分桶,"员工管理"列表完全没有地方能看到"今天"这
+    // 一位员工已经工作了多久——管理员想知道"今天谁在上班、上了多久",只能自己脑内
+    // 拿本周工时去猜,不准确也不直观。这里补上 today 分桶,和员工自己仪表盘"今日已
+    // 工作"用的是同一个 sumRealHoursForEmployee() 计算逻辑,数字保证一一对应。
     realAttendanceHoursByEmployeeId[employeeId] = {
+      today: sumRealHoursForEmployee(employeeId, todayStart, todayEnd),
       week: sumRealHoursForEmployee(employeeId, weekStart, weekEnd),
       month: sumRealHoursForEmployee(employeeId, monthStart, monthEnd),
     };
@@ -2147,7 +2161,7 @@ function renderEmployeeTable() {
   const dict = i18n[currentLang];
   tbody.innerHTML = "";
   if (!employees.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-2);padding:18px;">' + dict.noEmployeesYet + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-2);padding:18px;">' + dict.noEmployeesYet + '</td></tr>';
     return;
   }
   employees.forEach(emp => {
@@ -2164,6 +2178,7 @@ function renderEmployeeTable() {
     // Bug 修复:分别用 refreshRealAttendanceHours() 算出来的真实周/月工时,不再是
     // 同一个 hoursText 用在两栏——之前两栏数字永远相同,也永远是这台设备本地的假象。
     const realHours = emp.backendId ? realAttendanceHoursByEmployeeId[emp.backendId] : null;
+    const todayHoursText = emp.status === "active" ? (realHours ? realHours.today.toFixed(2) : "0.00") + "h" : "—";
     const weekHoursText = emp.status === "active" ? (realHours ? realHours.week.toFixed(1) : "0.0") + "h" : "—";
     const monthHoursText = emp.status === "active" ? (realHours ? realHours.month.toFixed(1) : "0.0") + "h" : "—";
     const row = document.createElement("tr");
@@ -2180,6 +2195,7 @@ function renderEmployeeTable() {
       '<td>' + roleLabel + '</td>' +
       '<td>' + typeBadge + '</td>' +
       '<td>' + statusBadge + '</td>' +
+      '<td>' + todayHoursText + '</td>' +
       '<td>' + weekHoursText + '</td>' +
       '<td>' + monthHoursText + '</td>' +
       '<td>' + actionsHtml + '</td>';
@@ -2297,6 +2313,26 @@ function renderEmployeeTable() {
 }
 
 document.getElementById("btnAddEmployee").addEventListener("click", () => openModal("modal-add-employee"));
+
+/**
+ * Bug 修复(用户明确反馈:"管理员这边看不到员工工作时间变化,这是重大错误"):除了每
+ * 20 秒自动轮询之外,再给管理员一个可以自己主动点、立刻见效的按钮——不用凭感觉去
+ * 猜"是不是该等一会儿""是不是浏览器缓存了旧页面",点一下这个按钮,能立刻确认这次
+ * 部署有没有真的生效、数字有没有真的从数据库里重新拉一遍。
+ */
+document.getElementById("btnRefreshEmployeeHours").addEventListener("click", async () => {
+  const btn = document.getElementById("btnRefreshEmployeeHours");
+  const notice = document.getElementById("employeeHoursRefreshedNotice");
+  btn.disabled = true;
+  await Promise.all([syncEmployeesFromBackend(), refreshRealAttendanceData()]);
+  btn.disabled = false;
+  if (notice) {
+    notice.textContent = (i18n[currentLang].refreshedJustNow || "已刷新") + " " +
+      new Date().toLocaleTimeString(currentLang === "zh" ? "zh-CN" : "en-GB");
+    notice.classList.remove("hidden");
+    setTimeout(() => notice.classList.add("hidden"), 4000);
+  }
+});
 
 document.getElementById("form-add-employee").addEventListener("submit", async e => {
   e.preventDefault();
