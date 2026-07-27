@@ -427,6 +427,8 @@
             <span><span class="dot" style="background:#B8863C;"></span><span data-i18n="gpsLegendStopped">短暂停留</span></span>
             <span><span class="dot" style="background:#B23A4E;"></span><span data-i18n="gpsLegendFlagged">异常停留(仅提示,非自动判违规)</span></span>
           </div>
+          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportWageTitle">今日工时与工资成本</div>
+          <table class="data-table" id="gpsWageTable"></table>
         </div>
         <div class="glass ca-section" id="ca-attendance" style="display:none;margin-top:20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -440,7 +442,7 @@
         </div>
         <div class="glass ca-section" id="ca-inventory" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navInventory">智能库存</h2>
-          <p class="section-sub" data-i18n="inventorySub">系统按近 14 天的消耗速率自动预测断货天数与建议采购量,近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过"记录流水"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。</p>
+          <p class="section-sub" data-i18n="inventorySub">库存不足提醒只依据您设置的"进货阈值"(不再自动估算断货天数),近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过"记录流水"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。</p>
           <div class="metric-grid" id="inventorySummaryCards" style="margin-bottom:14px;"></div>
           <div id="inventoryInsights"></div>
 
@@ -452,7 +454,6 @@
             <div style="display:flex;gap:6px;flex-wrap:wrap;" id="invStatusFilterGroup">
               <button class="btn btn-outline inv-status-filter-btn active" data-status-filter="" style="height:36px;padding:0 12px;font-size:12px;" data-i18n="invFilterAll">全部</button>
               <button class="btn btn-outline inv-status-filter-btn" data-status-filter="LOW_STOCK" style="height:36px;padding:0 12px;font-size:12px;" data-i18n="statusLowStock">库存不足</button>
-              <button class="btn btn-outline inv-status-filter-btn" data-status-filter="OVERSTOCK" style="height:36px;padding:0 12px;font-size:12px;" data-i18n="statusOverstock">库存积压</button>
               <button class="btn btn-outline inv-status-filter-btn" data-status-filter="NORMAL" style="height:36px;padding:0 12px;font-size:12px;" data-i18n="statusNormalStock">正常</button>
             </div>
           </div>
@@ -1177,14 +1178,11 @@ const i18n = {
     seedCategoryTemplate: "一键生成示例分类",
     confirmSeedTemplate: "将会创建「鱼类/Poke Bowl消耗品/寿司消耗品/热食/包装盒/配料消耗品」这 6 个大类及其常见子类(已存在的会自动跳过,不会重复创建,也不会影响您已经改过的名字)。是否继续?",
     colItemName: "商品名称",
-    colCurrentQty: "当前库存", colDaysLeft: "预计断货天数", colSuggestedReorder: "建议采购量", daysUnit: "天",
-    statusLowStock: "库存不足", statusOverstock: "库存积压", statusNormalStock: "正常",
+    colCurrentQty: "当前库存", colSuggestedReorder: "建议采购量",
+    statusLowStock: "库存不足", statusNormalStock: "正常",
     viewTransactionHistory: "查看流水记录", hideTransactionHistory: "收起流水记录", noTransactionsYet: "暂无流水记录",
     noInsights: "暂无需要关注的库存提醒,一切正常。",
-    insightLowStockWithQty: function (name, days, qty, unit) { return name + "库存预计 " + days + " 天后不足,建议采购 " + qty + " " + unit + "。"; },
-    insightLowStockDaysOnly: function (name, days) { return name + "库存预计 " + days + " 天后不足,历史消耗数据不足,暂无法给出具体建议采购量。"; },
     insightLowStockThresholdOnly: function (name, qty, unit) { return name + "库存(" + qty + " " + unit + ")已低于设定的补货阈值,建议尽快采购。"; },
-    insightOverstock: function (name, days, pauseDays) { return name + "目前库存可支撑约 " + days + " 天,明显高于正常水位,建议暂停采购约 " + pauseDays + " 天(或用促销/内部消耗加快周转),以减少资金占用。"; },
     insightWaste: function (name, ratioPct) { return name + "最近 30 天的浪费占消耗量的 " + ratioPct + "%,建议排查储存或采购批量是否合理。"; },
     fieldPackSize: "每箱/包数量(可选)", fieldPackUnitLabel: "箱/包单位标签",
     packSizeHint: "不是每个商品都按箱管理:填了“每箱数量”,库存和采购建议会顺带换算成箱数;留空就只按上面的单位显示。",
@@ -1210,7 +1208,7 @@ const i18n = {
     insightQuality: function (name, ratioPct) { return name + "最近 30 天入库验收中,有 " + ratioPct + "% 的批次存在质量问题(轻微瑕疵/不合格),建议与供应商核实或更换供应渠道。"; },
     pageInfo: function (current, total) { return "第 " + current + " / " + total + " 页"; },
     prevPage: "上一页", nextPage: "下一页", noResultsFound: "没有符合条件的商品。",
-    metricTotalItems: "商品总数", metricLowStock: "库存不足", metricOverstock: "库存积压", metricQualityAlert: "质量预警",
+    metricTotalItems: "商品总数", metricLowStock: "库存不足", metricQualityAlert: "质量预警",
     navDailyReport: "每日经营报告",
     dailyReportSub: "整合当天的 GPS 异常停留、员工工时与工资成本、库存预警,老板打开 App 30 秒内就能看到今天需要关注什么。以下算法与后端 ReportsModule/GpsModule/PayrollModule 完全一致,只是用的是演示假数据。",
     dailyReportGpsTitle: "GPS 异常停留", dailyReportGpsSub: "连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)",
@@ -1355,7 +1353,7 @@ const i18n = {
     fieldAdjustmentLabel: "Description", fieldAdjustmentAmount: "Amount (EUR, use negative for a deduction)", submitAddAdjustment: "Add adjustment",
     noLeaveRequestsYet: "No leave requests yet",
     navInventory: "Smart Inventory",
-    inventorySub: "The system predicts days-until-stockout and a suggested reorder quantity from the last 14 days of consumption, and flags waste separately when it exceeds 10% of consumption over the last 30 days. Stock quantity only changes via \"Record transaction\" (receipt/consumption/waste/adjustment) — there's no way to edit the number directly, so every change stays traceable.",
+    inventorySub: "Low-stock alerts are based only on the reorder threshold you set (no more auto-estimated days-until-stockout), and waste is flagged separately when it exceeds 10% of consumption over the last 30 days. Stock quantity only changes via \"Record transaction\" (receipt/consumption/waste/adjustment) — there's no way to edit the number directly, so every change stays traceable.",
     addInventoryItem: "+ Add inventory item", editItem: "Edit item", submitAddItem: "Save",
     fieldSku: "SKU", fieldItemName: "Item name", fieldCategory: "Category (optional)", fieldUnit: "Unit",
     fieldReorderThreshold: "Reorder threshold (optional)", fieldReorderQuantity: "Suggested reorder (optional)", fieldLeadTimeDays: "Lead time (days)",
@@ -1391,14 +1389,11 @@ const i18n = {
     seedCategoryTemplate: "Generate suggested categories",
     confirmSeedTemplate: "This will create 6 top categories (Fish / Poke Bowl supplies / Sushi supplies / Hot food / Packaging / Condiments) with their common sub-categories. Existing ones (including anything you've already renamed) will be skipped automatically. Continue?",
     colItemName: "Item",
-    colCurrentQty: "Current stock", colDaysLeft: "Days until stockout", colSuggestedReorder: "Suggested reorder", daysUnit: "days",
-    statusLowStock: "Low stock", statusOverstock: "Overstocked", statusNormalStock: "Normal",
+    colCurrentQty: "Current stock", colSuggestedReorder: "Suggested reorder",
+    statusLowStock: "Low stock", statusNormalStock: "Normal",
     viewTransactionHistory: "View transaction history", hideTransactionHistory: "Hide transaction history", noTransactionsYet: "No transactions yet",
     noInsights: "No inventory alerts right now — everything looks fine.",
-    insightLowStockWithQty: function (name, days, qty, unit) { return name + " is projected to run out in " + days + " day(s) — suggest ordering " + qty + " " + unit + "."; },
-    insightLowStockDaysOnly: function (name, days) { return name + " is projected to run out in " + days + " day(s), but there isn't enough consumption history yet to suggest a specific reorder quantity."; },
     insightLowStockThresholdOnly: function (name, qty, unit) { return name + " stock (" + qty + " " + unit + ") is below its reorder threshold — suggest ordering soon."; },
-    insightOverstock: function (name, days, pauseDays) { return name + " currently has about " + days + " day(s) of supply on hand, well above the normal level — suggest pausing purchases for about " + pauseDays + " day(s) (or use a promotion/internal use to speed up turnover) to free up cash."; },
     insightWaste: function (name, ratioPct) { return "Waste for " + name + " over the last 30 days is " + ratioPct + "% of consumption — worth checking storage or order batch sizes."; },
     fieldPackSize: "Units per box/pack (optional)", fieldPackUnitLabel: "Box/pack unit label",
     packSizeHint: "Not every product is managed by the box — set \"units per box\" and stock/reorder suggestions will also show a box count; leave it blank to just use the unit above (same as before).",
@@ -1424,7 +1419,7 @@ const i18n = {
     insightQuality: function (name, ratioPct) { return name + ": over the last 30 days, " + ratioPct + "% of received batches had quality issues (minor issue/rejected) — worth checking with the supplier or switching sources."; },
     pageInfo: function (current, total) { return "Page " + current + " of " + total; },
     prevPage: "Previous", nextPage: "Next", noResultsFound: "No items match your filters.",
-    metricTotalItems: "Total items", metricLowStock: "Low stock", metricOverstock: "Overstocked", metricQualityAlert: "Quality alerts",
+    metricTotalItems: "Total items", metricLowStock: "Low stock", metricQualityAlert: "Quality alerts",
     navDailyReport: "Daily Report",
     dailyReportSub: "Rolls up today's GPS dwell anomalies, employee hours and wage cost, and inventory alerts — the owner can see what needs attention within 30 seconds of opening the app. The logic below matches the backend ReportsModule/GpsModule/PayrollModule exactly, just with demo data.",
     dailyReportGpsTitle: "GPS dwell anomalies", dailyReportGpsSub: "20+ consecutive minutes below 3 km/h counts as one dwell anomaly (advisory only, never an automatic violation)",
@@ -1731,6 +1726,7 @@ function applyI18n() {
   renderCaDashboardMetrics();
   renderInventoryTable();
   renderDailyReport();
+  renderGpsWageTable();
   // 未登录(比如还停留在首页)时 currentEmployeeName() 是 null,这些展示函数各自都能
   // 正确处理 null(显示"—"/空状态),不会报错,所以这里不需要额外判断再调用。
   updateLeaveBalanceDisplays(currentEmployeeName());
@@ -1792,9 +1788,11 @@ function employmentTypeLabel(dict, type) {
     打卡记录"近似代表"本周"、"本月"两栏,足够说明数据是联动的;真实后端会按自然周/
     自然月边界精确统计。 */
 function sumEmployeeAttendanceHours(employeeName) {
-  return attendanceRecords
+  const finalizedHours = attendanceRecords
     .filter(rec => rec.employeeName === employeeName && !rec.voided)
     .reduce((total, rec) => total + parseFloat(rec.hours || 0), 0);
+  // 加上"打卡中、还没下班"的这段进行中工时,原因见 liveInProgressHoursFor() 上面的注释。
+  return finalizedHours + liveInProgressHoursFor(employeeName);
 }
 
 /**
@@ -2353,7 +2351,7 @@ function wireNavRail(prefix, viewId) {
       item.classList.add("active");
       document.querySelectorAll('#' + viewId + ' [id^="' + prefix + '-"]').forEach(sec => sec.style.display = "none");
       document.getElementById(item.dataset.section).style.display = "block";
-      if (item.dataset.section === "ca-gps") { initGpsMap(); }
+      if (item.dataset.section === "ca-gps") { initGpsMap(); renderGpsWageTable(); }
       // 每次点进"智能库存"都从后端重新拉一次最新数据(商品/分类/预警),而不是只在
       // 登录那一刻拉一次——员工随时可能在手机上补货消耗库存,管理员切回这个页面时
       // 应该看到当下真实的数字,不是登录那一刻的旧快照。
@@ -2391,7 +2389,13 @@ clockBtn.addEventListener("click", () => {
   clockBtn.classList.toggle("clocked-in", clockedIn);
   if (clockedIn) {
     currentClockInAt = new Date();
-    timerHandle = setInterval(() => { elapsedSeconds++; timerEl.textContent = formatElapsed(elapsedSeconds); }, 1000);
+    // 每秒不仅刷新"今日已工作"这个秒表,也顺带刷新"本周工时/本月工时/工资摘要"三张卡片——
+    // 否则打卡中这段时间秒表在走、其他卡片却像是没反应,容易让人以为打卡没生效。
+    timerHandle = setInterval(() => {
+      elapsedSeconds++;
+      timerEl.textContent = formatElapsed(elapsedSeconds);
+      updateEmployeeSummaryCards();
+    }, 1000);
   } else {
     clearInterval(timerHandle);
     const employeeName = currentEmployeeName();
@@ -3147,10 +3151,10 @@ document.getElementById("form-correct-attendance").addEventListener("submit", e 
 
 /* ---------- 智能库存:分类(inventory_categories)+ SKU 档案 + 只增不改的流水 ----------
    已连接真实后端(InventoryModule / InventoryCategoryService,见 backend/src/modules/inventory/):
-   分类清单、商品列表、断货天数/建议采购量/库存状态、以及低库存/积压/浪费/质量预警,
-   全部由后端计算并通过 GET .../inventory/categories、GET .../inventory/items、
-   GET .../inventory/insights 三个接口返回,前端不再重复计算这套算法、也不再用
-   本地演示数据——分类清单完全由公司管理员自己在下面的"分类管理"里维护,不写死在代码里。 */
+   分类清单、商品列表、库存状态(只依据管理员手动填写的进货阈值判断,不再自动预测断货
+   天数)、建议采购量、以及低库存/浪费/质量预警,全部由后端计算并通过 GET .../inventory/categories、
+   GET .../inventory/items、GET .../inventory/insights 三个接口返回,前端不再重复计算这套算法、
+   也不再用本地演示数据——分类清单完全由公司管理员自己在下面的"分类管理"里维护,不写死在代码里。 */
 const INV_PAGE_SIZE = 4;
 /** 搜索/分类/状态筛选 + 当前页码——都是纯前端状态,不影响从后端拉回来的 inventoryItems 本身。 */
 let invSearchQuery = "";
@@ -3158,15 +3162,17 @@ let invCategoryFilter = ""; // 现在存的是 categoryId(大类或子类的 id)
 let invStatusFilter = "";
 let invCurrentPage = 1;
 
-let inventoryItems = []; // 每一项就是后端 InventoryItemView——status/daysUntilStockout/建议采购量都已经算好
+let inventoryItems = []; // 每一项就是后端 InventoryItemView——status(只依据进货阈值)/建议采购量都已经算好
 let inventoryCategoryTree = []; // GET .../inventory/categories?includeInactive=true 的树状结果(含已停用的,方便管理员重新启用)
-let inventoryInsightsData = { lowStockAlerts: [], overstockAlerts: [], wasteAlerts: [], qualityAlerts: [] };
+let inventoryInsightsData = { lowStockAlerts: [], wasteAlerts: [], qualityAlerts: [] };
 let inventorySyncInFlight = false; // 避免短时间内重复点击导致同时发出好几个相同的同步请求
 
-/** 后端已经把断货天数/状态/建议采购量都算好了,这里只是保留同一个函数名字方便调用方不用大改。 */
+/** 后端已经把状态/建议采购量都算好了,这里只是保留同一个函数名字方便调用方不用大改。
+    应用户要求,库存状态不再基于历史消耗速率自动估算断货天数,只依据管理员手动填写的
+    进货阈值(reorderThreshold)判断,所以这里不再有 daysUntilStockout/avgDailyConsumption
+    这两个字段,也没有 OVERSTOCK 状态。 */
 function computeInventoryView(item) {
   return {
-    daysUntilStockout: item.daysUntilStockout,
     status: item.status,
     suggestedReorderQuantity: item.suggestedReorderQuantity,
     currentQuantityInPacks: item.currentQuantityInPacks,
@@ -3240,7 +3246,6 @@ function renderInventoryInsights(containerId) {
   const data = inventoryInsightsData || {};
   const all = []
     .concat((data.lowStockAlerts || []).map(a => ({ type: "low-stock", icon: "⚠️", msg: a.message })))
-    .concat((data.overstockAlerts || []).map(a => ({ type: "overstock", icon: "📦", msg: a.message })))
     .concat((data.wasteAlerts || []).map(a => ({ type: "waste", icon: "♻️", msg: a.message })))
     .concat((data.qualityAlerts || []).map(a => ({ type: "quality", icon: "🔍", msg: a.message })));
   container.innerHTML = all.length
@@ -3260,9 +3265,8 @@ function buildInventorySpecLabel(item, dict) {
 function buildInventoryRowHtml(item) {
   const dict = i18n[currentLang];
   const view = computeInventoryView(item);
-  const statusBadgeClass = view.status === "LOW_STOCK" ? "danger" : (view.status === "OVERSTOCK" ? "warning" : "success");
-  const statusLabel = view.status === "LOW_STOCK" ? dict.statusLowStock : (view.status === "OVERSTOCK" ? dict.statusOverstock : dict.statusNormalStock);
-  const daysLabel = view.daysUntilStockout !== null ? (view.daysUntilStockout + " " + dict.daysUnit) : "—";
+  const statusBadgeClass = view.status === "LOW_STOCK" ? "danger" : "success";
+  const statusLabel = view.status === "LOW_STOCK" ? dict.statusLowStock : dict.statusNormalStock;
 
   let currentQtyLabel = item.currentQuantity + " " + item.unit;
   if (view.currentQuantityInPacks !== null) {
@@ -3281,7 +3285,6 @@ function buildInventoryRowHtml(item) {
     "<td>" + buildInventorySpecLabel(item, dict) + "</td>" +
     "<td>" + currentQtyLabel + "</td>" +
     '<td><span class="badge ' + statusBadgeClass + '">' + statusLabel + "</span></td>" +
-    "<td>" + daysLabel + "</td>" +
     "<td>" + suggestedLabel + "</td>" +
     '<td><div style="display:flex;gap:6px;flex-wrap:wrap;">' +
       '<button class="btn btn-primary" style="height:30px;padding:0 10px;font-size:12px;" data-record-transaction="' + item.id + '">' + dict.recordTransaction + "</button>" +
@@ -3463,11 +3466,10 @@ function populateInventoryCategoryFilter() {
     options.map(opt => '<option value="' + opt.id + '"' + (opt.id === currentValue ? " selected" : "") + ">" + opt.label + "</option>").join("");
 }
 
-/** 状态排序优先级:库存不足最该被看到,其次是积压,最后才是正常——商品一多,管理员真正想先看到的永远是"有问题的"。 */
+/** 状态排序优先级:库存不足最该被看到,商品一多,管理员真正想先看到的永远是"有问题的"。 */
 function inventoryStatusSortWeight(status) {
   if (status === "LOW_STOCK") return 0;
-  if (status === "OVERSTOCK") return 1;
-  return 2;
+  return 1;
 }
 
 /** 顶部统计卡片:先给一个数字概览,不用把几十上百条商品都看一遍才知道"现在有几个问题"。 */
@@ -3476,12 +3478,10 @@ function renderInventorySummaryCards(allActiveItems) {
   if (!container) return;
   const dict = i18n[currentLang];
   const lowStockCount = allActiveItems.filter(item => item.status === "LOW_STOCK").length;
-  const overstockCount = allActiveItems.filter(item => item.status === "OVERSTOCK").length;
   const qualityCount = ((inventoryInsightsData || {}).qualityAlerts || []).length;
   container.innerHTML =
     '<div class="metric-card"><div class="metric-label">' + dict.metricTotalItems + '</div><div class="metric-value">' + allActiveItems.length + "</div></div>" +
     '<div class="metric-card"><div class="metric-label">' + dict.metricLowStock + '</div><div class="metric-value">' + lowStockCount + "</div></div>" +
-    '<div class="metric-card"><div class="metric-label">' + dict.metricOverstock + '</div><div class="metric-value">' + overstockCount + "</div></div>" +
     '<div class="metric-card"><div class="metric-label">' + dict.metricQualityAlert + '</div><div class="metric-value">' + qualityCount + "</div></div>";
 }
 
@@ -3532,7 +3532,7 @@ function renderInventoryTable() {
   const emptyMessage = allActiveItems.length === 0 ? dict.empInventoryNoItems : dict.noResultsFound;
   const rowsHtml = pageItems.length
     ? pageItems.map(item => buildInventoryRowHtml(item)).join("")
-    : '<tr><td colspan="7" style="text-align:center;color:var(--text-2);">' + emptyMessage + "</td></tr>";
+    : '<tr><td colspan="6" style="text-align:center;color:var(--text-2);">' + emptyMessage + "</td></tr>";
 
   container.innerHTML =
     '<table class="data-table">' +
@@ -3541,7 +3541,6 @@ function renderInventoryTable() {
         "<th>" + dict.colSpec + "</th>" +
         "<th>" + dict.colCurrentQty + "</th>" +
         "<th>" + dict.colStatus + "</th>" +
-        "<th>" + dict.colDaysLeft + "</th>" +
         "<th>" + dict.colSuggestedReorder + "</th>" +
         "<th>" + dict.colActions + "</th>" +
       "</tr></thead>" +
@@ -3910,8 +3909,8 @@ document.getElementById("btnSeedInventoryCategoryTemplate").addEventListener("cl
 function buildEmpInventoryWithdrawRowHtml(item) {
   const dict = i18n[currentLang];
   const view = computeInventoryView(item);
-  const statusBadgeClass = view.status === "LOW_STOCK" ? "danger" : (view.status === "OVERSTOCK" ? "warning" : "success");
-  const statusLabel = view.status === "LOW_STOCK" ? dict.statusLowStock : (view.status === "OVERSTOCK" ? dict.statusOverstock : dict.statusNormalStock);
+  const statusBadgeClass = view.status === "LOW_STOCK" ? "danger" : "success";
+  const statusLabel = view.status === "LOW_STOCK" ? dict.statusLowStock : dict.statusNormalStock;
   let currentQtyLabel = item.currentQuantity + " " + item.unit;
   if (view.currentQuantityInPacks !== null) {
     currentQtyLabel += " " + dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
@@ -4087,8 +4086,23 @@ function hourlyRateCentsFor(employeeName) {
   return emp ? (emp.hourlyRateCents || 0) : 0;
 }
 
+/**
+ * Bug 修复:员工上班打卡后,"今日已工作"那个秒表在走,但"本周工时/本月工时/工资摘要"
+ * 一直显示 0——因为这几张卡片的数据来自 attendanceRecords,而一条打卡记录只有在
+ * "下班打卡"那一刻才会被真正写进 attendanceRecords(见 clockBtn 的点击处理逻辑),
+ * 打卡中(还没下班)的这段时间此前完全不计入任何统计,看起来就像打卡没生效。
+ * 现在:如果这名员工正是"当前登录、还在打卡中"的这个人,把这段进行中的工时也实时
+ * 计算进来(演示环境同一时间只会有一个人登录,所以只有登录者自己会命中这个分支;
+ * 真实后端可以按"有 clock_in 时间但 clock_out 为空"的进行中会话做同样的实时统计)。
+ */
+function liveInProgressHoursFor(employeeName) {
+  if (!clockedIn || !currentClockInAt) return 0;
+  if (currentEmployeeName() !== employeeName) return 0;
+  return (Date.now() - currentClockInAt.getTime()) / (60 * 60 * 1000);
+}
+
 function computeDailyWageCost() {
-  return attendanceRecords
+  const rows = attendanceRecords
     .filter(rec => !rec.voided) // 作废的记录不计入工资成本,和考勤模块的规则一致
     .map(rec => {
       const hours = parseFloat(rec.hours);
@@ -4104,6 +4118,25 @@ function computeDailyWageCost() {
         costCents: regularCostCents + overtimeCostCents
       };
     });
+
+  // 把"打卡中、还没下班"的这段进行中工时,当作一条虚拟记录一并汇总进去。
+  if (clockedIn && currentClockInAt) {
+    const employeeName = currentEmployeeName();
+    const liveHours = liveInProgressHoursFor(employeeName);
+    if (employeeName && liveHours > 0) {
+      const rateCents = hourlyRateCentsFor(employeeName);
+      const regularHours = Math.min(liveHours, 8);
+      const overtimeHours = Math.max(liveHours - 8, 0);
+      rows.push({
+        employeeName,
+        regularHours,
+        overtimeHours,
+        costCents: Math.round(regularHours * rateCents) + Math.round(overtimeHours * rateCents * 1.5)
+      });
+    }
+  }
+
+  return rows;
 }
 
 /** 把 computeDailyWageCost() 按员工姓名汇总(一个员工可能有好几条打卡记录),
@@ -4206,9 +4239,14 @@ document.getElementById("form-payroll-adjustment").addEventListener("submit", e 
   closeModal(document.getElementById("modal-payroll-adjustment"));
 });
 
-function renderDailyReportWageTable() {
+/** 今日工时与工资成本表格——每日经营报告、GPS 看板两处都会用到同一份数据和同一套算法,
+    只是挂载的表格 id 不同,传进来的 tableId 决定渲染到哪一个 <table> 上。
+    Bug 反馈:"GPS看板还是没有工资"——GPS 看板以前只有地图,没有任何工时/工资信息,
+    现在直接把这张表格加到 GPS 看板页面里,和"每日经营报告"页面共用同一份实时数据
+    (包括打卡中还没下班这段进行中的工时,见 computeDailyWageCost() 里的说明)。 */
+function renderWageTable(tableId) {
   const dict = i18n[currentLang];
-  const table = document.getElementById("dailyReportWageTable");
+  const table = document.getElementById(tableId);
   if (!table) return;
   const rows = computeDailyWageCost();
   let totalCostCents = 0;
@@ -4221,9 +4259,13 @@ function renderDailyReportWageTable() {
   table.innerHTML = html;
 }
 
+function renderGpsWageTable() {
+  renderWageTable("gpsWageTable");
+}
+
 function renderDailyReport() {
   renderDailyReportGps();
-  renderDailyReportWageTable();
+  renderWageTable("dailyReportWageTable");
   renderInventoryInsights("dailyReportInventoryList");
 }
 
