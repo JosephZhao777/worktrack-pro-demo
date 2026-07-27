@@ -1194,6 +1194,7 @@ const i18n = {
     totalHours: "工时", clockInTime: "上班", clockOutTime: "下班",
     addAttendanceRecord: "+ 补录打卡", addAttendanceSub: "用于员工忘记打卡、系统故障等情况下,由管理员手动补一条记录;正常的每日打卡不需要用到这里。",
     fieldAttendanceDate: "日期", submitAddAttendance: "补录这条记录", addAttendanceInvalidRange: "下班时间必须晚于上班时间",
+    backfillOverlapError: "这段时间和这名员工已有的打卡记录重叠,请检查时间是否填错",
     noAttendanceYet: "暂无考勤记录,员工上班打卡后会显示在这里,也可以点击「补录打卡」手动添加",
     noEmployeesYet: "暂无员工,点击「添加员工」开始,或等待员工凭邀请码自行注册",
     editHourlyRate: "调整时薪", editHourlyRatePrompt: "请输入这名员工的新时薪(欧元/小时):",
@@ -1278,7 +1279,7 @@ const i18n = {
     dailyReportWageTitle: "今日工时与工资成本", dailyReportInventoryTitle: "库存提醒",
     noGpsAnomalies: "今天没有检测到异常停留,配送情况正常。",
     gpsAnomalyMessage: function (name, start, end, minutes) { return name + " 在 " + start + " 至 " + end + "(共 " + minutes + " 分钟)几乎没有移动,存在异常停留,建议核实是否配送延误、路况拥堵或其他情况;如果同一路段反复出现异常停留,建议考虑调整配送路线。"; },
-    missingWageConfigNotice: function (names) { return "以下员工今天有打卡记录,但还没有设置时薪,暂未计入工资成本:" + names + "——请去\"员工管理\"点\"编辑时薪\"补上。"; },
+    missingWageConfigNotice: function (names) { return "以下员工在这段时间内有打卡记录,但还没有设置时薪,暂未计入工资成本:" + names + "——请去\"员工管理\"点\"编辑时薪\"补上。"; },
     colWageCost: "工资成本", totalRow: "合计",
     navAccountSettings: "账号设置",
     accountSecurity: "账号安全", accountSecuritySub: "您可以随时修改自己的登录密码。",
@@ -1419,6 +1420,7 @@ const i18n = {
     totalHours: "Hours", clockInTime: "Clock in", clockOutTime: "Clock out",
     addAttendanceRecord: "+ Add attendance record", addAttendanceSub: "For cases like a forgotten clock-in/out or a system issue — an admin can manually add a record; normal daily clock-in/out doesn't need this.",
     fieldAttendanceDate: "Date", submitAddAttendance: "Add this record", addAttendanceInvalidRange: "Clock-out time must be later than clock-in time",
+    backfillOverlapError: "This time range overlaps with an existing attendance record for this employee — please check the times",
     noAttendanceYet: "No attendance records yet — they'll appear here once employees clock in, or you can add one manually via \"Add attendance record\"",
     noEmployeesYet: "No employees yet — click \"Add employee\" to start, or wait for employees to self-register with an invite code",
     editHourlyRate: "Edit hourly rate", editHourlyRatePrompt: "Enter this employee's new hourly rate (EUR/hour):",
@@ -1503,7 +1505,7 @@ const i18n = {
     dailyReportWageTitle: "Today's hours & wage cost", dailyReportInventoryTitle: "Inventory alerts",
     noGpsAnomalies: "No dwell anomalies detected today — deliveries look normal.",
     gpsAnomalyMessage: function (name, start, end, minutes) { return name + " barely moved from " + start + " to " + end + " (" + minutes + " minutes) — worth checking whether this was a delivery delay, traffic, or something else. If the same stretch keeps flagging, consider adjusting the delivery route."; },
-    missingWageConfigNotice: function (names) { return "These employees clocked in today but don't have an hourly rate set yet, so they're not included in the wage cost: " + names + " — set a rate for them under \"Employees\" (\"Edit rate\")."; },
+    missingWageConfigNotice: function (names) { return "These employees clocked in during this period but don't have an hourly rate set yet, so they're not included in the wage cost: " + names + " — set a rate for them under \"Employees\" (\"Edit rate\")."; },
     colWageCost: "Wage cost", totalRow: "Total",
     navAccountSettings: "Account settings",
     accountSecurity: "Account security", accountSecuritySub: "You can change your own login password anytime.",
@@ -1673,12 +1675,16 @@ async function syncCompanyProfileFromBackend(companyId) {
 
 /* ---------- 演示数据持久化(localStorage) ----------
    Bug 修复:之前公司注册、员工注册全部只存在页面这一次运行的 JS 内存里——刷新页面、
-   关掉浏览器重开,employees/attendanceRecords/leaveRequests/companyAdminEmail 等等
-   全部会回到脚本里写的初始值,给人的感觉就是"注册了却什么都没发生,也登录不进去"。
+   关掉浏览器重开,employees/leaveRequests/companyAdminEmail 等等全部会回到脚本里
+   写的初始值,给人的感觉就是"注册了却什么都没发生,也登录不进去"。
    真实产品当然是靠后端数据库持久化(这也是这个项目同时在做的 NestJS 后端的职责),
-   但员工管理/考勤/工资/请假/库存/GPS 等模块这次仍然没有连接后端,所以这里继续用
-   浏览器自带的 localStorage 模拟"数据不会因为刷新页面而消失"——只在这一个浏览器里
-   生效,换设备/换浏览器仍然看不到,这一点和真正连接数据库的区别需要向用户说明清楚。
+   但员工列表本身(role/employmentType 等还没有后端字段的部分)、请假/库存分类
+   筛选状态等模块仍然只是本地展示层状态,所以这里继续用浏览器自带的 localStorage
+   模拟"数据不会因为刷新页面而消失"——只在这一个浏览器里生效,换设备/换浏览器仍然
+   看不到,这一点和真正连接数据库的区别需要向用户说明清楚。
+   考勤记录(attendanceRecords)、工资调整项(payrollAdjustments)这两份数据不再
+   存在这里——它们已经全部改成真实连接后端(见 refreshRealAttendanceData()/
+   renderPayrollTable()),本地不需要、也不应该再保留一份可能过期的快照。
    accessToken/refreshToken/currentUserId 等身份凭证这次也一并存进这里,方便刷新页面
    后不用重新登录——这是延续这份原型一直以来"localStorage 模拟持久化"的既有方式,
    和真实产品应该把 refreshToken 存在更安全的地方(如 httpOnly Cookie)是两回事,
@@ -1689,10 +1695,8 @@ function saveState() {
   try {
     const state = {
       employees, employeeIdCounter,
-      attendanceRecords, attendanceIdCounter,
       leaveRequests, leaveRequestIdCounter,
       leaveBalancesByEmployee, leaveTypeConfigs,
-      payrollAdjustments, payrollAdjustmentIdCounter,
       inviteCodeDirectory, currentCompanyInviteCode,
       companyAdminEmail, companyAdminDemoPassword, companyDisplayName, companySloganText,
       platformAdminEmail, platformAdminPassword,
@@ -1726,14 +1730,10 @@ function loadState() {
 
   if (Array.isArray(saved.employees)) { employees.length = 0; employees.push(...saved.employees); }
   if (typeof saved.employeeIdCounter === "number") employeeIdCounter = saved.employeeIdCounter;
-  if (Array.isArray(saved.attendanceRecords)) { attendanceRecords.length = 0; attendanceRecords.push(...saved.attendanceRecords); }
-  if (typeof saved.attendanceIdCounter === "number") attendanceIdCounter = saved.attendanceIdCounter;
   if (Array.isArray(saved.leaveRequests)) { leaveRequests.length = 0; leaveRequests.push(...saved.leaveRequests); }
   if (typeof saved.leaveRequestIdCounter === "number") leaveRequestIdCounter = saved.leaveRequestIdCounter;
   if (saved.leaveBalancesByEmployee && typeof saved.leaveBalancesByEmployee === "object") leaveBalancesByEmployee = saved.leaveBalancesByEmployee;
   if (saved.leaveTypeConfigs && typeof saved.leaveTypeConfigs === "object") leaveTypeConfigs = saved.leaveTypeConfigs;
-  if (Array.isArray(saved.payrollAdjustments)) { payrollAdjustments.length = 0; payrollAdjustments.push(...saved.payrollAdjustments); }
-  if (typeof saved.payrollAdjustmentIdCounter === "number") payrollAdjustmentIdCounter = saved.payrollAdjustmentIdCounter;
   if (saved.inviteCodeDirectory && typeof saved.inviteCodeDirectory === "object") Object.assign(inviteCodeDirectory, saved.inviteCodeDirectory);
   if (typeof saved.currentCompanyInviteCode === "string") currentCompanyInviteCode = saved.currentCompanyInviteCode;
   if (typeof saved.companyAdminEmail === "string") companyAdminEmail = saved.companyAdminEmail;
@@ -1780,38 +1780,78 @@ function currentEmployeeName() {
   return emp ? emp.name : null;
 }
 
-/** 员工仪表盘顶部"本周工时/本月工时/工资摘要/出勤率"四张卡片,全部基于当前真实登录
-    员工自己的考勤记录 + 时薪实时计算,和公司后台工资表(computeEmployeeWageSummary)
-    用的是同一套算法,不再是写死的静态数字。演示环境不区分"周"和"月"两个统计口径
-    (只有一份考勤记录数组,没有真实的自然周/月边界),这里两栏用的是同一份合计,
-    真实后端会按各自的时间窗口分别统计。 */
+/**
+ * 员工仪表盘顶部"本周工时/本月工时/工资摘要/出勤率"四张卡片。
+ *
+ * Bug 修复(用户明确要求:"员工工资管理,员工工时管理都要支持其它设备登录使用,
+ * 你再看看还有什么问题?都一起解决"):这四张卡片之前全部读浏览器本地的
+ * attendanceRecords 数组——换一台设备/清空浏览器数据,要么是空的要么是错的,和
+ * "员工管理"列表本周/本月工时列以前那个 bug 是同一类问题。现在统一改成基于
+ * realAttendanceSessions(真实后端考勤数据,见 refreshRealAttendanceData())+
+ * myWageConfig(真实后端时薪,见 refreshMyWageConfig())计算,并且用真实的
+ * currentUserId(登录时后端返回的真实用户 id)去过滤"我自己"的记录,不再依赖
+ * "本地 employees 数组里有没有记住这个人的 backendId"这种脆弱的匹配方式。
+ *
+ * "工资摘要"按自然日分桶算正常/加班工时(每日 8 小时封顶算加班),和公司后台
+ * PayrollService.getPeriodWageCost() 用的是同一套规则,只是这里用的是"当前生效"
+ * 这一份时薪——如果这个月中途调过薪,这里会用当前这份近似代表整个月(公司后台
+ * "工资管理"页面走的是真正按天查历史费率的后端接口,是精确的;员工自己看的这张
+ * 摘要卡片属于"够用的近似值",和旧版本的简化程度一致,这次的重点是把数据来源从
+ * 本地浏览器换成真实数据库,不属于这次请求范围内的额外增强)。
+ */
 function updateEmployeeSummaryCards() {
   const dict = i18n[currentLang];
   const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
   const employeeName = currentEmployeeName();
-  if (!employeeName) {
+  if (!employeeName || !currentUserId) {
     setText("empWeekHoursValue", "—");
     setText("empMonthHoursValue", "—");
     setText("empSalaryValue", "—");
     setText("empAttendanceRateValue", "—");
     return;
   }
-  const summary = computeEmployeeWageSummary(employeeName);
-  const records = attendanceRecords.filter(r => r.employeeName === employeeName);
-  const attendanceRate = records.length
-    ? Math.round((records.filter(r => !r.voided).length / records.length) * 100) + "%"
-    : "—"; // 还没有任何打卡记录时没有出勤率可算,不要显示一个假的 100%
-  // Bug 修复:这两张卡片以前叫"本周工时/本月工时",算法却是"这名员工历史上所有未作废
-  // 打卡记录的总和"——跟真正的自然周/自然月完全无关,员工工作满一个月之后这两个数字
-  // 会永远相等,一眼就能看出不对。现在改成按真实日期边界(周一到周日/自然月)统计。
   const today = new Date();
   const weekStart = startOfWeek(today);
   const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7);
   const monthStart = startOfMonth(today);
   const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
-  setText("empWeekHoursValue", sumEmployeeHoursInRange(employeeName, weekStart, weekEnd).toFixed(1) + "h");
-  setText("empMonthHoursValue", sumEmployeeHoursInRange(employeeName, monthStart, monthEnd).toFixed(1) + "h");
-  setText("empSalaryValue", "€" + (summary.totalCostCents / 100).toFixed(2));
+
+  setText("empWeekHoursValue", sumRealHoursForEmployee(currentUserId, weekStart, weekEnd).toFixed(1) + "h");
+  setText("empMonthHoursValue", sumRealHoursForEmployee(currentUserId, monthStart, monthEnd).toFixed(1) + "h");
+
+  if (myWageConfig && typeof myWageConfig.hourlyRateCents === "number") {
+    const secondsByDay = {};
+    realAttendanceSessions.forEach(s => {
+      if (s.employeeId !== currentUserId || s.voidedAt) return;
+      const clockInAt = new Date(s.clockInAt);
+      if (clockInAt < monthStart || clockInAt >= monthEnd) return;
+      const dayKey = clockInAt.toISOString().slice(0, 10);
+      let seconds = 0;
+      if (typeof s.totalSeconds === "number") seconds = s.totalSeconds;
+      else if (s.status === "OPEN") seconds = Math.max(0, (Date.now() - clockInAt.getTime()) / 1000);
+      secondsByDay[dayKey] = (secondsByDay[dayKey] || 0) + seconds;
+    });
+    let costCents = 0;
+    Object.keys(secondsByDay).forEach(dayKey => {
+      const dayHours = secondsByDay[dayKey] / 3600;
+      const regularHours = Math.min(dayHours, 8);
+      const overtimeHours = Math.max(dayHours - 8, 0);
+      costCents += Math.round(regularHours * myWageConfig.hourlyRateCents)
+        + Math.round(overtimeHours * myWageConfig.hourlyRateCents * (myWageConfig.overtimeMultiplier || 1.5));
+    });
+    setText("empSalaryValue", "€" + (costCents / 100).toFixed(2));
+  } else {
+    setText("empSalaryValue", "—"); // 还没有人给这名员工设置过时薪,不假装成 €0.00
+  }
+
+  const monthSessions = realAttendanceSessions.filter(s => {
+    if (s.employeeId !== currentUserId) return false;
+    const clockInAt = new Date(s.clockInAt);
+    return clockInAt >= monthStart && clockInAt < monthEnd;
+  });
+  const attendanceRate = monthSessions.length
+    ? Math.round((monthSessions.filter(s => !s.voidedAt).length / monthSessions.length) * 100) + "%"
+    : "—"; // 本月还没有任何打卡记录时没有出勤率可算,不要显示一个假的 100%
   setText("empAttendanceRateValue", attendanceRate);
 }
 
@@ -1889,6 +1929,111 @@ document.querySelectorAll("[data-back-home]").forEach(btn => btn.addEventListene
 let employeeIdCounter = 1000;
 const employees = [];
 
+/**
+ * Bug 修复(用户明确要求:"把员工工资管理,员工工时管理都修改了,都能够支持其它设备
+ * 登录使用...你再看看还有什么问题?都一起解决"):在这之前,"员工管理"列表的本周/
+ * 本月工时列已经改成从后端真实拉取(见下方 refreshRealAttendanceData),但"考勤记录"
+ * 页面(补录/更正/作废/恢复)、员工自己的仪表盘卡片(本周工时/本月工时/工资摘要/
+ * 出勤率)、"打卡明细"面板这三处,当时全都还在读浏览器本地的 attendanceRecords
+ * 数组——同样的"换一台设备/清空浏览器数据就看不到真实数据"问题,只是换了个地方
+ * 出现。这次把它们全部收拢到同一份真实数据源上,一次性解决,不再一处一处地补。
+ *
+ * realAttendanceSessions:公司在(现在往前推 ATTENDANCE_SYNC_WINDOW_DAYS 天)到
+ * (现在+1天)这个窗口内的全部原始打卡记录(后端 AttendanceModule 真实数据,字段和
+ * attendance_sessions 表完全一致:id/employeeId/clockInAt/clockOutAt/status/
+ * totalSeconds/voidedAt/voidReason/isRemoteClockin/distanceFromCompanyM)。
+ * 窗口选 90 天是因为:"打卡明细"面板最多看到"本月",工资管理最多按自然月汇总,
+ * 90 天足够覆盖这两者,又不会因为拉取全部历史记录导致列表随时间无限增长变慢——
+ * 这是这个演示环境下的合理简化,真实生产环境的"考勤记录"页面通常也会有分页/按
+ * 月份筛选,不会一次性把从建司起的所有记录都拉到前端。
+ */
+const ATTENDANCE_SYNC_WINDOW_DAYS = 90;
+let realAttendanceSessions = [];
+/** 从 realAttendanceSessions 派生出来的"员工管理"列表本周/本月工时,保留这个变量名字
+    是为了不用改 renderEmployeeTable() 里已经在用的读取方式。 */
+let realAttendanceHoursByEmployeeId = {};
+
+/** 把 realAttendanceSessions 里某个员工在 [rangeStart, rangeEndExclusive) 范围内的
+    真实工时加总(小时)。作废的记录不计入,"仍在打卡中"的记录折算到"现在"这一刻——
+    和旧版 sumEmployeeHoursInRange()/refreshRealAttendanceHours() 用的是同一套规则,
+    只是数据源从本地 attendanceRecords 换成了真实的 realAttendanceSessions。 */
+function sumRealHoursForEmployee(employeeBackendId, rangeStart, rangeEndExclusive) {
+  if (!employeeBackendId) return 0;
+  const nowMs = Date.now();
+  let totalSeconds = 0;
+  realAttendanceSessions.forEach(s => {
+    if (s.employeeId !== employeeBackendId || s.voidedAt) return;
+    const clockInAt = new Date(s.clockInAt);
+    if (clockInAt < rangeStart || clockInAt >= rangeEndExclusive) return;
+    if (typeof s.totalSeconds === "number") {
+      totalSeconds += s.totalSeconds;
+    } else if (s.status === "OPEN") {
+      totalSeconds += Math.max(0, (nowMs - clockInAt.getTime()) / 1000);
+    }
+  });
+  return totalSeconds / 3600;
+}
+
+/** 按公司拉取窗口内的真实打卡记录,重新计算"员工管理"列表用的 week/month 汇总,
+    然后把全部依赖真实考勤数据的视图一并刷新——考勤记录页/员工仪表盘卡片/打卡明细
+    面板/员工管理列表,四处共用这一份网络请求,不用各自重复拉一遍。 */
+async function refreshRealAttendanceData() {
+  if (!accessToken || !currentUserCompanyId) return;
+  const now = new Date();
+  const rangeStart = new Date(now.getTime() - ATTENDANCE_SYNC_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const rangeEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 加一天缓冲,确保"现在"完整落在查询范围内
+  let sessions;
+  try {
+    sessions = await apiRequest(
+      "/companies/" + currentUserCompanyId + "/attendance?from=" + rangeStart.toISOString() + "&to=" + rangeEnd.toISOString(),
+      { auth: true },
+    );
+  } catch (err) {
+    console.warn("同步真实考勤数据失败(暂时保留上一次同步结果,不阻断页面本身):", err);
+    return;
+  }
+  realAttendanceSessions = sessions;
+
+  const weekStart = startOfWeek(now);
+  const monthStart = startOfMonth(now);
+  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+  const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7);
+  const employeeIds = new Set(realAttendanceSessions.map(s => s.employeeId));
+  realAttendanceHoursByEmployeeId = {};
+  employeeIds.forEach(employeeId => {
+    realAttendanceHoursByEmployeeId[employeeId] = {
+      week: sumRealHoursForEmployee(employeeId, weekStart, weekEnd),
+      month: sumRealHoursForEmployee(employeeId, monthStart, monthEnd),
+    };
+  });
+
+  renderEmployeeTable();
+  renderAttendanceTable();
+  renderAttendanceRangeList();
+  renderTodayAttendanceList();
+  updateEmployeeSummaryCards();
+}
+
+/**
+ * 员工自己的"工资摘要"卡片需要知道自己当前的真实时薪——但不能直接用管理员那份
+ * "工资管理"用的区间成本汇总接口(那个接口会把公司全体员工的工时/费用都汇总出来,
+ * 员工本人不应该看到同事的费率和工资,那是公司管理员才有权限看的敏感信息)。这里
+ * 用专门只返回"我自己"当前生效时薪的接口(GET .../payroll/wage-configs/me),
+ * 每位员工只能查到自己的一份。
+ */
+let myWageConfig = null; // { hourlyRateCents, overtimeMultiplier, currency } 或 null(还没有人给这名员工设置过时薪)
+
+async function refreshMyWageConfig() {
+  if (!accessToken || !currentUserCompanyId) { myWageConfig = null; return; }
+  try {
+    myWageConfig = await apiRequest("/companies/" + currentUserCompanyId + "/payroll/wage-configs/me", { auth: true });
+  } catch (err) {
+    console.warn("获取当前时薪失败(工资摘要卡片暂时显示 —,不阻断页面本身):", err);
+    myWageConfig = null;
+  }
+  updateEmployeeSummaryCards();
+}
+
 /** 公司概览页"在职员工"/"待审批请假"两张卡片,和员工管理/请假审批用的是同一份数据,
     员工一增删、请假一提交/审批,这里就跟着变,不再是写死的 42/3。"当前在岗"/"出勤率"
     (公司整体口径)需要"谁现在处于打卡中的会话"这类实时在线状态,演示环境里同一个
@@ -1908,24 +2053,16 @@ function employmentTypeLabel(dict, type) {
   return dict.typeFullTime;
 }
 
-/** 员工列表里"本周工时"/"本月工时"不再是创建时写死的静态文字,而是每次渲染都从
-    attendanceRecords 里按姓名实时汇总(和工资表、员工仪表盘卡片共用同一份底层数据,
-    只是统计口径不同)。演示环境里没有真实的"周/月边界"概念,这里用"全部未作废的
-    打卡记录"近似代表"本周"、"本月"两栏,足够说明数据是联动的;真实后端会按自然周/
-    自然月边界精确统计。 */
-function sumEmployeeAttendanceHours(employeeName) {
-  const finalizedHours = attendanceRecords
-    .filter(rec => rec.employeeName === employeeName && !rec.voided)
-    .reduce((total, rec) => total + parseFloat(rec.hours || 0), 0);
-  // 加上"打卡中、还没下班"的这段进行中工时,原因见 liveInProgressHoursFor() 上面的注释。
-  return finalizedHours + liveInProgressHoursFor(employeeName);
-}
-
 /**
  * Bug 修复(员工管理这一次真正接上了数据库):从后端拉取"已加入"的真实员工账号 +
- * "已邀请、还没注册"的一次性邀请码,合并进本地 `employees` 数组。时薪
- * (hourlyRateCents)、权限级别(role,员工/主管)这两个字段后端还没有存储,继续
- * 保留本地已有的值(新同步进来的记录默认时薪 0、角色员工)——见交付说明的分阶段披露。
+ * "已邀请、还没注册"的一次性邀请码,合并进本地 `employees` 数组。权限级别(role,
+ * 员工/主管)后端还没有存储,继续保留本地已有的值——见交付说明的分阶段披露。
+ *
+ * Bug 修复(用户明确要求:"员工工资管理...要支持其它设备登录使用"):`hourlyRateCents`
+ * 以前不管后端返回什么都固定写死成 0,只能靠"这台浏览器这次登录之后自己有没有手动
+ * 设置过"来显示费率,换一台设备/清空浏览器数据就变回 0,和数据库里 wage_configs 表
+ * 的真实费率完全脱节。现在后端 `listEmployees()` 已经会把每个人当前生效的真实时薪
+ * (或者待入职邀请里暂存的时薪)一起返回,这里直接采用,不再假装成 0。
  */
 async function syncEmployeesFromBackend() {
   if (!accessToken || !currentUserCompanyId) return;
@@ -1946,6 +2083,10 @@ async function syncEmployeesFromBackend() {
       local.name = item.fullName || local.name;
       local.joined = item.joined;
       local.backendId = item.id;
+      // 数据库里真实的当前时薪——不管是不是这台设备/这次登录设置的,都以后端为准。
+      if (item.hourlyRateCents !== null && item.hourlyRateCents !== undefined) {
+        local.hourlyRateCents = item.hourlyRateCents;
+      }
       if (item.joined) {
         local.status = item.status === "SUSPENDED" ? "suspended" : (item.status === "ACTIVE" ? "active" : "pending");
         local.invitationCode = undefined;
@@ -1969,6 +2110,7 @@ async function syncEmployeesFromBackend() {
     renderEmployeeBalanceOverrideForm();
     renderCaDashboardMetrics();
     saveState();
+    refreshRealAttendanceData(); // 员工名单刚同步完,顺带把这几位员工真实的考勤数据(工时/考勤记录/仪表盘)也拉一遍
   } catch (err) {
     // 同步失败(比如后端没启动)不阻断已经登录成功这件事,继续显示本地已有的数据。
     console.warn("同步员工列表失败:", err);
@@ -1996,7 +2138,11 @@ function renderEmployeeTable() {
     const roleLabel = emp.role === "manager" ? dict.roleManager : dict.roleEmployee;
     const typeBadgeClass = emp.employmentType === "temporary" ? "warning" : (emp.employmentType === "part_time" ? "warning" : "success");
     const typeBadge = '<span class="badge ' + typeBadgeClass + '">' + employmentTypeLabel(dict, emp.employmentType) + '</span>';
-    const hoursText = emp.status === "active" ? sumEmployeeAttendanceHours(emp.name).toFixed(1) + "h" : "—";
+    // Bug 修复:分别用 refreshRealAttendanceHours() 算出来的真实周/月工时,不再是
+    // 同一个 hoursText 用在两栏——之前两栏数字永远相同,也永远是这台设备本地的假象。
+    const realHours = emp.backendId ? realAttendanceHoursByEmployeeId[emp.backendId] : null;
+    const weekHoursText = emp.status === "active" ? (realHours ? realHours.week.toFixed(1) : "0.0") + "h" : "—";
+    const monthHoursText = emp.status === "active" ? (realHours ? realHours.month.toFixed(1) : "0.0") + "h" : "—";
     const row = document.createElement("tr");
     // 已加入的真实员工(joined=true):可以调整时薪、停用/恢复、删除。
     // 还没注册、只是一份待认领邀请(joined=false):不适用时薪/停用,只能撤销邀请。
@@ -2011,8 +2157,8 @@ function renderEmployeeTable() {
       '<td>' + roleLabel + '</td>' +
       '<td>' + typeBadge + '</td>' +
       '<td>' + statusBadge + '</td>' +
-      '<td>' + hoursText + '</td>' +
-      '<td>' + hoursText + '</td>' +
+      '<td>' + weekHoursText + '</td>' +
+      '<td>' + monthHoursText + '</td>' +
       '<td>' + actionsHtml + '</td>';
     tbody.appendChild(row);
   });
@@ -2266,6 +2412,8 @@ document.getElementById("form-employee-login").addEventListener("submit", async 
     if (currentUserCompanyId) {
       syncCompanyProfileFromBackend(currentUserCompanyId);
       syncInventoryFromBackend(); // 员工仪表盘的"仓库补货"卡片需要真实库存数据
+      refreshRealAttendanceData(); // 登录成功后拉一次真实考勤数据,"打卡明细"/仪表盘卡片不再是空的
+      refreshMyWageConfig(); // 拉一次自己真实的时薪,"工资摘要"卡片不再假装是 €0.00
     }
   } catch (err) {
     errorEl.classList.remove("hidden");
@@ -2331,6 +2479,8 @@ document.getElementById("form-employee-register").addEventListener("submit", asy
     if (currentUserCompanyId) {
       syncCompanyProfileFromBackend(currentUserCompanyId);
       syncInventoryFromBackend();
+      refreshRealAttendanceData(); // 刚注册成功的新员工也一样,一开始就用真实数据源
+      refreshMyWageConfig();
     }
   } catch (err) {
     if (err.code === "AUTH_INVITATION_CODE_INVALID" || err.code === "AUTH_INVITATION_CODE_EXHAUSTED") {
@@ -2515,6 +2665,14 @@ function wireNavRail(prefix, viewId) {
       // 别的页面再切回来,看到的还是登录那一刻的旧数字——现在每次点进这个页面都重新
       // 拉一次真实数据(工时/工资成本/GPS异常/库存预警四块全是当下最新状态)。
       if (item.dataset.section === "ca-daily-report") { renderDailyReport(); }
+      // Bug 修复(用户明确要求:"员工工资管理,员工工时管理都要支持其它设备登录使用"):
+      // "员工管理"/"考勤记录"两个页面都依赖同一份真实考勤数据(realAttendanceSessions),
+      // 每次切进任意一个都重新拉一次最新数据——员工随时可能在别的设备上打卡,或者
+      // 管理员刚做过补录/更正/作废,不能只信任登录那一刻的旧快照。
+      if (item.dataset.section === "ca-employees" || item.dataset.section === "ca-attendance") { refreshRealAttendanceData(); }
+      // Bug 修复(同上):"工资管理"页面从本地计算改为调用真实的区间成本汇总接口之后,
+      // 同样需要每次切进来都重新拉一次(费率变了/补了新的打卡记录/加了调整项)。
+      if (item.dataset.section === "ca-payroll") { renderPayrollTable(); }
     });
   });
 }
@@ -2679,26 +2837,39 @@ function formatHhMm(d) {
   return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
 }
 
-/** Bug 修复:员工仪表盘以前只有一个抽象的"今日已工作 00:18:10"秒表,完全看不出
-    "我到底几点上的班"——这个信息其实一直有(attendanceRecords 里的 clockIn/clockOut),
-    只是没有展示出来。这里把当前登录员工今天的每一次上班-下班记录列出来;如果现在
-    正打卡中,额外加一条"HH:MM → 进行中"。 */
+/**
+ * Bug 修复(用户明确要求:"员工工时管理...要支持其它设备登录使用"):以前这里读的是
+ * 浏览器本地 attendanceRecords(只有触发过打卡的那台设备才有数据),现在改成从
+ * realAttendanceSessions(真实后端数据)按 employeeId=currentUserId 过滤出"今天"
+ * 的记录——不管是在哪台设备上打的卡,登录后都能看到同一份真实列表。仍在打卡中
+ * (状态 OPEN)的那一条额外标注"进行中",不显示下班时间。
+ */
 function renderTodayAttendanceList() {
   const dict = i18n[currentLang];
   const container = document.getElementById("empTodayAttendanceList");
   if (!container) return;
   const employeeName = currentEmployeeName();
-  if (!employeeName) { container.innerHTML = ""; return; }
+  if (!employeeName || !currentUserId) { container.innerHTML = ""; return; }
 
-  const todayStr = new Date().toISOString().slice(0, 10); // 和打卡时写入 attendanceRecords 用的是同一个日期换算方式
-  const todayRecords = attendanceRecords.filter(r => r.employeeName === employeeName && r.date === todayStr && !r.voided);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayEnd = new Date(todayStart.getFullYear(), todayStart.getMonth(), todayStart.getDate() + 1);
 
-  const rows = todayRecords.map(r =>
-    '<div class="list-item"><span>' + r.clockIn + ' → ' + r.clockOut + '</span><span style="margin-left:auto;opacity:.7;">' + r.hours + '</span></div>'
-  );
-  if (clockedIn && currentClockInAt) {
-    rows.push('<div class="list-item"><span>' + formatHhMm(currentClockInAt) + ' → ' + dict.inProgressLabel + '</span></div>');
-  }
+  const todaySessions = realAttendanceSessions.filter(s => {
+    if (s.employeeId !== currentUserId || s.voidedAt) return false;
+    const clockInAt = new Date(s.clockInAt);
+    return clockInAt >= todayStart && clockInAt < todayEnd;
+  });
+
+  const rows = todaySessions.map(s => {
+    const clockInAt = new Date(s.clockInAt);
+    if (s.status === "OPEN" || typeof s.totalSeconds !== "number") {
+      return '<div class="list-item"><span>' + formatHhMm(clockInAt) + ' → ' + dict.inProgressLabel + '</span></div>';
+    }
+    const clockOutAt = new Date(s.clockOutAt);
+    const hoursText = (s.totalSeconds / 3600).toFixed(2) + "h";
+    return '<div class="list-item"><span>' + formatHhMm(clockInAt) + ' → ' + formatHhMm(clockOutAt) + '</span><span style="margin-left:auto;opacity:.7;">' + hoursText + '</span></div>';
+  });
   container.innerHTML = rows.length ? rows.join("") : '<div class="insight-empty">' + dict.noAttendanceToday + '</div>';
 }
 
@@ -2722,31 +2893,23 @@ function startOfMonth(d) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
-/** 按真实日期范围([start, end) 左闭右开)统计某个员工的工时——只统计未作废的打卡记录,
-    如果"现在"这一刻落在范围内且正在打卡中,把进行中的这一段也算进去(和"今日已工作"
-    秒表保持一致,不会出现"卡片没算上正在进行的这一段"这种脱节)。 */
-function sumEmployeeHoursInRange(employeeName, rangeStart, rangeEndExclusive) {
-  let total = 0;
-  attendanceRecords.forEach(r => {
-    if (r.employeeName !== employeeName || r.voided) return;
-    const recordDate = new Date(r.date + "T00:00:00");
-    if (recordDate >= rangeStart && recordDate < rangeEndExclusive) total += parseFloat(r.hours) || 0;
-  });
-  const now = new Date();
-  if (now >= rangeStart && now < rangeEndExclusive) total += liveInProgressHoursFor(employeeName);
-  return total;
-}
-
 let attendanceRangeTab = "week"; // "week" | "month" —— 打卡明细面板当前展示的是本周还是本月
 
-/** 把某个日期范围内(本周/本月)的打卡记录按日期分组,每天一张小卡片:日期 + 当天每一次
-    上班-下班(或"进行中")+ 当天合计工时,按日期从近到远排序,方便一眼看到最近的记录。 */
+/**
+ * 把某个日期范围内(本周/本月)的打卡记录按日期分组,每天一张小卡片:日期 + 当天每一次
+ * 上班-下班(或"进行中")+ 当天合计工时,按日期从近到远排序,方便一眼看到最近的记录。
+ *
+ * Bug 修复(用户明确要求:"员工工时管理...要支持其它设备登录使用"):以前这里读的是
+ * 浏览器本地 attendanceRecords,换一台设备/清空浏览器数据就是空的。现在改成从
+ * realAttendanceSessions(真实后端数据,见 refreshRealAttendanceData())按
+ * employeeId=currentUserId 过滤,和员工仪表盘卡片、"今日打卡"列表共用同一份真实数据。
+ */
 function renderAttendanceRangeList() {
   const dict = i18n[currentLang];
   const container = document.getElementById("empAttendanceRangeList");
   if (!container) return;
   const employeeName = currentEmployeeName();
-  if (!employeeName) { container.innerHTML = ""; return; }
+  if (!employeeName || !currentUserId) { container.innerHTML = ""; return; }
 
   const today = new Date();
   const rangeStart = attendanceRangeTab === "week" ? startOfWeek(today) : startOfMonth(today);
@@ -2755,32 +2918,37 @@ function renderAttendanceRangeList() {
     : new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 1);
 
   const byDate = {};
-  attendanceRecords.forEach(r => {
-    if (r.employeeName !== employeeName || r.voided) return;
-    const recordDate = new Date(r.date + "T00:00:00");
-    if (recordDate < rangeStart || recordDate >= rangeEnd) return;
-    if (!byDate[r.date]) byDate[r.date] = [];
-    byDate[r.date].push(r);
+  realAttendanceSessions.forEach(s => {
+    if (s.employeeId !== currentUserId || s.voidedAt) return;
+    const clockInAt = new Date(s.clockInAt);
+    if (clockInAt < rangeStart || clockInAt >= rangeEnd) return;
+    const dateStr = clockInAt.toISOString().slice(0, 10);
+    if (!byDate[dateStr]) byDate[dateStr] = [];
+    byDate[dateStr].push(s);
   });
-  const todayStr = today.toISOString().slice(0, 10);
-  if (clockedIn && currentClockInAt && today >= rangeStart && today < rangeEnd) {
-    if (!byDate[todayStr]) byDate[todayStr] = [];
-    byDate[todayStr].push({ clockIn: formatHhMm(currentClockInAt), clockOut: dict.inProgressLabel, hours: null, inProgress: true });
-  }
 
   const dateKeys = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
   if (!dateKeys.length) { container.innerHTML = '<div class="insight-empty">' + dict.noAttendanceInRange + '</div>'; return; }
 
+  const nowMs = Date.now();
   container.innerHTML = dateKeys.map(dateStr => {
     const sessions = byDate[dateStr];
-    const dayTotal = sessions.reduce((sum, r) => sum + (r.inProgress ? liveInProgressHoursFor(employeeName) : (parseFloat(r.hours) || 0)), 0);
-    const sessionRows = sessions.map(r =>
-      '<div class="list-item" style="padding-left:10px;"><span>' + r.clockIn + ' → ' + r.clockOut + '</span>' +
-      (r.inProgress ? '' : '<span style="margin-left:auto;opacity:.7;">' + r.hours + '</span>') + '</div>'
-    ).join("");
+    let dayTotalHours = 0;
+    const sessionRows = sessions.map(s => {
+      const clockInAt = new Date(s.clockInAt);
+      if (s.status === "OPEN" || typeof s.totalSeconds !== "number") {
+        dayTotalHours += Math.max(0, (nowMs - clockInAt.getTime()) / 1000) / 3600;
+        return '<div class="list-item" style="padding-left:10px;"><span>' + formatHhMm(clockInAt) + ' → ' + dict.inProgressLabel + '</span></div>';
+      }
+      const clockOutAt = new Date(s.clockOutAt);
+      const hoursText = (s.totalSeconds / 3600).toFixed(2) + "h";
+      dayTotalHours += s.totalSeconds / 3600;
+      return '<div class="list-item" style="padding-left:10px;"><span>' + formatHhMm(clockInAt) + ' → ' + formatHhMm(clockOutAt) + '</span>' +
+        '<span style="margin-left:auto;opacity:.7;">' + hoursText + '</span></div>';
+    }).join("");
     return '<div style="margin-bottom:8px;">' +
       '<div style="display:flex;justify-content:space-between;font-weight:600;font-size:12.5px;padding:4px 0;">' +
-      '<span>' + dateStr + '</span><span>' + dict.dailyTotalLabel + ': ' + dayTotal.toFixed(2) + 'h</span></div>' +
+      '<span>' + dateStr + '</span><span>' + dict.dailyTotalLabel + ': ' + dayTotalHours.toFixed(2) + 'h</span></div>' +
       sessionRows + '</div>';
   }).join("");
 }
@@ -2794,10 +2962,12 @@ document.querySelectorAll(".attendance-range-tab").forEach(tabBtn => {
   });
 });
 
-// Bug 修复:之前这个按钮只管理一个纯前端的计时器显示,从来没有真正往 attendanceRecords
-// 里写过一条记录——员工打卡本该是考勤数据最主要的来源,结果考勤记录、工资表、员工仪表盘
-// 卡片全部只能靠管理员"补录"才有数据。现在下班打卡时会为"当前登录的这名员工"真实生成
-// 一条打卡记录,和考勤/工资/仪表盘三处联动刷新。
+// Bug 修复:之前这个按钮只管理一个纯前端的计时器显示,从来没有真正调用过后端
+// AttendanceModule——员工打卡本该是考勤数据最主要的来源,结果考勤记录、工资表、
+// 员工仪表盘卡片全部只能靠管理员"补录"才有数据。现在打卡/下班打卡都真实调用后端,
+// 成功之后调用 refreshRealAttendanceData() 重新拉一次真实数据,和考勤记录/工资表/
+// 员工仪表盘卡片/打卡明细面板这几处联动刷新——不再像旧版本那样自己在本地拼一条
+// "假装"的记录(那条本地记录和数据库里真实生成的记录是两份独立数据,容易对不上)。
 clockBtn.addEventListener("click", async () => {
   const goingToClockIn = !clockedIn;
   clockBtn.disabled = true; // 防止定位/请求还没返回时被连续点第二下,造成重复打卡
@@ -2856,6 +3026,7 @@ clockBtn.addEventListener("click", async () => {
         startNativeBackgroundTracking(sessionId, currentUserCompanyId, accessToken).then(nativeStarted => {
           if (!nativeStarted) startGpsPingCapture(sessionId);
         });
+        refreshRealAttendanceData(); // 真实上班打卡成功后,立刻刷新一次真实数据,"今日打卡"/"打卡明细"能马上看到"进行中"这一条
       }
       // 每秒不仅刷新"今日已工作"这个秒表,也顺带刷新"本周工时/本月工时/工资摘要"三张卡片——
       // 否则打卡中这段时间秒表在走、其他卡片却像是没反应,容易让人以为打卡没生效。
@@ -2881,25 +3052,16 @@ clockBtn.addEventListener("click", async () => {
       clearInterval(timerHandle);
       clockedIn = false;
       clockBtn.classList.remove("clocked-in");
-      const employeeName = currentEmployeeName();
-      if (employeeName && currentClockInAt) {
-        const clockOutAt = new Date();
-        const clockInStr = formatHhMm(currentClockInAt);
-        const clockOutStr = formatHhMm(clockOutAt);
-        const hours = computeHoursBetween(clockInStr, clockOutStr);
-        attendanceRecords.push({
-          id: attendanceIdCounter++,
-          employeeName,
-          date: clockOutAt.toISOString().slice(0, 10),
-          clockIn: clockInStr, clockOut: clockOutStr,
-          hours: hours.toFixed(2) + "h", voided: false, voidReason: "", edits: []
-        });
-        renderAttendanceTable();
-        refreshHoursDependentViews();
-      }
+      // Bug 修复(用户明确要求:"员工工时管理...要支持其它设备登录使用"):以前这里
+      // 手动往本地 attendanceRecords 数组 push 一条"假装"的记录——这条本地记录和
+      // 上面 clock-out 接口在数据库里真正生成的记录是两份独立数据,容易出现"网络
+      // 失败/后端拒绝,但本地依然显示打卡成功"这种不一致。现在下班打卡之后直接
+      // 重新拉一次真实数据,考勤记录/工资表/员工仪表盘卡片看到的都是数据库里真正
+      // 落库的这一条,不再本地模拟。
       currentClockInAt = null;
       currentAttendanceSessionId = null;
       elapsedSeconds = 0;
+      refreshRealAttendanceData();
     }
     saveState(); // 立刻落盘,不等下一次别的操作顺带触发——避免"刚点完上班打卡就关App"这个最容易丢数据的场景
     applyI18n();
@@ -3677,19 +3839,30 @@ function syncSettingsAnnualQuotaInput() {
     : leaveTypeConfigs.ANNUAL.quota;
 }
 
-/* ---------- 考勤记录:更正(留痕) / 作废(可恢复,不物理删除) ----------
-   对应数据库设计 attendance_sessions.voided_at/voided_by/void_reason +
-   attendance_session_edits 审计表:管理员发现打卡时间有误可以"更正",系统保留
-   原始值和修改记录;明显错误/重复的记录可以"作废"(不计入工资),但底层数据
-   永远保留,可随时恢复——不提供真正删除历史打卡记录的功能,理由见 ca-attendance
-   区块顶部的说明文字与 03-API-DESIGN.md 里那条 "On deletion" 的备注。 */
-let attendanceIdCounter = 900;
-// 不再预置任何演示员工的打卡记录——员工上班打卡、或管理员"补录打卡"之后才会有数据,
-// 和员工列表、工资表读的是同一份数组。
-const attendanceRecords = [];
+/**
+ * ---------- 考勤记录:更正(留痕) / 作废(可恢复,不物理删除) ----------
+ * 对应数据库设计 attendance_sessions.voided_at/voided_by/void_reason +
+ * attendance_session_edits 审计表:管理员发现打卡时间有误可以"更正",系统保留
+ * 原始值和修改记录;明显错误/重复的记录可以"作废"(不计入工资),但底层数据
+ * 永远保留,可随时恢复——不提供真正删除历史打卡记录的功能,理由见 ca-attendance
+ * 区块顶部的说明文字与 03-API-DESIGN.md 里那条 "On deletion" 的备注。
+ *
+ * Bug 修复(用户明确要求:"员工工时管理...要支持其它设备登录使用,你再看看还有
+ * 什么问题?都一起解决"):这整个区块(列表渲染 + 补录/更正/作废/恢复四个操作)
+ * 以前全部读写浏览器本地的 attendanceRecords 数组——里面的 id 是纯前端计数器
+ * (attendanceIdCounter++),和后端 attendance_sessions 表的真实 UUID 完全对不上,
+ * 换一台设备/清空浏览器数据,考勤记录页面要么是空的要么和数据库对不上。
+ * 现在整个区块改成直接操作 realAttendanceSessions(见 refreshRealAttendanceData())
+ * 这份真实数据,补录/更正/作废/恢复分别调用后端真实存在的
+ * POST .../attendance/backfill、PATCH .../attendance/:sessionId、
+ * PATCH .../attendance/:sessionId/void、PATCH .../attendance/:sessionId/restore
+ * 这四个接口(后三个此前已经是真代码,只是前端从来没有调用过;backfill 是这次
+ * 新增的后端接口,因为原来唯一的创建入口 clock-in 硬编码用当前登录人+当前时间,
+ * 没办法替别人补一条历史记录)。
+ */
 
-/** 计算两个 "HH:MM" 时间之间的工时(小时,保留两位小数)。补录打卡用得到——
-    正常打卡由 clockBtn 那套计时器直接生成 hours 字段,这里是给手动补录场景用的。 */
+/** 计算两个 "HH:MM" 时间之间的工时(小时,保留两位小数),纯前端预览用——真正的
+    工时以后端返回的 totalSeconds 为准,这里只是补录/更正表单在提交前的校验。 */
 function computeHoursBetween(clockIn, clockOut) {
   const [inH, inM] = clockIn.split(":").map(Number);
   const [outH, outM] = clockOut.split(":").map(Number);
@@ -3697,114 +3870,136 @@ function computeHoursBetween(clockIn, clockOut) {
   return Math.max(0, Math.round((minutes / 60) * 100) / 100);
 }
 
-function buildAttendanceCardHtml(rec) {
+function buildAttendanceCardHtml(session) {
   const dict = i18n[currentLang];
-  const statusBadge = rec.voided
+  const employeeName = employeeNameByBackendId(session.employeeId);
+  const clockInAt = new Date(session.clockInAt);
+  const dateStr = clockInAt.toISOString().slice(0, 10);
+  const clockInText = formatHhMm(clockInAt);
+  const clockOutText = session.clockOutAt ? formatHhMm(new Date(session.clockOutAt)) : dict.inProgressLabel;
+  const hoursText = typeof session.totalSeconds === "number" ? (session.totalSeconds / 3600).toFixed(2) + "h" : "—";
+  const isVoided = !!session.voidedAt;
+  const statusBadge = isVoided
     ? '<span class="badge danger">' + dict.statusVoided + "</span>"
     : '<span class="badge success">' + dict.statusNormal + "</span>";
-  const actionBtns = rec.voided
-    ? '<button class="btn btn-outline" style="height:32px;padding:0 14px;font-size:12px;" data-restore-attendance="' + rec.id + '">' + dict.restoreRecord + "</button>"
-    : '<button class="btn btn-outline" style="height:32px;padding:0 14px;font-size:12px;" data-correct-attendance="' + rec.id + '">' + dict.correctRecord + "</button>" +
-      '<button class="btn" style="background:var(--danger);color:#fff;height:32px;padding:0 14px;font-size:12px;" data-void-attendance="' + rec.id + '">' + dict.voidRecord + "</button>";
-  const voidReasonHtml = rec.voided && rec.voidReason
-    ? '<div class="leave-card-reason">' + dict.voidedByLabel + ": " + rec.voidReason + "</div>"
+  const actionBtns = isVoided
+    ? '<button class="btn btn-outline" style="height:32px;padding:0 14px;font-size:12px;" data-restore-attendance="' + session.id + '">' + dict.restoreRecord + "</button>"
+    : '<button class="btn btn-outline" style="height:32px;padding:0 14px;font-size:12px;" data-correct-attendance="' + session.id + '">' + dict.correctRecord + "</button>" +
+      '<button class="btn" style="background:var(--danger);color:#fff;height:32px;padding:0 14px;font-size:12px;" data-void-attendance="' + session.id + '">' + dict.voidRecord + "</button>";
+  const voidReasonHtml = isVoided && session.voidReason
+    ? '<div class="leave-card-reason">' + dict.voidedByLabel + ": " + session.voidReason + "</div>"
     : "";
-  const edits = rec.edits || [];
-  const editsHtml = edits.length
-    ? edits.map(e => '<div class="edit-history-item">' + e.time + " · " + dict.editedByLabel + " " + e.field + ': <span class="corrected-value">' + e.oldValue + "</span> → " + e.newValue + " (" + e.reason + ")</div>").join("")
-    : '<div style="font-size:12px;color:var(--text-2);">' + dict.noEditsYet + "</div>";
 
-  return '<div class="leave-card' + (rec.voided ? " voided" : "") + '" data-attendance-card="' + rec.id + '">' +
+  return '<div class="leave-card' + (isVoided ? " voided" : "") + '" data-attendance-card="' + session.id + '">' +
     '<div class="leave-card-head">' +
-      "<span><strong>" + rec.employeeName + "</strong> · " + rec.date + "</span>" +
+      "<span><strong>" + employeeName + "</strong> · " + dateStr + "</span>" +
       '<span style="margin-left:auto;display:flex;gap:8px;align-items:center;">' + statusBadge + actionBtns + "</span>" +
     "</div>" +
-    '<div class="leave-card-reason">' + dict.clockInTime + " " + rec.clockIn + " · " + dict.clockOutTime + " " + rec.clockOut + " · " + dict.totalHours + " " + rec.hours + "</div>" +
+    '<div class="leave-card-reason">' + dict.clockInTime + " " + clockInText + " · " + dict.clockOutTime + " " + clockOutText + " · " + dict.totalHours + " " + hoursText + "</div>" +
     voidReasonHtml +
-    '<button class="msg-toggle" data-toggle-edits="' + rec.id + '" style="margin-top:8px;">' + dict.viewEditHistory + "</button>" +
-    '<div class="msg-thread hidden" id="edit-thread-' + rec.id + '">' + editsHtml + "</div>" +
+    '<button class="msg-toggle" data-toggle-edits="' + session.id + '" style="margin-top:8px;">' + dict.viewEditHistory + "</button>" +
+    '<div class="msg-thread hidden" id="edit-thread-' + session.id + '"><div style="font-size:12px;color:var(--text-2);">' + dict.noEditsYet + "</div></div>" +
   "</div>";
 }
 
 function wireAttendanceCardEvents(container) {
   container.querySelectorAll("[data-toggle-edits]").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const dict = i18n[currentLang];
-      const thread = document.getElementById("edit-thread-" + btn.dataset.toggleEdits);
-      thread.classList.toggle("hidden");
-      btn.textContent = thread.classList.contains("hidden") ? dict.viewEditHistory : dict.hideEditHistory;
+      const sessionId = btn.dataset.toggleEdits;
+      const thread = document.getElementById("edit-thread-" + sessionId);
+      if (!thread.classList.contains("hidden")) {
+        thread.classList.add("hidden");
+        btn.textContent = dict.viewEditHistory;
+        return;
+      }
+      // 第一次展开才去后端查这条记录真实的更正历史——GET .../attendance/:sessionId/edits
+      // 早就是真代码(attendance_session_edits 审计表),只是以前从来没有被前端调用过。
+      if (!thread.dataset.loaded) {
+        try {
+          const edits = await apiRequest("/companies/" + currentUserCompanyId + "/attendance/" + sessionId + "/edits", { auth: true });
+          thread.innerHTML = edits.length
+            ? edits.map(ed => '<div class="edit-history-item">' +
+                new Date(ed.createdAt).toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB") + " · " + dict.editedByLabel + " " + ed.fieldName +
+                ': <span class="corrected-value">' + ed.oldValue + "</span> → " + ed.newValue + " (" + ed.reason + ")</div>").join("")
+            : '<div style="font-size:12px;color:var(--text-2);">' + dict.noEditsYet + "</div>";
+          thread.dataset.loaded = "1";
+        } catch (err) {
+          console.warn("获取更正历史失败:", err);
+        }
+      }
+      thread.classList.remove("hidden");
+      btn.textContent = dict.hideEditHistory;
     });
   });
   container.querySelectorAll("[data-correct-attendance]").forEach(btn => {
     btn.addEventListener("click", () => {
-      const id = Number(btn.dataset.correctAttendance);
-      const rec = attendanceRecords.find(r => r.id === id);
-      if (!rec) return;
-      document.getElementById("correctAttendanceId").value = String(id);
-      document.getElementById("correctAttendanceContext").textContent = rec.employeeName + " · " + rec.date;
-      document.getElementById("correctClockIn").value = rec.clockIn;
-      document.getElementById("correctClockOut").value = rec.clockOut;
+      const sessionId = btn.dataset.correctAttendance;
+      const session = realAttendanceSessions.find(s => s.id === sessionId);
+      if (!session) return;
+      const clockInAt = new Date(session.clockInAt);
+      document.getElementById("correctAttendanceId").value = sessionId;
+      document.getElementById("correctAttendanceContext").textContent = employeeNameByBackendId(session.employeeId) + " · " + clockInAt.toISOString().slice(0, 10);
+      document.getElementById("correctClockIn").value = formatHhMm(clockInAt);
+      document.getElementById("correctClockOut").value = session.clockOutAt ? formatHhMm(new Date(session.clockOutAt)) : "";
       document.getElementById("correctReason").value = "";
       openModal("modal-correct-attendance");
     });
   });
   container.querySelectorAll("[data-void-attendance]").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const dict = i18n[currentLang];
       const reason = window.prompt(dict.voidReasonPrompt);
       if (!reason || !reason.trim()) return;
-      const id = Number(btn.dataset.voidAttendance);
-      const rec = attendanceRecords.find(r => r.id === id);
-      if (!rec) return;
-      rec.voided = true;
-      rec.voidReason = reason.trim();
-      renderAttendanceTable();
-      refreshHoursDependentViews();
+      const sessionId = btn.dataset.voidAttendance;
+      try {
+        await apiRequest("/companies/" + currentUserCompanyId + "/attendance/" + sessionId + "/void", {
+          method: "PATCH", auth: true, body: { reason: reason.trim() },
+        });
+      } catch (err) {
+        window.alert(err.message);
+        return;
+      }
+      await refreshRealAttendanceData();
+      renderPayrollTable();
     });
   });
   container.querySelectorAll("[data-restore-attendance]").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const dict = i18n[currentLang];
       if (!window.confirm(dict.restoreConfirm)) return;
-      const id = Number(btn.dataset.restoreAttendance);
-      const rec = attendanceRecords.find(r => r.id === id);
-      if (!rec) return;
-      rec.voided = false;
-      rec.voidReason = "";
-      renderAttendanceTable();
-      refreshHoursDependentViews();
+      const sessionId = btn.dataset.restoreAttendance;
+      try {
+        await apiRequest("/companies/" + currentUserCompanyId + "/attendance/" + sessionId + "/restore", { method: "PATCH", auth: true, body: {} });
+      } catch (err) {
+        window.alert(err.message);
+        return;
+      }
+      await refreshRealAttendanceData();
+      renderPayrollTable();
     });
   });
 }
 
 function renderAttendanceTable() {
-  saveState();
   const container = document.getElementById("attendanceList");
   if (!container) return;
   const dict = i18n[currentLang];
-  container.innerHTML = attendanceRecords.length
-    ? attendanceRecords.map(rec => buildAttendanceCardHtml(rec)).join("")
+  const sorted = realAttendanceSessions.slice().sort((a, b) => new Date(b.clockInAt) - new Date(a.clockInAt));
+  container.innerHTML = sorted.length
+    ? sorted.map(session => buildAttendanceCardHtml(session)).join("")
     : '<div class="insight-empty">' + dict.noAttendanceYet + '</div>';
   wireAttendanceCardEvents(container);
 }
 
-/** 考勤记录一变(更正/作废/恢复/补录),员工列表的工时列、工资表、员工仪表盘卡片
-    这三处依赖同一份 attendanceRecords 的展示都要跟着刷新,否则会出现"考勤改了,
-    别的地方数字没变"的不一致。集中放在这一个函数里调用,避免漏掉某一处。 */
-function refreshHoursDependentViews() {
-  renderEmployeeTable();
-  renderPayrollTable();
-  updateEmployeeSummaryCards();
-  renderTodayAttendanceList();
-  renderAttendanceRangeList();
-}
-
-/** 补录打卡的员工下拉框,和请假余额调整表单的员工下拉框(renderEmployeeBalanceOverrideForm)
-    是完全一样的模式:每次打开都用当前 employees 名单重新生成一次。 */
+/** 补录打卡、工资调整项这两个下拉框都需要真实的后端 employeeId(不是姓名)——调用
+    的后端接口都是按 employeeId 定位员工;只有已经真正注册、有 backendId 的员工
+    才可能有真实的考勤/工资记录,还在"待入职"状态的邀请不出现在这两个下拉框里。 */
 function populateEmployeeSelect(selectId) {
   const select = document.getElementById(selectId);
   if (!select) return;
-  select.innerHTML = employees.map(emp => '<option value="' + emp.name + '">' + emp.name + "</option>").join("");
+  const real = employees.filter(e => e.joined && e.backendId);
+  select.innerHTML = real.map(emp => '<option value="' + emp.backendId + '">' + emp.name + "</option>").join("");
 }
 
 document.getElementById("btnAddAttendance").addEventListener("click", () => {
@@ -3814,15 +4009,15 @@ document.getElementById("btnAddAttendance").addEventListener("click", () => {
   openModal("modal-add-attendance");
 });
 
-document.getElementById("form-add-attendance").addEventListener("submit", e => {
+document.getElementById("form-add-attendance").addEventListener("submit", async e => {
   e.preventDefault();
   const dict = i18n[currentLang];
   const errorEl = document.getElementById("addAttendanceError");
-  const employeeName = document.getElementById("addAttendanceEmployee").value;
+  const employeeId = document.getElementById("addAttendanceEmployee").value;
   const date = document.getElementById("addAttendanceDate").value;
   const clockIn = document.getElementById("addAttendanceClockIn").value;
   const clockOut = document.getElementById("addAttendanceClockOut").value;
-  if (!employeeName) {
+  if (!employeeId) {
     errorEl.textContent = dict.noEmployeesYet;
     errorEl.classList.remove("hidden");
     return;
@@ -3834,39 +4029,53 @@ document.getElementById("form-add-attendance").addEventListener("submit", e => {
     return;
   }
   errorEl.classList.add("hidden");
-  attendanceRecords.push({
-    id: attendanceIdCounter++, employeeName, date, clockIn, clockOut,
-    hours: hours.toFixed(2) + "h", voided: false, voidReason: "", edits: []
-  });
-  renderAttendanceTable();
-  refreshHoursDependentViews();
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/attendance/backfill", {
+      method: "POST",
+      auth: true,
+      body: {
+        employeeId,
+        clockInAt: new Date(date + "T" + clockIn + ":00").toISOString(),
+        clockOutAt: new Date(date + "T" + clockOut + ":00").toISOString(),
+      },
+    });
+  } catch (err) {
+    errorEl.textContent = err.code === "ATTENDANCE_BACKFILL_OVERLAP" ? dict.backfillOverlapError : (err.message || dict.addAttendanceInvalidRange);
+    errorEl.classList.remove("hidden");
+    if (submitBtn) submitBtn.disabled = false;
+    return;
+  }
+  if (submitBtn) submitBtn.disabled = false;
+  await refreshRealAttendanceData();
+  renderPayrollTable();
   closeModal(document.getElementById("modal-add-attendance"));
 });
 
-document.getElementById("form-correct-attendance").addEventListener("submit", e => {
+document.getElementById("form-correct-attendance").addEventListener("submit", async e => {
   e.preventDefault();
-  const id = Number(document.getElementById("correctAttendanceId").value);
-  const rec = attendanceRecords.find(r => r.id === id);
-  if (!rec) return;
+  const sessionId = document.getElementById("correctAttendanceId").value;
+  const session = realAttendanceSessions.find(s => s.id === sessionId);
+  if (!session) return;
   const newClockIn = document.getElementById("correctClockIn").value;
   const newClockOut = document.getElementById("correctClockOut").value;
   const reason = document.getElementById("correctReason").value.trim();
   if (!reason) return;
-  const dict = i18n[currentLang];
-  const now = new Date().toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB");
-  rec.edits = rec.edits || [];
-  if (newClockIn && newClockIn !== rec.clockIn) {
-    rec.edits.push({ time: now, field: dict.fieldClockIn, oldValue: rec.clockIn, newValue: newClockIn, reason });
-    rec.clockIn = newClockIn;
+  // 更正只改当天的上/下班时间点,沿用这条记录原本的日期(和补录打卡表单一样,
+  // 跨零点的夜班场景是已知的、和旧版本一致的简化,不在这次请求范围内)。
+  const dateStr = new Date(session.clockInAt).toISOString().slice(0, 10);
+  const body = { reason };
+  if (newClockIn) body.clockInAt = new Date(dateStr + "T" + newClockIn + ":00").toISOString();
+  if (newClockOut) body.clockOutAt = new Date(dateStr + "T" + newClockOut + ":00").toISOString();
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/attendance/" + sessionId, { method: "PATCH", auth: true, body });
+  } catch (err) {
+    window.alert(err.message);
+    return;
   }
-  if (newClockOut && newClockOut !== rec.clockOut) {
-    rec.edits.push({ time: now, field: dict.fieldClockOut, oldValue: rec.clockOut, newValue: newClockOut, reason });
-    rec.clockOut = newClockOut;
-  }
-  // 更正打卡时间之后工时可能变了,同步重算 hours 字段,否则工资表会继续用旧工时算钱。
-  rec.hours = computeHoursBetween(rec.clockIn, rec.clockOut).toFixed(2) + "h";
-  renderAttendanceTable();
-  refreshHoursDependentViews();
+  await refreshRealAttendanceData();
+  renderPayrollTable();
   closeModal(document.getElementById("modal-correct-attendance"));
 });
 
@@ -4755,114 +4964,78 @@ async function renderGpsAnomalyReport(containerId) {
     : '<div class="insight-empty">' + dict.noGpsAnomalies + "</div>";
 }
 
-// 时薪不再是脱离员工名单单独维护的一张表——每位员工的 hourlyRateCents 就是"工资计算公式"
-// 真正用到的费率,管理员在"员工管理"里设置/修改,这里直接读,不会出现两处不一致。
-function hourlyRateCentsFor(employeeName) {
-  const emp = employees.find(e => e.name === employeeName);
-  return emp ? (emp.hourlyRateCents || 0) : 0;
-}
-
-/**
- * Bug 修复:员工上班打卡后,"今日已工作"那个秒表在走,但"本周工时/本月工时/工资摘要"
- * 一直显示 0——因为这几张卡片的数据来自 attendanceRecords,而一条打卡记录只有在
- * "下班打卡"那一刻才会被真正写进 attendanceRecords(见 clockBtn 的点击处理逻辑),
- * 打卡中(还没下班)的这段时间此前完全不计入任何统计,看起来就像打卡没生效。
- * 现在:如果这名员工正是"当前登录、还在打卡中"的这个人,把这段进行中的工时也实时
- * 计算进来(演示环境同一时间只会有一个人登录,所以只有登录者自己会命中这个分支;
- * 真实后端可以按"有 clock_in 时间但 clock_out 为空"的进行中会话做同样的实时统计)。
- */
-function liveInProgressHoursFor(employeeName) {
-  if (!clockedIn || !currentClockInAt) return 0;
-  if (currentEmployeeName() !== employeeName) return 0;
-  return (Date.now() - currentClockInAt.getTime()) / (60 * 60 * 1000);
-}
-
-function computeDailyWageCost() {
-  const rows = attendanceRecords
-    .filter(rec => !rec.voided) // 作废的记录不计入工资成本,和考勤模块的规则一致
-    .map(rec => {
-      const hours = parseFloat(rec.hours);
-      const rateCents = hourlyRateCentsFor(rec.employeeName);
-      const regularHours = Math.min(hours, 8);
-      const overtimeHours = Math.max(hours - 8, 0);
-      const regularCostCents = Math.round(regularHours * rateCents);
-      const overtimeCostCents = Math.round(overtimeHours * rateCents * 1.5);
-      return {
-        employeeName: rec.employeeName,
-        regularHours: regularHours,
-        overtimeHours: overtimeHours,
-        costCents: regularCostCents + overtimeCostCents
-      };
-    });
-
-  // 把"打卡中、还没下班"的这段进行中工时,当作一条虚拟记录一并汇总进去。
-  if (clockedIn && currentClockInAt) {
-    const employeeName = currentEmployeeName();
-    const liveHours = liveInProgressHoursFor(employeeName);
-    if (employeeName && liveHours > 0) {
-      const rateCents = hourlyRateCentsFor(employeeName);
-      const regularHours = Math.min(liveHours, 8);
-      const overtimeHours = Math.max(liveHours - 8, 0);
-      rows.push({
-        employeeName,
-        regularHours,
-        overtimeHours,
-        costCents: Math.round(regularHours * rateCents) + Math.round(overtimeHours * rateCents * 1.5)
-      });
-    }
-  }
-
-  return rows;
-}
-
-/** 把 computeDailyWageCost() 按员工姓名汇总(一个员工可能有好几条打卡记录),
-    工资管理页面、员工仪表盘卡片都基于这一份汇总结果,保证两处数字永远一致。 */
-function computeEmployeeWageSummary(employeeName) {
-  const rows = computeDailyWageCost().filter(r => r.employeeName === employeeName);
-  const summary = rows.reduce((acc, r) => {
-    acc.regularHours += r.regularHours;
-    acc.overtimeHours += r.overtimeHours;
-    acc.baseCostCents += r.costCents;
-    return acc;
-  }, { regularHours: 0, overtimeHours: 0, baseCostCents: 0 });
-  const adjustments = payrollAdjustments.filter(a => a.employeeName === employeeName);
-  const adjustmentCostCents = adjustments.reduce((sum, a) => sum + a.amountCents, 0);
-  return {
-    regularHours: summary.regularHours,
-    overtimeHours: summary.overtimeHours,
-    totalHours: summary.regularHours + summary.overtimeHours,
-    baseCostCents: summary.baseCostCents,
-    adjustments,
-    adjustmentCostCents,
-    totalCostCents: summary.baseCostCents + adjustmentCostCents
-  };
-}
-
 /* ---------- 工资管理(公司后台) ----------
-   工资 = 未作废考勤记录按员工汇总的正常/加班工时 * 该员工时薪(自动计算,不可手动改动
-   底层工时和费率本身,和库存流水"只能通过记录变动"是同一个设计思路),再加上管理员
-   手动增加的调整项(奖金/扣款/更正等,金额可正可负)。调整项本身支持增加与删除。 */
-let payrollAdjustmentIdCounter = 1;
-const payrollAdjustments = [];
+ * 工资 = 未作废考勤记录按员工汇总的正常/加班工时 * 该员工时薪(自动计算,不可手动改动
+ * 底层工时和费率本身,和库存流水"只能通过记录变动"是同一个设计思路),再加上管理员
+ * 手动增加的调整项(奖金/扣款/更正等,金额可正可负)。调整项本身支持增加与删除。
+ *
+ * Bug 修复(用户明确要求:"把员工工资管理...修改了,都能够支持其它设备登录使用,
+ * 我觉得你是一个非常优秀的编程工程师和架构师,我希望你能过比我聪明,提早把该完善
+ * 的都改变了。为啥总是走一步出一步问题?你再看看还有什么问题?都一起解决"):
+ * 这一整块(工时/费率计算 + 调整项)以前完全是本地计算——hourlyRateCentsFor() 读
+ * 本地 employees[].hourlyRateCents(换设备就是 0,见"员工管理"那一批 bug 修复)、
+ * computeDailyWageCost()/computeEmployeeWageSummary() 读本地 attendanceRecords、
+ * payrollAdjustments 是纯前端数组,刷新浏览器就清空。现在整个改成调用真实后端:
+ * - GET .../payroll/cost?from=&to=:本月的真实区间工资成本(PayrollService.
+ *   getPeriodWageCost(),按自然日分桶算正常/加班工时,套用每天真实生效的历史费率)。
+ * - GET/POST/DELETE .../payroll/adjustments:真实持久化的奖金/扣款(bonuses/
+ *   penalties 两张表,建库起就存在,这次才第一次接上业务代码,见交付说明)。
+ * 不管管理员在哪台设备登录,看到的都是数据库里真实的数字,不再需要
+ * hourlyRateCentsFor/liveInProgressHoursFor/computeDailyWageCost/
+ * computeEmployeeWageSummary 这几个本地计算函数,一并移除。
+ */
 
-function renderPayrollTable() {
-  saveState();
+/** 工资管理页面统计口径固定为"本自然月"(和员工仪表盘"工资摘要"卡片、每日经营报告
+    用的都是同一套自然月/自然日边界,口径一致)。 */
+function payrollPeriodRange() {
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+  return { from: monthStart, to: monthEnd };
+}
+
+async function renderPayrollTable() {
   const container = document.getElementById("payrollTable");
   if (!container) return;
   const dict = i18n[currentLang];
-  if (!employees.length) {
+  const joinedEmployees = employees.filter(e => e.joined && e.backendId);
+  if (!joinedEmployees.length) {
     container.innerHTML = '<div class="insight-empty">' + dict.noEmployeesYet + '</div>';
     return;
   }
+  if (!currentUserCompanyId || !accessToken) { container.innerHTML = ""; return; }
+
+  const { from, to } = payrollPeriodRange();
+  let report, adjustments;
+  try {
+    [report, adjustments] = await Promise.all([
+      apiRequest("/companies/" + currentUserCompanyId + "/payroll/cost?from=" + from.toISOString() + "&to=" + to.toISOString(), { auth: true }),
+      apiRequest("/companies/" + currentUserCompanyId + "/payroll/adjustments?from=" + from.toISOString() + "&to=" + to.toISOString(), { auth: true }),
+    ]);
+  } catch (err) {
+    console.warn("获取真实工资成本失败:", err);
+    container.innerHTML = '<div class="insight-empty">' + dict.noEmployeesYet + '</div>';
+    return;
+  }
+
+  const byEmployeeId = {};
+  (report.breakdown || []).forEach(r => { byEmployeeId[r.employeeId] = r; });
+  const adjustmentsByEmployeeId = {};
+  (adjustments || []).forEach(a => {
+    if (!adjustmentsByEmployeeId[a.employeeId]) adjustmentsByEmployeeId[a.employeeId] = [];
+    adjustmentsByEmployeeId[a.employeeId].push(a);
+  });
+
   let totalCents = 0;
   let html = '<table class="data-table"><tr><th>' + dict.colName + '</th><th>' + dict.colRegular + '</th><th>' +
     dict.colOvertime + '</th><th>' + dict.colBasePay + '</th><th>' + dict.colAdjustments + '</th><th>' +
     dict.colTotal + '</th><th>' + dict.colActions + '</th></tr>';
-  employees.forEach(emp => {
-    const summary = computeEmployeeWageSummary(emp.name);
-    totalCents += summary.totalCostCents;
-    const adjustmentsHtml = summary.adjustments.length
-      ? summary.adjustments.map(a =>
+  joinedEmployees.forEach(emp => {
+    const row = byEmployeeId[emp.backendId] || { regularHours: 0, overtimeHours: 0, baseCostCents: 0, totalCostCents: 0 };
+    const empAdjustments = adjustmentsByEmployeeId[emp.backendId] || [];
+    totalCents += row.totalCostCents;
+    const adjustmentsHtml = empAdjustments.length
+      ? empAdjustments.map(a =>
           '<div style="display:flex;align-items:center;gap:6px;">' +
             '<span>' + a.label + ' (' + (a.amountCents >= 0 ? "+" : "") + (a.amountCents / 100).toFixed(2) + '€)</span>' +
             '<button class="btn btn-outline" style="height:24px;padding:0 8px;font-size:11px;" data-delete-adjustment="' + a.id + '">' + dict.deleteAction + '</button>' +
@@ -4871,15 +5044,19 @@ function renderPayrollTable() {
       : '<span style="color:var(--text-2);font-size:12px;">' + dict.noAdjustmentsYet + '</span>';
     html += '<tr>' +
       '<td>' + emp.name + '</td>' +
-      '<td>' + summary.regularHours.toFixed(2) + 'h</td>' +
-      '<td>' + summary.overtimeHours.toFixed(2) + 'h</td>' +
-      '<td>€' + (summary.baseCostCents / 100).toFixed(2) + '</td>' +
+      '<td>' + row.regularHours.toFixed(2) + 'h</td>' +
+      '<td>' + row.overtimeHours.toFixed(2) + 'h</td>' +
+      '<td>€' + (row.baseCostCents / 100).toFixed(2) + '</td>' +
       '<td>' + adjustmentsHtml + '</td>' +
-      '<td><strong>€' + (summary.totalCostCents / 100).toFixed(2) + '</strong></td>' +
-      '<td><button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-add-adjustment="' + emp.name + '">' + dict.addPayrollAdjustment + '</button></td>' +
+      '<td><strong>€' + (row.totalCostCents / 100).toFixed(2) + '</strong></td>' +
+      '<td><button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-add-adjustment="' + emp.backendId + '">' + dict.addPayrollAdjustment + '</button></td>' +
     '</tr>';
   });
   html += '<tr><td><strong>' + dict.totalRow + '</strong></td><td></td><td></td><td></td><td></td><td><strong>€' + (totalCents / 100).toFixed(2) + '</strong></td><td></td></tr>';
+  if ((report.missingWageConfigEmployeeIds || []).length) {
+    const names = report.missingWageConfigEmployeeIds.map(employeeNameByBackendId).join("、");
+    html += '<tr><td colspan="7" style="color:var(--warning);font-size:12.5px;">' + dict.missingWageConfigNotice(names) + '</td></tr>';
+  }
   html += '</table>';
   container.innerHTML = html;
 
@@ -4892,24 +5069,41 @@ function renderPayrollTable() {
     });
   });
   container.querySelectorAll("[data-delete-adjustment]").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const dict2 = i18n[currentLang];
       if (!window.confirm(dict2.confirmDeleteAdjustment)) return;
-      const id = Number(btn.dataset.deleteAdjustment);
-      const idx = payrollAdjustments.findIndex(a => a.id === id);
-      if (idx !== -1) payrollAdjustments.splice(idx, 1);
+      try {
+        await apiRequest("/companies/" + currentUserCompanyId + "/payroll/adjustments/" + encodeURIComponent(btn.dataset.deleteAdjustment), {
+          method: "DELETE", auth: true,
+        });
+      } catch (err) {
+        window.alert(err.message);
+        return;
+      }
       renderPayrollTable();
     });
   });
 }
 
-document.getElementById("form-payroll-adjustment").addEventListener("submit", e => {
+document.getElementById("form-payroll-adjustment").addEventListener("submit", async e => {
   e.preventDefault();
-  const employeeName = document.getElementById("payrollAdjustmentEmployee").value;
+  const employeeId = document.getElementById("payrollAdjustmentEmployee").value;
   const label = document.getElementById("payrollAdjustmentLabel").value.trim();
   const amount = Number(document.getElementById("payrollAdjustmentAmount").value);
-  if (!employeeName || !label || Number.isNaN(amount) || amount === 0) return;
-  payrollAdjustments.push({ id: payrollAdjustmentIdCounter++, employeeName, label, amountCents: Math.round(amount * 100) });
+  if (!employeeId || !label || Number.isNaN(amount) || amount === 0) return;
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/payroll/adjustments", {
+      method: "POST", auth: true,
+      body: { employeeId, label, amountCents: Math.round(amount * 100) },
+    });
+  } catch (err) {
+    window.alert(err.message);
+    if (submitBtn) submitBtn.disabled = false;
+    return;
+  }
+  if (submitBtn) submitBtn.disabled = false;
   renderPayrollTable();
   e.target.reset();
   closeModal(document.getElementById("modal-payroll-adjustment"));
@@ -5217,6 +5411,21 @@ loadState();
 resumeActiveClockSession(); // 必须在 applyI18n() 之前:先把 clocked-in 样式/秒表接上,applyI18n() 才能据此显示"下班打卡"文案
 applyI18n();
 updateAnnualBalanceDisplay();
+
+/**
+ * Bug 修复(用户明确要求:"员工工资管理,员工工时管理都要支持其它设备登录使用"):
+ * 刷新页面/重新打开 App 时,如果 localStorage 里恢复出了曾经登录过的 accessToken,
+ * 之前完全不会主动跟后端同步一次考勤/工资相关的真实数据,只会显示上次退出前缓存的
+ * 旧快照,要等用户自己手动切换一次导航页面才会刷新——这里统一在启动时也补一次。
+ */
+if (accessToken && currentUserCompanyId) {
+  if (currentUserRole === "COMPANY_ADMIN") {
+    syncEmployeesFromBackend(); // 内部会一并调用 refreshRealAttendanceData()
+  } else if (currentUserRole === "EMPLOYEE") {
+    refreshRealAttendanceData();
+    refreshMyWageConfig();
+  }
+}
 </script>
 </body>
 </html>
