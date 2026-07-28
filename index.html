@@ -1191,6 +1191,8 @@ const i18n = {
     leaveSummaryUsedLabel: "已休", leaveSummaryRemainingLabel: "剩余",
     leaveSummaryNoRecent: "暂无记录", leaveSummaryEmpty: "公司还没有已加入的员工,暂无数据可统计。",
     leaveSummaryLoading: "正在加载员工请假数据…",
+    leaveSummaryColArchive: "档案", leaveSummaryViewArchive: "查看档案", leaveSummaryHideArchive: "收起档案",
+    leaveSummaryArchiveEmpty: "这名员工还没有任何请假记录。",
     subscriptionNoticeTitle: "订阅与付款",
     subscriptionNoticeBody: "提交注册后会跳转到 Stripe 安全支付页面填写付款方式;30 天免费试用期内不会扣款,试用结束后按 €12.50/月自动续费,可随时在设置里取消。",
     subscriptionPriceLine: "€12.50 / 月 · 30 天免费试用",
@@ -1428,6 +1430,8 @@ const i18n = {
     leaveSummaryUsedLabel: "Used", leaveSummaryRemainingLabel: "remaining",
     leaveSummaryNoRecent: "No record yet", leaveSummaryEmpty: "No joined employees yet — nothing to summarize.",
     leaveSummaryLoading: "Loading employee leave data…",
+    leaveSummaryColArchive: "Archive", leaveSummaryViewArchive: "View archive", leaveSummaryHideArchive: "Hide archive",
+    leaveSummaryArchiveEmpty: "This employee has no leave records yet.",
     subscriptionNoticeTitle: "Subscription & payment",
     subscriptionNoticeBody: "After you submit, you'll be redirected to a secure Stripe Checkout page to add a payment method. You won't be charged during the 30-day free trial; billing starts automatically afterward at €12.50/month, and you can cancel anytime from Settings.",
     subscriptionPriceLine: "€12.50 / month · 30-day free trial",
@@ -3584,6 +3588,9 @@ async function refreshCompanyLeaveRequests() {
    这里对每位已加入员工各发一次 GET .../leave-balances 请求,用 Promise.all 并行, 不逐个排队。 */
 let leaveEmployeeSummaryRows = []; // [{employeeId, name, annualAllocated, annualUsed, annualRemaining, personalUsed, sickUsed, mostRecent: LeaveRequestView|null}]
 let leaveEmployeeSummaryLoading = false;
+// 20 秒轮询每次都会重新生成整张表格的 innerHTML——如果不单独记一下"当前哪几位员工的
+// 档案是展开的",管理员正在看某个人的档案时,轮询一来就会被强制收起,体验很差。
+let leaveArchiveExpandedIds = new Set();
 
 async function refreshLeaveEmployeeSummary() {
   const container = document.getElementById("leaveSummaryTableWrap");
@@ -3633,11 +3640,36 @@ async function refreshLeaveEmployeeSummary() {
   renderLeaveEmployeeSummaryTable();
 }
 
+// Bug 修复(时区):后端 startDate/endDate 存的是纯日期字符串(如 "2026-07-25",不带
+// 时间/时区),`new Date("2026-07-25")` 会被当成 UTC 零点解析,在 UTC 之前的时区(如美洲)
+// 用 toLocaleDateString 显示时可能会被"提前"显示成 7 月 24 日,是一个真实的潜在跨天 bug——
+// 补一个 "T00:00:00"(不带 Z)按本地时间零点解析,彻底避免这个偏移。
+function parseLeaveDateLocal(dateStr) {
+  return new Date(dateStr + "T00:00:00");
+}
+
 function formatLeaveSummaryDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString(
+  return parseLeaveDateLocal(dateStr).toLocaleDateString(
     currentLang === "zh" ? "zh-CN" : "en-GB",
     { year: "numeric", month: "2-digit", day: "2-digit" },
   );
+}
+
+/** 请假卡片/档案里"几月几号"这种简短日期,同一年份不重复显示年份,跨年才带上年份,
+    尽量不浪费卡片空间,同时保证用户明确要求的"具体是哪几天"这个信息是完整的。 */
+function formatLeaveDateShort(dateStr) {
+  const d = parseLeaveDateLocal(dateStr);
+  const opts = currentLang === "zh" ? { month: "long", day: "numeric" } : { month: "short", day: "numeric" };
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+  return d.toLocaleDateString(currentLang === "zh" ? "zh-CN" : "en-GB", opts);
+}
+
+/** "7月25日 - 7月27日" 或(单日请假)"7月25日"这一行——这是本次改动的核心需求:
+    以前请假卡片/总览表格只显示"3 天"这样的天数,管理员完全看不出具体是哪几天在请假,
+    没法用来排班。 */
+function formatLeaveDateRange(req) {
+  const start = formatLeaveDateShort(req.startDate);
+  return req.startDate === req.endDate ? start : start + " – " + formatLeaveDateShort(req.endDate);
 }
 
 function renderLeaveEmployeeSummaryTable() {
@@ -3663,7 +3695,9 @@ function renderLeaveEmployeeSummaryTable() {
     if (row.mostRecent) {
       const info = leaveTypeBadgeInfo(dict, row.mostRecent.category);
       const statusSuffix = row.mostRecent.status === "PENDING" ? "(" + dict.statusPending2 + ")" : "";
-      recentText = formatLeaveSummaryDate(row.mostRecent.startDate) + " · " + info.label + statusSuffix;
+      // Bug 修复(用户反馈:"不知道具体是哪几天在请假"):以前这里只显示开始日期一天,
+      // 现在改成完整的"几月几号 - 几月几号"日期范围。
+      recentText = formatLeaveDateRange(row.mostRecent) + " · " + info.label + statusSuffix;
     }
     return "<tr>" +
       "<td><strong>" + row.name + "</strong></td>" +
@@ -3671,7 +3705,17 @@ function renderLeaveEmployeeSummaryTable() {
       "<td>" + row.personalUsed + " " + dict.days + "</td>" +
       "<td>" + row.sickUsed + " " + dict.days + "</td>" +
       "<td>" + recentText + "</td>" +
-      "</tr>";
+      '<td><button class="msg-toggle" data-toggle-leave-archive="' + row.employeeId + '">' +
+        (leaveArchiveExpandedIds.has(row.employeeId) ? dict.leaveSummaryHideArchive : dict.leaveSummaryViewArchive) +
+      "</button></td>" +
+      "</tr>" +
+      // 默认收起,不占空间;点"查看档案"才展开这名员工的完整请假历史(应用户要求:
+      // "建立每一个员工的假期档案和休假档案"),复用已经拉取好的 realLeaveRequestsAdmin,
+      // 不为每个员工的档案单独发请求。展开状态记在 leaveArchiveExpandedIds 里,
+      // 20 秒轮询重新渲染整张表格时不会把正在看的档案强制收起。
+      '<tr class="' + (leaveArchiveExpandedIds.has(row.employeeId) ? "" : "hidden") + '" id="leave-archive-row-' + row.employeeId + '"><td colspan="6">' +
+        buildLeaveArchiveHtml(row.employeeId) +
+      "</td></tr>";
   }).join("");
 
   container.innerHTML =
@@ -3681,7 +3725,56 @@ function renderLeaveEmployeeSummaryTable() {
     "<th>" + dict.leaveSummaryColPersonal + "</th>" +
     "<th>" + dict.leaveSummaryColSick + "</th>" +
     "<th>" + dict.leaveSummaryColRecent + "</th>" +
+    "<th>" + dict.leaveSummaryColArchive + "</th>" +
     "</tr></thead><tbody>" + rowsHtml + "</tbody></table>";
+
+  wireLeaveSummaryEvents(container);
+}
+
+/** 单个员工的完整"请假档案"——按开始日期倒序列出这名员工全部请假记录(包括已拒绝的,
+    作为完整存档留痕),每条都带具体日期范围/类型/天数/状态,这是本次改动的核心诉求:
+    "建立每一个员工的假期档案和休假档案"。默认这一行是隐藏的(见上面 renderLeaveEmployeeSummaryTable
+    里的 "hidden" 类),点"查看档案"才展开,平时不占用表格空间。 */
+function buildLeaveArchiveHtml(employeeId) {
+  const dict = i18n[currentLang];
+  const history = realLeaveRequestsAdmin
+    .filter(r => r.employeeId === employeeId)
+    .sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+  if (history.length === 0) {
+    return '<div class="insight-empty" style="margin:6px 0;">' + dict.leaveSummaryArchiveEmpty + "</div>";
+  }
+  const itemsHtml = history.map(req => {
+    const info = leaveTypeBadgeInfo(dict, req.category);
+    const statusBadge = req.status === "APPROVED"
+      ? '<span class="badge success">' + dict.statusApproved + "</span>"
+      : req.status === "REJECTED"
+        ? '<span class="badge danger">' + dict.statusRejected + "</span>"
+        : '<span class="badge warning">' + dict.statusPending2 + "</span>";
+    return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:12.5px;">' +
+      '<span style="min-width:140px;">📅 ' + formatLeaveDateRange(req) + "</span>" +
+      '<span class="badge ' + info.cls + '">' + info.label + "</span>" +
+      "<span>" + req.daysRequested + " " + dict.days + "</span>" +
+      statusBadge +
+    "</div>";
+  }).join("");
+  return '<div style="max-height:220px;overflow-y:auto;">' + itemsHtml + "</div>";
+}
+
+/** "查看档案"按钮的展开/收起——每次 renderLeaveEmployeeSummaryTable() 重新生成整个
+    表格的 innerHTML 之后都要重新绑定一次,和留言板的 wireLeaveCardEvents() 是同一个模式。 */
+function wireLeaveSummaryEvents(container) {
+  container.querySelectorAll("[data-toggle-leave-archive]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const dict = i18n[currentLang];
+      const employeeId = btn.dataset.toggleLeaveArchive;
+      const row = container.querySelector("#leave-archive-row-" + employeeId);
+      if (!row) return;
+      const willShow = row.classList.contains("hidden");
+      row.classList.toggle("hidden");
+      btn.textContent = willShow ? dict.leaveSummaryHideArchive : dict.leaveSummaryViewArchive;
+      if (willShow) leaveArchiveExpandedIds.add(employeeId); else leaveArchiveExpandedIds.delete(employeeId);
+    });
+  });
 }
 
 /** "14 / 21 天" 或(不限额类型)"已请 3 天" 这类文案——只用于"当前登录这名员工自己"的卡片,
@@ -3830,6 +3923,10 @@ function buildLeaveCardHtml(req, isAdminView) {
       "<span>" + nameHtml + '<span class="badge ' + info.cls + '">' + info.label + "</span> · " + req.daysRequested + " " + dict.days + "</span>" +
       '<span style="margin-left:auto;display:flex;gap:8px;align-items:center;">' + statusBadge + actionsHtml + "</span>" +
     "</div>" +
+    // Bug 修复(用户反馈:"管理员不知道具体是哪几天在请假,只知道请假几天"):以前这里只显示
+    // "3 天"这样的天数,从来没有把 req.startDate/req.endDate 这两个后端本来就有的真实字段
+    // 显示出来。现在补上具体的"几月几号 - 几月几号"这一行,方便管理员安排排班。
+    '<div style="font-size:12.5px;color:var(--text-1);margin-top:2px;">📅 ' + formatLeaveDateRange(req) + "</div>" +
     '<div class="leave-card-reason">' + (req.reason || "") + "</div>" +
     attachmentHtml +
     '<div style="font-size:11.5px;color:var(--text-2);margin-top:6px;">' + dict.payRateNote + ": " + info.payRate + "%</div>" +
