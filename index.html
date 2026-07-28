@@ -531,7 +531,8 @@
 
           <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;">
             <div style="font-weight:700;margin-bottom:4px;" data-i18n="employeeBalanceOverrideTitle">单个员工额度调整</div>
-            <p class="section-sub" style="margin:0 0 12px;" data-i18n="employeeBalanceOverrideSub">例如工龄较久的员工年假天数高于公司默认值,或需要为某位员工单独补发/扣减某类请假额度。</p>
+            <p class="section-sub" style="margin:0 0 4px;" data-i18n="employeeBalanceOverrideSub">例如工龄较久的员工年假天数高于公司默认值,或需要为某位员工单独补发/扣减某类请假额度。</p>
+            <p class="section-sub" style="margin:0 0 12px;color:var(--brand-blue);" data-i18n="employeeBalanceOverrideNotALeaveRequest">注意:这里只是设置"额度上限",不是替员工提交请假申请——没有请假事由/日期/留言板。真正的请假申请由员工自己在"请假中心"提交,提交后会出现在本页下方的请假列表里,才能看到事由和留言板。</p>
             <div class="form-grid">
               <div class="field">
                 <label data-i18n="fieldSelectEmployee">员工</label>
@@ -1175,6 +1176,7 @@ const i18n = {
     saveRow: "保存", leaveTypeConfigSaved: "已保存",
     employeeBalanceOverrideTitle: "单个员工额度调整",
     employeeBalanceOverrideSub: "例如工龄较久的员工年假天数高于公司默认值,或需要为某位员工单独补发/扣减某类请假额度。",
+    employeeBalanceOverrideNotALeaveRequest: "注意:这里只是设置\"额度上限\",不是替员工提交请假申请——没有请假事由/日期/留言板。真正的请假申请由员工自己在\"请假中心\"提交,提交后会出现在本页下方的请假列表里,才能看到事由和留言板。",
     fieldSelectEmployee: "员工", fieldSelectLeaveType: "请假类型", fieldAllocatedDays: "这一年可休天数",
     saveEmployeeBalance: "保存额度", employeeBalanceSaved: "已保存",
     subscriptionNoticeTitle: "订阅与付款",
@@ -1405,6 +1407,7 @@ const i18n = {
     saveRow: "Save", leaveTypeConfigSaved: "Saved",
     employeeBalanceOverrideTitle: "Per-Employee Balance Adjustment",
     employeeBalanceOverrideSub: "E.g. a senior employee gets more annual days than the company default, or you need to grant/deduct a specific employee's balance.",
+    employeeBalanceOverrideNotALeaveRequest: "Note: this only sets a quota cap — it does not submit a leave request on the employee's behalf, so there's no reason/dates/message thread here. Employees submit real leave requests themselves via \"Leave Center\"; once submitted, they'll appear in the request list below, where you'll see the reason and message thread.",
     fieldSelectEmployee: "Employee", fieldSelectLeaveType: "Leave type", fieldAllocatedDays: "Days allocated this year",
     saveEmployeeBalance: "Save balance", employeeBalanceSaved: "Saved",
     subscriptionNoticeTitle: "Subscription & payment",
