@@ -454,12 +454,20 @@
         </div>
         <div class="glass ca-section" id="ca-gps" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navGps">实时 GPS 看板</h2>
-          <p class="section-sub" data-i18n="gpsSub">仅在员工"上班打卡"到"下班打卡"期间追踪,地图数据来自 OpenStreetMap</p>
+          <p class="section-sub" data-i18n="gpsSub">仅在员工"上班打卡"到"下班打卡"期间追踪,地图数据来自 OpenStreetMap(完全免费,不使用任何付费地图/导航 API)</p>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+            <label for="gpsTrackEmployeeSelect" style="font-size:13px;color:var(--text-2);" data-i18n="gpsTrackSelectLabel">查看运动足迹:</label>
+            <select id="gpsTrackEmployeeSelect" style="height:34px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;padding:0 8px;min-width:180px;">
+              <option value="" data-i18n="gpsTrackSelectNone">不显示轨迹(只看当前位置)</option>
+            </select>
+          </div>
           <div class="gps-map" id="gpsMap"></div>
           <div class="gps-legend">
             <span><span class="dot" style="background:#2B5FA8;"></span><span data-i18n="gpsLegendShop">店铺位置</span></span>
             <span><span class="dot" style="background:#3E7D5C;"></span><span data-i18n="gpsLegendMoving">员工实时位置(打卡上班期间)</span></span>
+            <span><span class="dot" style="background:#C68A3D;"></span><span data-i18n="gpsLegendTrack">运动足迹(今天,每 20 秒自动更新)</span></span>
           </div>
+          <p class="section-sub" id="gpsTrackEmptyHint" style="display:none;" data-i18n="gpsTrackEmptyHint">这名员工今天还没有任何 GPS 打点记录(需要打卡上班并授权定位权限,才会开始上报轨迹)。</p>
           <p class="section-sub" id="gpsShopMissingHint" style="display:none;color:var(--brand-blue);" data-i18n="gpsShopMissingHint">尚未定位到店铺地址——去"设置"里检查公司地址是否填写完整,系统会自动重新匹配 GPS 坐标。</p>
           <p class="section-sub" id="gpsNoOnlineEmployeesHint" style="display:none;" data-i18n="gpsNoOnlineEmployeesHint">目前没有员工在打卡上班中,地图上暂时不会显示员工位置——员工上班打卡并授权定位权限后,这里会显示真实位置。</p>
 
@@ -1118,8 +1126,11 @@ const i18n = {
     leaveBalance: "请假余额", annual: "年假", sick: "病假", personal: "事假", days: "天",
     announcements: "公司公告", announcementSample: "下周三全员培训,请准时参加。",
     navDashboard: "首页", navEmployees: "员工管理", navGps: "GPS 看板", navPayroll: "工资管理", navLeave: "请假审批",
-    gpsSub: "仅在员工\"上班打卡\"到\"下班打卡\"期间追踪,地图数据来自 OpenStreetMap",
+    gpsSub: "仅在员工\"上班打卡\"到\"下班打卡\"期间追踪,地图数据来自 OpenStreetMap(完全免费,不使用任何付费地图/导航 API)",
     gpsLegendShop: "店铺位置", gpsLegendMoving: "员工实时位置(打卡上班期间)",
+    gpsLegendTrack: "运动足迹(今天,每 20 秒自动更新)",
+    gpsTrackSelectLabel: "查看运动足迹:", gpsTrackSelectNone: "不显示轨迹(只看当前位置)",
+    gpsTrackEmptyHint: "这名员工今天还没有任何 GPS 打点记录(需要打卡上班并授权定位权限,才会开始上报轨迹)。",
     gpsShopMissingHint: "尚未定位到店铺地址——去\"设置\"里检查公司地址是否填写完整,系统会自动重新匹配 GPS 坐标。",
     gpsNoOnlineEmployeesHint: "目前没有员工在打卡上班中,地图上暂时不会显示员工位置——员工上班打卡并授权定位权限后,这里会显示真实位置。",
     gpsEmployeeStatusTitle: "员工实时状态", noOnlineEmployeesStatus: "目前没有员工在打卡上班中",
@@ -1345,8 +1356,11 @@ const i18n = {
     leaveBalance: "Leave balance", annual: "Annual", sick: "Sick", personal: "Personal", days: "days",
     announcements: "Announcements", announcementSample: "Company-wide training next Wednesday, please attend on time.",
     navDashboard: "Dashboard", navEmployees: "Employees", navGps: "GPS dashboard", navPayroll: "Payroll", navLeave: "Leave approval",
-    gpsSub: "Tracking only runs from clock-in to clock-out. Map data © OpenStreetMap contributors.",
+    gpsSub: "Tracking only runs from clock-in to clock-out. Map data © OpenStreetMap contributors (completely free, no paid maps/navigation API involved).",
     gpsLegendShop: "Shop location", gpsLegendMoving: "Employee live location (while clocked in)",
+    gpsLegendTrack: "Movement trail (today, auto-refreshes every 20s)",
+    gpsTrackSelectLabel: "View movement trail:", gpsTrackSelectNone: "No trail (current location only)",
+    gpsTrackEmptyHint: "No GPS pings recorded for this employee today yet (they need to clock in and grant location permission before a trail appears).",
     gpsShopMissingHint: "The shop's address hasn't been located yet — check that your company address is complete under \"Settings\", and it will be automatically re-matched to GPS coordinates.",
     gpsNoOnlineEmployeesHint: "No employees are currently clocked in, so no location markers are shown — once someone clocks in and grants location permission, their real position will appear here.",
     gpsEmployeeStatusTitle: "Employee live status", noOnlineEmployeesStatus: "No employees are currently clocked in",
@@ -2715,7 +2729,8 @@ function wireNavRail(prefix, viewId) {
       document.getElementById(item.dataset.section).style.display = "block";
       if (item.dataset.section === "ca-gps") {
         initGpsMap(); renderGpsAnomalyReport("gpsAnomalyList");
-        startGpsLiveRefresh(); // 停留在 GPS 看板这个页面时,每 20 秒自动刷新一次真实在线员工位置
+        populateGpsTrackEmployeeSelect(); // 应用户要求新增:下拉框列出可以查看运动足迹的员工
+        startGpsLiveRefresh(); // 停留在 GPS 看板这个页面时,每 20 秒自动刷新一次真实在线员工位置(也会顺带刷新运动足迹)
       } else {
         stopGpsLiveRefresh(); // 离开 GPS 看板就停掉定时刷新,不在后台空转浪费请求
       }
@@ -3281,12 +3296,67 @@ async function refreshGpsLiveEmployeeMarkers() {
 function startGpsLiveRefresh() {
   stopGpsLiveRefresh();
   refreshGpsLiveEmployeeMarkers();
-  gpsLiveRefreshHandle = setInterval(refreshGpsLiveEmployeeMarkers, 20000);
+  refreshSelectedEmployeeTrack();
+  gpsLiveRefreshHandle = setInterval(() => { refreshGpsLiveEmployeeMarkers(); refreshSelectedEmployeeTrack(); }, 20000);
 }
 
 function stopGpsLiveRefresh() {
   if (gpsLiveRefreshHandle) { clearInterval(gpsLiveRefreshHandle); gpsLiveRefreshHandle = null; }
 }
+
+/* ---------- 运动足迹(用户明确要求:"让送外卖员工的运动足迹能在地图上显示") ----------
+   以前地图上只画得出"现在这一个点"(DISTINCT ON 只取最新一条打点),看不出这段时间
+   这名员工到底沿着什么路线在移动,只能靠管理员自己脑补。这里新增:管理员从下拉框选一名
+   员工,调用后端新接口 GET .../gps/track(按时间正序返回今天全部真实打点),用 Leaflet
+   Polyline 把这些点连成一条线画在地图上——和当前位置的圆点共用同一张免费地图
+   (Leaflet + OpenStreetMap,不涉及任何付费地图/导航 API),随 20 秒轮询一起刷新。 */
+let gpsTrackPolyline = null;
+let gpsTrackSelectedEmployeeId = "";
+
+function populateGpsTrackEmployeeSelect() {
+  const select = document.getElementById("gpsTrackEmployeeSelect");
+  if (!select) return;
+  const dict = i18n[currentLang];
+  const previousValue = select.value;
+  const options = employees.filter(e => e.joined && e.backendId);
+  select.innerHTML = '<option value="">' + dict.gpsTrackSelectNone + '</option>' +
+    options.map(e => '<option value="' + e.backendId + '">' + e.name + '</option>').join("");
+  // 尽量保留管理员已经选中的那一位,不要因为列表重新刷新就把选择清空
+  if (options.some(e => e.backendId === previousValue)) select.value = previousValue;
+  gpsTrackSelectedEmployeeId = select.value;
+}
+
+async function refreshSelectedEmployeeTrack() {
+  const emptyHintEl = document.getElementById("gpsTrackEmptyHint");
+  if (!gpsMap || !gpsTrackSelectedEmployeeId || !currentUserCompanyId || !accessToken) {
+    if (gpsTrackPolyline) { gpsMap && gpsMap.removeLayer(gpsTrackPolyline); gpsTrackPolyline = null; }
+    if (emptyHintEl) emptyHintEl.style.display = "none";
+    return;
+  }
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let points = [];
+  try {
+    points = await apiRequest(
+      "/companies/" + currentUserCompanyId + "/gps/track?employeeId=" + gpsTrackSelectedEmployeeId +
+        "&from=" + todayStart.toISOString() + "&to=" + now.toISOString(),
+      { auth: true },
+    );
+  } catch (err) {
+    console.warn("获取员工运动足迹失败:", err);
+    return;
+  }
+  if (gpsTrackPolyline) { gpsMap.removeLayer(gpsTrackPolyline); gpsTrackPolyline = null; }
+  if (emptyHintEl) emptyHintEl.style.display = points.length ? "none" : "block";
+  if (!points.length) return;
+  const latLngs = points.map(p => [p.latitude, p.longitude]);
+  gpsTrackPolyline = L.polyline(latLngs, { color: "#C68A3D", weight: 4, opacity: 0.85 }).addTo(gpsMap);
+}
+
+document.getElementById("gpsTrackEmployeeSelect").addEventListener("change", e => {
+  gpsTrackSelectedEmployeeId = e.target.value;
+  refreshSelectedEmployeeTrack();
+});
 
 /* ---------- 异常停留主动提醒(用户明确要求:"一旦有异常运行轨迹要通知管理员") ----------
    Bug 修复:之前异常停留报告只有管理员自己点进 GPS 看板才看得到,是"被动查看",不是
