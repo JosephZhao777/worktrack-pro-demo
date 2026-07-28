@@ -1213,6 +1213,7 @@ const i18n = {
     noAttendanceYet: "暂无考勤记录,员工上班打卡后会显示在这里,也可以点击「补录打卡」手动添加",
     noEmployeesYet: "暂无员工,点击「添加员工」开始,或等待员工凭邀请码自行注册",
     editHourlyRate: "调整时薪", editHourlyRatePrompt: "请输入这名员工的新时薪(欧元/小时):",
+    editHourlyRateEffectiveFromPrompt: "这个新时薪从哪天开始生效?(格式 年-月-日,例如 2026-07-01)\n\n留空 = 交给系统自动判断:如果这名员工是第一次设置时薪,会自动覆盖 ta 入职以来的全部历史打卡;如果是涨薪/调薪,默认从今天开始生效。\n\n如果你发现这名员工之前打过卡、但工资管理里一直显示 0 工时/€0(说明当时设置晚了),可以在这里手动填一个更早的日期(比如 ta 入职第一天),把之前的工时也一起补算进去。",
     fieldHourlyRate: "时薪(欧元/小时)", hourlyRateHint: "用于自动计算这名员工的工资,之后可以在员工列表里随时修改",
     payrollSub: "工资按「员工名单 + 考勤记录(未作废部分)+ 每位员工设置的时薪」自动计算,和每日经营报告用的是同一套算法;需要额外发放奖金或做扣款时,可以给单个员工手动增加调整项。",
     colBasePay: "基础工资", colAdjustments: "调整项", deleteAction: "删除", noAdjustmentsYet: "暂无调整项",
@@ -1452,6 +1453,7 @@ const i18n = {
     noAttendanceYet: "No attendance records yet — they'll appear here once employees clock in, or you can add one manually via \"Add attendance record\"",
     noEmployeesYet: "No employees yet — click \"Add employee\" to start, or wait for employees to self-register with an invite code",
     editHourlyRate: "Edit hourly rate", editHourlyRatePrompt: "Enter this employee's new hourly rate (EUR/hour):",
+    editHourlyRateEffectiveFromPrompt: "What date should this new rate take effect from? (YYYY-MM-DD, e.g. 2026-07-01)\n\nLeave blank = let the system decide automatically: if this is the employee's first-ever rate, it will automatically cover all of their attendance since joining; if this is a raise/adjustment, it defaults to today.\n\nIf this employee already clocked in before but Payroll has been showing 0 hours/€0 for them (because the rate was set too late), you can enter an earlier date here (e.g. their first day) to retroactively include those hours.",
     fieldHourlyRate: "Hourly rate (EUR/hour)", hourlyRateHint: "Used to auto-calculate this employee's pay; can be changed anytime from the employee list",
     payrollSub: "Pay is calculated automatically from the employee list + attendance records (excluding voided ones) + each employee's hourly rate — the same logic used in the daily report. You can add a manual adjustment for a specific employee for bonuses or deductions.",
     colBasePay: "Base pay", colAdjustments: "Adjustments", deleteAction: "Delete", noAdjustmentsYet: "No adjustments yet",
@@ -2324,6 +2326,18 @@ function renderEmployeeTable() {
       const parsed = Number(input);
       if (Number.isNaN(parsed) || parsed < 0) return;
       const newRateCents = Math.round(parsed * 100);
+      // Bug 修复(用户反馈:"考勤与工资管理都是相互印证的,是联动的计算逻辑,从打卡开始
+      // 就应该按照预定的工资/小时 × 工作时间"):后端 setWageConfig() 现在会自动判断——
+      // 员工第一次被设置时薪时,自动套用足够早的日期覆盖 ta 入职以来的全部历史打卡;
+      // 涨薪/调薪则继续默认从今天生效,不会悄悄改写历史工资。但对于这次改动上线之前
+      // 就已经"设置晚了"、导致工资管理一直显示 0 工时的员工(比如 Y An/W Zhao 这种
+      // 情况),需要给管理员一个手动补救的入口——这里加一个可选的"生效日期"输入,
+      // 留空就交给后端自动判断,填了就按管理员填的日期为准(比如填 ta 入职当天),
+      // 把之前漏算的工时和成本一次性补算回来。
+      const effectiveFromInput = window.prompt(dict2.editHourlyRateEffectiveFromPrompt, "");
+      const effectiveFrom = effectiveFromInput && /^\d{4}-\d{2}-\d{2}$/.test(effectiveFromInput.trim())
+        ? effectiveFromInput.trim()
+        : undefined;
       // Bug 修复(用户实测反馈:"每日经营报告"工资成本一直是 €0.00,不是真实报告):
       // 这里以前只改本地 employees 数组这一份展示数据,从来没有真正调用后端
       // POST /payroll/wage-configs——"每日经营报告"读的是数据库里的 wage_configs 表,
@@ -2334,7 +2348,7 @@ function renderEmployeeTable() {
         try {
           await apiRequest("/companies/" + currentUserCompanyId + "/payroll/wage-configs", {
             method: "POST", auth: true,
-            body: { employeeId: emp.backendId, hourlyRateCents: newRateCents },
+            body: { employeeId: emp.backendId, hourlyRateCents: newRateCents, effectiveFrom },
           });
         } catch (err) {
           window.alert(err.message);
