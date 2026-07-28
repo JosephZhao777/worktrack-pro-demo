@@ -1701,8 +1701,6 @@ function saveState() {
   try {
     const state = {
       employees, employeeIdCounter,
-      leaveRequests, leaveRequestIdCounter,
-      leaveBalancesByEmployee, leaveTypeConfigs,
       inviteCodeDirectory, currentCompanyInviteCode,
       companyAdminEmail, companyAdminDemoPassword, companyDisplayName, companySloganText,
       platformAdminEmail, platformAdminPassword,
@@ -1736,10 +1734,6 @@ function loadState() {
 
   if (Array.isArray(saved.employees)) { employees.length = 0; employees.push(...saved.employees); }
   if (typeof saved.employeeIdCounter === "number") employeeIdCounter = saved.employeeIdCounter;
-  if (Array.isArray(saved.leaveRequests)) { leaveRequests.length = 0; leaveRequests.push(...saved.leaveRequests); }
-  if (typeof saved.leaveRequestIdCounter === "number") leaveRequestIdCounter = saved.leaveRequestIdCounter;
-  if (saved.leaveBalancesByEmployee && typeof saved.leaveBalancesByEmployee === "object") leaveBalancesByEmployee = saved.leaveBalancesByEmployee;
-  if (saved.leaveTypeConfigs && typeof saved.leaveTypeConfigs === "object") leaveTypeConfigs = saved.leaveTypeConfigs;
   if (saved.inviteCodeDirectory && typeof saved.inviteCodeDirectory === "object") Object.assign(inviteCodeDirectory, saved.inviteCodeDirectory);
   if (typeof saved.currentCompanyInviteCode === "string") currentCompanyInviteCode = saved.currentCompanyInviteCode;
   if (typeof saved.companyAdminEmail === "string") companyAdminEmail = saved.companyAdminEmail;
@@ -2056,7 +2050,13 @@ function startAttendanceLiveRefresh() {
   if (!accessToken || !currentUserCompanyId) return;
   attendanceLiveRefreshHandle = setInterval(() => {
     refreshRealAttendanceData();
-    if (currentUserRole === "COMPANY_ADMIN") renderPayrollTable();
+    if (currentUserRole === "COMPANY_ADMIN") {
+      renderPayrollTable();
+      refreshCompanyLeaveRequests(); // Bug 修复(用户反馈:"其他手机用户使用请假功能,在公司管理后台根本看不见"):请假审批队列也要跟考勤/工资一样每 20 秒自动跨设备同步一次
+    } else if (currentUserRole === "EMPLOYEE") {
+      refreshMyLeaveBalances();
+      refreshMyLeaveRequests(); // 员工自己在别的设备提交/被审批的请假记录,也要能在 20 秒内自动同步过来,不需要手动刷新页面
+    }
   }, 20000);
 }
 
@@ -2094,7 +2094,7 @@ function renderCaDashboardMetrics() {
   const headcountEl = document.getElementById("caHeadcountValue");
   if (headcountEl) headcountEl.textContent = String(employees.filter(e => e.status === "active").length);
   const pendingLeaveEl = document.getElementById("caPendingLeaveValue");
-  if (pendingLeaveEl) pendingLeaveEl.textContent = String(leaveRequests.filter(r => r.status === "pending").length);
+  if (pendingLeaveEl) pendingLeaveEl.textContent = String(realLeaveRequestsAdmin.filter(r => r.status === "PENDING").length);
 }
 
 function employmentTypeLabel(dict, type) {
@@ -2488,6 +2488,9 @@ document.getElementById("form-employee-login").addEventListener("submit", async 
       syncInventoryFromBackend(); // 员工仪表盘的"仓库补货"卡片需要真实库存数据
       refreshRealAttendanceData(); // 登录成功后拉一次真实考勤数据,"打卡明细"/仪表盘卡片不再是空的
       refreshMyWageConfig(); // 拉一次自己真实的时薪,"工资摘要"卡片不再假装是 €0.00
+      refreshLeaveTypes(); // 请假类型(年假/病假/事假/培训/出差)+ 我自己的余额/请假记录,全部改成真实数据
+      refreshMyLeaveBalances();
+      refreshMyLeaveRequests();
       startAttendanceLiveRefresh(); // 之后每 20 秒自动重新拉一次,不用等下次手动切换页面/打卡才更新
     }
   } catch (err) {
@@ -2556,6 +2559,9 @@ document.getElementById("form-employee-register").addEventListener("submit", asy
       syncInventoryFromBackend();
       refreshRealAttendanceData(); // 刚注册成功的新员工也一样,一开始就用真实数据源
       refreshMyWageConfig();
+      refreshLeaveTypes();
+      refreshMyLeaveBalances();
+      refreshMyLeaveRequests();
       startAttendanceLiveRefresh();
     }
   } catch (err) {
@@ -2598,6 +2604,8 @@ document.getElementById("form-company-login").addEventListener("submit", async e
       syncCompanyProfileFromBackend(currentUserCompanyId);
       syncEmployeesFromBackend();
       syncInventoryFromBackend();
+      refreshLeaveTypes();
+      refreshCompanyLeaveRequests(); // 管理员登录后立刻拉一次全公司真实请假审批队列,不再是空的本地数组
       startAttendanceLiveRefresh(); // 管理员登录后也一样每 20 秒自动刷新,"员工管理"列表能自己跟上员工端的实时变化
     }
   } catch (err) {
@@ -3478,83 +3486,103 @@ inviteInput.addEventListener("input", () => {
 });
 
 /* ---------- 请假中心 / 请假审批(留言板 + 病假证明 + 出差培训行程 + 21天年假扣减) ----------
-   同一套 leaveRequests 数据被两处消费:员工端"请假中心"(仅显示本人记录,可提交新申请)、
-   公司管理后台"请假审批"(显示全部员工记录,可批准/拒绝)。每条记录都有独立留言板
-   (leave_request_messages 的前端体现),病假证明/出差行程作为附加字段按需展示。 */
-let leaveRequestIdCounter = 500;
-// 不再预置任何演示员工的请假记录——员工列表本身默认是空的,这里预置的假请假记录也就没有
-// 归属对象了。真实数据完全来自员工自己在"请假中心"提交的申请。
-const leaveRequests = [];
+   Bug 修复(用户实测发现:"其他手机用户使用请假功能,在公司管理后台根本看不见"——
+   两台设备提交/查看的请假记录完全对不上):这一整块以前全部是浏览器本地
+   localStorage 数据(leaveRequests/leaveTypeConfigs/leaveBalancesByEmployee 这三个
+   变量,只存在这一台设备的这一个浏览器里),和考勤/工资被修好之前是同一类问题。
+   现在改成真实调用后端 LeaveModule(leave-types/leave-balances/leave-requests/
+   review/messages 这几个接口,后端本来就已经完整实现,只是前端一直没有真正调用)。
+   注:后端 leave_types 这张表之前也从没有被自动播种过(见 leave.service.ts 的
+   ensureLeaveTypesSeeded 修复说明),这次一并在后端修好了这个更底层的缺口。 */
+let realLeaveTypesByCategory = {}; // category -> {id, category, translationKey, defaultAnnualQuota, payRatePercentage, requiresApproval, requiresAttachment}
+let realLeaveTypeIdToCategory = {}; // leaveTypeId -> category,组卡片用后端返回的 category 字段更省事,这个映射主要留给"额度调整"表单查id用
+let realLeaveBalancesByCategory = {}; // 只保存"当前登录这名员工自己"的余额:category -> {allocatedDays, usedDays, remainingDays}
+let realLeaveRequestsAdmin = []; // 公司后台"请假审批"队列(全体员工)
+let realLeaveRequestsMine = []; // 员工自己"请假中心"里的记录(仅本人)
+let leaveMessagesByRequestId = {}; // requestId -> 已经拉取过的留言列表(懒加载,第一次点"查看留言"才请求)
 
-/* ---------- 请假配额配置("变量系统",对应后端 LeaveModule 的 leave_types) ----------
-   quota=null 表示不限额(如培训假/出差)。应用户要求,逐类别可视化编辑面板("请假类型
-   与额度设置"表格)已经整体删除,这里的默认值现在是纯代码常量,不再有管理后台页面能
-   改除年假之外的其余类别;"默认年假天数"这一项例外,继续通过"设置"页单独可编辑
-   (见 btnSaveCompanyProfile 点击事件,直接写 leaveTypeConfigs.ANNUAL.quota)。 */
-let leaveTypeConfigs = {
-  ANNUAL:        { quota: 21,   payRate: 100, requiresApproval: true,  requiresAttachment: false },
-  SICK:          { quota: null, payRate: 100, requiresApproval: false, requiresAttachment: true  },
-  PERSONAL:      { quota: 5,    payRate: 70,  requiresApproval: true,  requiresAttachment: false },
-  TRAINING:      { quota: null, payRate: 100, requiresApproval: true,  requiresAttachment: false },
-  BUSINESS_TRIP: { quota: null, payRate: 100, requiresApproval: true,  requiresAttachment: false }
-};
-
-/* ---------- 员工请假余额("变量系统",对应后端 leave_balances) ----------
-   姓名 -> 类型 -> { allocated, used }。allocated 为 null/undefined 表示"这名员工在
-   这个类型上没有被单独调整过",此时用 leaveTypeConfigs[category].quota 兜底
-   (和后端 LeaveService.listBalances() 的兜底逻辑一致)。usedDays 在批准请假时累加,
-   不会因为改额度而被清零——改额度只影响"总共能休多少天",不影响"已经休了多少天"。 */
-// 不再预置任何演示员工的余额——getEmployeeLeaveBalance() 已经是按姓名懒加载初始化
-// (allocated:null 会回退到公司级默认配额),任何真实注册的员工第一次被查询余额时都会
-// 自动生成一条初始记录,不需要在这里手工预置。
-let leaveBalancesByEmployee = {};
-
-function getEmployeeLeaveBalance(employeeName, category) {
-  if (!leaveBalancesByEmployee[employeeName]) leaveBalancesByEmployee[employeeName] = {};
-  if (!leaveBalancesByEmployee[employeeName][category]) {
-    leaveBalancesByEmployee[employeeName][category] = { allocated: null, used: 0 };
+async function refreshLeaveTypes() {
+  if (!accessToken || !currentUserCompanyId) return;
+  try {
+    const types = await apiRequest("/companies/" + currentUserCompanyId + "/leave-types", { auth: true });
+    realLeaveTypesByCategory = {};
+    realLeaveTypeIdToCategory = {};
+    types.forEach(t => { realLeaveTypesByCategory[t.category] = t; realLeaveTypeIdToCategory[t.id] = t.category; });
+  } catch (err) {
+    console.warn("获取请假类型配置失败:", err);
   }
-  return leaveBalancesByEmployee[employeeName][category];
+  syncSettingsAnnualQuotaInput();
 }
 
-/** 这名员工在这个类型上实际生效的总额度:员工级覆盖优先,否则回退到公司级默认配置。 */
-function effectiveQuota(employeeName, category) {
-  const bal = getEmployeeLeaveBalance(employeeName, category);
-  const config = leaveTypeConfigs[category];
-  return bal.allocated !== null && bal.allocated !== undefined ? bal.allocated : (config ? config.quota : null);
+async function refreshMyLeaveBalances() {
+  if (!accessToken || !currentUserCompanyId || !currentUserId) { realLeaveBalancesByCategory = {}; return; }
+  try {
+    const balances = await apiRequest(
+      "/companies/" + currentUserCompanyId + "/employees/" + currentUserId + "/leave-balances?year=" + new Date().getFullYear(),
+      { auth: true },
+    );
+    realLeaveBalancesByCategory = {};
+    balances.forEach(b => { realLeaveBalancesByCategory[b.category] = b; });
+  } catch (err) {
+    console.warn("获取自己的请假余额失败:", err);
+  }
+  updateLeaveBalanceDisplays(currentEmployeeName());
 }
 
-/** "14 / 21 天" 或(不限额类型)"已请 3 天" 这类文案,员工端卡片和请假中心共用同一套计算逻辑。 */
-function formatLeaveBalanceText(dict, employeeName, category) {
-  const bal = getEmployeeLeaveBalance(employeeName, category);
-  const quota = effectiveQuota(employeeName, category);
-  if (quota === null || quota === undefined) {
-    return dict.leaveUsedLabel + " " + bal.used + " " + dict.days;
+async function refreshMyLeaveRequests() {
+  if (!accessToken || !currentUserCompanyId || !currentUserId) { realLeaveRequestsMine = []; renderLeaveHistory(); return; }
+  try {
+    realLeaveRequestsMine = await apiRequest(
+      "/companies/" + currentUserCompanyId + "/employees/" + currentUserId + "/leave-requests",
+      { auth: true },
+    );
+  } catch (err) {
+    console.warn("获取自己的请假记录失败:", err);
   }
-  const remaining = Math.max(0, quota - bal.used);
-  return remaining + " / " + quota + " " + dict.days;
+  renderLeaveHistory();
+}
+
+async function refreshCompanyLeaveRequests() {
+  if (!accessToken || !currentUserCompanyId) { realLeaveRequestsAdmin = []; renderLeaveRequests(); return; }
+  try {
+    realLeaveRequestsAdmin = await apiRequest("/companies/" + currentUserCompanyId + "/leave-requests", { auth: true });
+  } catch (err) {
+    console.warn("获取公司请假审批队列失败:", err);
+  }
+  renderLeaveRequests();
+  renderCaDashboardMetrics();
+}
+
+/** "14 / 21 天" 或(不限额类型)"已请 3 天" 这类文案——只用于"当前登录这名员工自己"的卡片,
+    数据来自 refreshMyLeaveBalances() 真实拉取的 realLeaveBalancesByCategory。 */
+function formatLeaveBalanceText(dict, category) {
+  const bal = realLeaveBalancesByCategory[category];
+  if (!bal) return "—";
+  if (bal.allocatedDays === null || bal.allocatedDays === undefined) {
+    return dict.leaveUsedLabel + " " + bal.usedDays + " " + dict.days;
+  }
+  return Math.max(0, bal.remainingDays) + " / " + bal.allocatedDays + " " + dict.days;
 }
 
 /** 请假中心的顶部数字卡片(不带"天"字,单独一行展示)。 */
-function formatLeaveBalanceValue(dict, employeeName, category) {
-  const bal = getEmployeeLeaveBalance(employeeName, category);
-  const quota = effectiveQuota(employeeName, category);
-  if (quota === null || quota === undefined) return dict.leaveUsedLabel + " " + bal.used;
-  return Math.max(0, quota - bal.used) + " / " + quota;
+function formatLeaveBalanceValue(dict, category) {
+  const bal = realLeaveBalancesByCategory[category];
+  if (!bal) return "—";
+  if (bal.allocatedDays === null || bal.allocatedDays === undefined) return dict.leaveUsedLabel + " " + bal.usedDays;
+  return Math.max(0, bal.remainingDays) + " / " + bal.allocatedDays;
 }
 
 function updateLeaveBalanceDisplays(employeeName) {
   const dict = i18n[currentLang];
   const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
-  // 还没有任何员工登录(比如刚打开首页)时没有余额可显示,保留卡片上的占位符即可,
-  // 不要为 null 姓名在 leaveBalancesByEmployee 里生成一条垃圾记录。
+  // 还没有任何员工登录(比如刚打开首页)、或者还没拉到真实余额时,保留卡片上的占位符即可。
   if (!employeeName) return;
-  setText("empAnnualBalance", formatLeaveBalanceText(dict, employeeName, "ANNUAL"));
-  setText("empSickBalance", formatLeaveBalanceText(dict, employeeName, "SICK"));
-  setText("empPersonalBalance", formatLeaveBalanceText(dict, employeeName, "PERSONAL"));
-  setText("lcAnnualValue", formatLeaveBalanceValue(dict, employeeName, "ANNUAL"));
-  setText("lcSickValue", formatLeaveBalanceValue(dict, employeeName, "SICK"));
-  setText("lcPersonalValue", formatLeaveBalanceValue(dict, employeeName, "PERSONAL"));
+  setText("empAnnualBalance", formatLeaveBalanceText(dict, "ANNUAL"));
+  setText("empSickBalance", formatLeaveBalanceText(dict, "SICK"));
+  setText("empPersonalBalance", formatLeaveBalanceText(dict, "PERSONAL"));
+  setText("lcAnnualValue", formatLeaveBalanceValue(dict, "ANNUAL"));
+  setText("lcSickValue", formatLeaveBalanceValue(dict, "SICK"));
+  setText("lcPersonalValue", formatLeaveBalanceValue(dict, "PERSONAL"));
 }
 
 function leaveTypeBadgeInfo(dict, category) {
@@ -3566,41 +3594,79 @@ function leaveTypeBadgeInfo(dict, category) {
     BUSINESS_TRIP: { label: dict.businessTrip, cls: "success" }
   };
   const info = labelMap[category] || labelMap.ANNUAL;
-  const config = leaveTypeConfigs[category] || leaveTypeConfigs.ANNUAL;
-  return { label: info.label, cls: info.cls, payRate: config.payRate };
+  const type = realLeaveTypesByCategory[category];
+  return { label: info.label, cls: info.cls, payRate: type ? type.payRatePercentage : 100 };
 }
 
 /* ---------- 请假类型与额度设置面板(公司后台)——已按用户要求整体删除 ----------
-   Bug 修复(用户明确要求:"上面那个大项目没有什么用处,可以删除"——指的就是这一整块
-   "请假类型与额度设置"表格,年假/病假/事假/培训/出差的配额/工资比例/审批/凭证全部
-   在这里配置):这个 UI 面板已经删除,不再提供逐类别的可视化编辑入口。
-   底层 leaveTypeConfigs 这份数据结构本身继续保留、继续生效(病假仍然默认需要凭证、
-   事假默认配额仍是 5 天等),只是变成纯代码里的默认值,不再有对应的管理后台页面能
-   改它——"默认年假天数"这一项例外,继续保留在"设置"页里单独可编辑
-   (见 btnSaveCompanyProfile 点击事件、syncSettingsAnnualQuotaInput()),
-   因为那是一个独立的输入框,不属于这张被删除的表格。 */
+   逐类别可视化编辑面板("请假类型与额度设置"表格)已经整体删除,不再提供 UI 入口去改
+   除年假之外的其余类别(病假/事假/培训/出差继续用后端播种时写入的默认值:病假仍然
+   默认需要凭证、事假默认配额仍是 5 天等)。"默认年假天数"这一项例外,继续保留在
+   "设置"页里单独可编辑(见 btnSaveCompanyProfile 点击事件、
+   syncSettingsAnnualQuotaInput()),现在改成真实 PATCH 后端 leave-types/:id。 */
 
 /* ---------- 单个员工额度调整(公司后台) ----------
    对应后端 PUT /companies/:id/employees/:employeeId/leave-balances/:leaveTypeId。 */
 function renderEmployeeBalanceOverrideForm() {
-  saveState();
   const select = document.getElementById("balanceOverrideEmployee");
   if (!select) return;
   const currentValue = select.value;
-  select.innerHTML = employees.map(emp => '<option value="' + emp.name + '">' + emp.name + "</option>").join("");
-  if (currentValue) select.value = currentValue;
+  // Bug 修复(这次一起接真实后端):以前 value 存的是 emp.name(员工姓名字符串),
+  // 现在改存 emp.backendId(真实数据库 UUID)——员工额度是按 employeeId 存在
+  // leave_balances 表里的,姓名不能唯一确定一个人(理论上允许重名)。只列出已经
+  // 加入、有真实账号的员工,还没注册的邀请不适用"设置额度"这个操作。
+  const options = employees.filter(e => e.joined && e.backendId);
+  select.innerHTML = options.map(e => '<option value="' + e.backendId + '">' + e.name + "</option>").join("");
+  if (currentValue && options.some(e => e.backendId === currentValue)) select.value = currentValue;
+  refreshBalanceOverridePreview();
 }
 
-document.getElementById("btnSaveEmployeeBalance").addEventListener("click", () => {
-  const employeeName = document.getElementById("balanceOverrideEmployee").value;
-  if (!employeeName) return; // 员工名单是空的(下拉框没有选项)时不做任何事,避免生成归属不明的额度记录
+/** 选好"员工+请假类型"之后,把这两人这个类型真实的当前额度回填进"这一年可休天数"这个
+    输入框——避免管理员看不到现状、盲目填一个数字把原有额度覆盖掉。 */
+async function refreshBalanceOverridePreview() {
+  const employeeId = document.getElementById("balanceOverrideEmployee").value;
+  const category = document.getElementById("balanceOverrideType").value;
+  const daysInput = document.getElementById("balanceOverrideDays");
+  if (!employeeId || !currentUserCompanyId || !accessToken) return;
+  try {
+    const balances = await apiRequest(
+      "/companies/" + currentUserCompanyId + "/employees/" + employeeId + "/leave-balances?year=" + new Date().getFullYear(),
+      { auth: true },
+    );
+    const match = balances.find(b => b.category === category);
+    if (match && match.allocatedDays !== null && match.allocatedDays !== undefined) {
+      daysInput.value = match.allocatedDays;
+    }
+  } catch (err) {
+    console.warn("获取该员工现有额度失败(不影响手动填写):", err);
+  }
+}
+document.getElementById("balanceOverrideEmployee").addEventListener("change", refreshBalanceOverridePreview);
+document.getElementById("balanceOverrideType").addEventListener("change", refreshBalanceOverridePreview);
+
+document.getElementById("btnSaveEmployeeBalance").addEventListener("click", async () => {
+  const employeeId = document.getElementById("balanceOverrideEmployee").value;
+  if (!employeeId) return; // 员工名单是空的(下拉框没有选项)时不做任何事,避免生成归属不明的额度记录
   const category = document.getElementById("balanceOverrideType").value;
   const days = Math.max(0, Number(document.getElementById("balanceOverrideDays").value));
-  const bal = getEmployeeLeaveBalance(employeeName, category);
-  bal.allocated = days; // 只改总额度,不影响 usedDays(和后端 setBalance() 的语义一致)
+  const leaveType = realLeaveTypesByCategory[category];
+  if (!leaveType || !currentUserCompanyId || !accessToken) return;
+  const btn = document.getElementById("btnSaveEmployeeBalance");
+  btn.disabled = true;
+  try {
+    await apiRequest(
+      "/companies/" + currentUserCompanyId + "/employees/" + employeeId + "/leave-balances/" + leaveType.id,
+      { method: "PUT", auth: true, body: { year: new Date().getFullYear(), allocatedDays: days } },
+    );
+  } catch (err) {
+    window.alert(err.message);
+    btn.disabled = false;
+    return;
+  }
+  btn.disabled = false;
   // 只有当管理员调整的正好是"当前登录的员工"本人的额度时,才需要刷新员工端卡片——
   // 调整的是其他员工,员工端此刻显示的是登录者自己的数据,不受影响。
-  if (employeeName === currentEmployeeName()) updateLeaveBalanceDisplays(employeeName);
+  if (employeeId === currentUserId) refreshMyLeaveBalances();
   const notice = document.getElementById("employeeBalanceSavedNotice");
   notice.classList.remove("hidden");
   setTimeout(() => notice.classList.add("hidden"), 2000);
@@ -3609,145 +3675,174 @@ document.getElementById("btnSaveEmployeeBalance").addEventListener("click", () =
 function buildLeaveCardHtml(req, isAdminView) {
   const dict = i18n[currentLang];
   const info = leaveTypeBadgeInfo(dict, req.category);
-  const statusBadge = req.status === "approved"
+  const statusBadge = req.status === "APPROVED"
     ? '<span class="badge success">' + dict.statusApproved + "</span>"
-    : req.status === "rejected"
+    : req.status === "REJECTED"
       ? '<span class="badge danger">' + dict.statusRejected + "</span>"
       : '<span class="badge warning">' + dict.statusPending2 + "</span>";
   let actionsHtml = "";
-  if (isAdminView && req.status === "pending") {
+  if (isAdminView && req.status === "PENDING") {
     actionsHtml =
       '<button class="btn" style="background:var(--success);color:#04342C;height:32px;padding:0 14px;" data-approve-leave="' + req.id + '">' + dict.approve + "</button>" +
       '<button class="btn" style="background:var(--danger);color:#fff;height:32px;padding:0 14px;" data-reject-leave="' + req.id + '">' + dict.reject + "</button>";
   }
-  const nameHtml = isAdminView ? "<strong>" + req.employeeName + "</strong> · " : "";
-  const attachmentHtml = req.hasAttachment
+  const nameHtml = isAdminView ? "<strong>" + employeeNameByBackendId(req.employeeId) + "</strong> · " : "";
+  const attachmentHtml = req.attachmentUrl
     ? '<div><a href="#" class="leave-attachment-link" onclick="return false;">📎 ' + dict.doctorNoteAttached + "</a></div>"
     : "";
-  const tripHtml = req.destination ? '<div class="leave-card-reason">🧳 ' + req.destination + "</div>" : "";
-  const messages = req.messages || [];
-  // "self"(高亮/靠右显示)是相对于"当前正在看这条留言板的人"计算的,不是留言本身固定的属性——
-  // 同一条经理发的留言,在管理后台里显示为"我方",在员工自己的请假中心里应显示为"对方"。
-  const messagesHtml = messages.length
-    ? messages.map(m => {
-        const isSelf = isAdminView ? m.senderRole === "manager" : m.senderRole === "employee";
-        return '<div class="msg-bubble' + (isSelf ? " self" : "") + '"><div class="msg-sender">' + m.sender + "</div>" + m.text + "</div>";
-      }).join("")
-    : '<div style="font-size:12px;color:var(--text-2);">' + dict.noMessagesYet + "</div>";
+  // Bug 修复:destination(出差/培训目的地)后端没有单独一个字段,提交时已经并入 reason 文本
+  // 一起发出去了(见 form-leave-request 提交逻辑),这里不再需要单独渲染一次。
 
   return '<div class="leave-card" data-leave-card="' + req.id + '">' +
     '<div class="leave-card-head">' +
-      "<span>" + nameHtml + '<span class="badge ' + info.cls + '">' + info.label + "</span> · " + req.days + " " + dict.days + "</span>" +
+      "<span>" + nameHtml + '<span class="badge ' + info.cls + '">' + info.label + "</span> · " + req.daysRequested + " " + dict.days + "</span>" +
       '<span style="margin-left:auto;display:flex;gap:8px;align-items:center;">' + statusBadge + actionsHtml + "</span>" +
     "</div>" +
-    '<div class="leave-card-reason">' + req.reason + "</div>" +
-    attachmentHtml + tripHtml +
+    '<div class="leave-card-reason">' + (req.reason || "") + "</div>" +
+    attachmentHtml +
     '<div style="font-size:11.5px;color:var(--text-2);margin-top:6px;">' + dict.payRateNote + ": " + info.payRate + "%</div>" +
     '<button class="msg-toggle" data-toggle-messages="' + req.id + '" style="margin-top:8px;">' + dict.viewMessages + "</button>" +
     '<div class="msg-thread hidden" id="msg-thread-' + req.id + '">' +
-      messagesHtml +
+      '<div class="msg-list" id="msg-list-' + req.id + '"></div>' +
       '<div class="msg-input-row"><input type="text" placeholder="' + dict.messagePlaceholder + '" id="msg-input-' + req.id + '" />' +
       '<button class="btn btn-outline" style="height:36px;padding:0 14px;font-size:12px;" data-send-message="' + req.id + '">' + dict.writeMessage + "</button></div>" +
     "</div>" +
   "</div>";
 }
 
+/** 留言板懒加载:第一次点开某一条请假记录的"查看留言"才真的去后端拉一次,拉过一次之后
+    缓存在 leaveMessagesByRequestId 里,同一条记录再关再开不用重复请求。 */
+async function loadAndRenderLeaveMessages(requestId, container) {
+  if (!leaveMessagesByRequestId[requestId]) {
+    if (!currentUserCompanyId || !accessToken) return;
+    try {
+      leaveMessagesByRequestId[requestId] = await apiRequest(
+        "/companies/" + currentUserCompanyId + "/leave-requests/" + requestId + "/messages",
+        { auth: true },
+      );
+    } catch (err) {
+      console.warn("获取请假留言失败:", err);
+      leaveMessagesByRequestId[requestId] = [];
+    }
+  }
+  renderLeaveMessageList(requestId, container);
+}
+
+function renderLeaveMessageList(requestId, container) {
+  const dict = i18n[currentLang];
+  const listEl = container.querySelector("#msg-list-" + requestId);
+  if (!listEl) return;
+  const messages = leaveMessagesByRequestId[requestId] || [];
+  // "self"(高亮/靠右显示)是相对于"当前登录的这个人是不是这条留言的发送者"判断的,
+  // 不再靠以前那个假想的 senderRole 字符串——真实留言只有 senderId(发送人的用户
+  // UUID),这里直接和 currentUserId 比较,天然对管理员和员工两边都成立。
+  listEl.innerHTML = messages.length
+    ? messages.map(m => {
+        const isSelf = m.senderId === currentUserId;
+        const knownName = employeeNameByBackendId(m.senderId);
+        const senderLabel = isSelf
+          ? (currentUserRole === "COMPANY_ADMIN" ? dict.managerName : currentEmployeeName())
+          : (knownName !== m.senderId ? knownName : dict.managerName);
+        return '<div class="msg-bubble' + (isSelf ? " self" : "") + '"><div class="msg-sender">' + senderLabel + "</div>" + m.message + "</div>";
+      }).join("")
+    : '<div style="font-size:12px;color:var(--text-2);">' + dict.noMessagesYet + "</div>";
+}
+
 function wireLeaveCardEvents(container, isAdminView) {
   container.querySelectorAll("[data-approve-leave]").forEach(btn => {
-    btn.addEventListener("click", () => approveLeaveRequest(Number(btn.dataset.approveLeave)));
+    btn.addEventListener("click", () => reviewLeaveRequest(btn.dataset.approveLeave, "APPROVED"));
   });
   container.querySelectorAll("[data-reject-leave]").forEach(btn => {
-    btn.addEventListener("click", () => rejectLeaveRequest(Number(btn.dataset.rejectLeave)));
+    btn.addEventListener("click", () => reviewLeaveRequest(btn.dataset.rejectLeave, "REJECTED"));
   });
-  // Bug 修复:同一条属于 Alex Chen 的请假记录会同时出现在 #leaveRequestList(后台审批队列)
+  // Bug 修复(历史遗留):同一条请假记录会同时出现在 #leaveRequestList(后台审批队列)
   // 和 #leaveHistoryList(员工自己的请假中心)两个容器里,两边渲染出来的 msg-thread-<id>/
-  // msg-input-<id> 是重复的 DOM id。之前这里用全局 document.getElementById 去找,浏览器永远
-  // 只会返回文档里第一个匹配的元素——结果员工在"请假中心"点"查看留言"/发消息,实际操作的是
-  // 后台那份看不见的副本,自己眼前这份毫无反应。改成用 container.querySelector 把查找范围
-  // 限定在当前这个容器内,两边就都能各自正确响应了。
+  // msg-input-<id> 是重复的 DOM id,必须用 container.querySelector 把查找范围限定在
+  // 当前这个容器内,不能用全局 document.getElementById(会永远只找到文档里第一个)。
   container.querySelectorAll("[data-toggle-messages]").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const dict = i18n[currentLang];
-      const thread = container.querySelector("#msg-thread-" + btn.dataset.toggleMessages);
+      const id = btn.dataset.toggleMessages;
+      const thread = container.querySelector("#msg-thread-" + id);
+      const willShow = thread.classList.contains("hidden");
       thread.classList.toggle("hidden");
-      btn.textContent = thread.classList.contains("hidden") ? dict.viewMessages : dict.hideMessages;
+      btn.textContent = willShow ? dict.hideMessages : dict.viewMessages;
+      if (willShow) await loadAndRenderLeaveMessages(id, container);
     });
   });
   container.querySelectorAll("[data-send-message]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = Number(btn.dataset.sendMessage);
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.sendMessage;
       const input = container.querySelector("#msg-input-" + id);
       const text = input.value.trim();
-      if (!text) return;
-      const dict = i18n[currentLang];
-      const req = leaveRequests.find(r => r.id === id);
-      req.messages = req.messages || [];
-      req.messages.push({ sender: isAdminView ? dict.managerName : req.employeeName, text, senderRole: isAdminView ? "manager" : "employee" });
-      renderLeaveRequests();
-      renderLeaveHistory();
-      // renderLeaveRequests()/renderLeaveHistory() 只是重写了 container 的 innerHTML,
-      // container 这个节点本身还在文档里、还是同一个引用,重新查一次子元素即可。
+      if (!text || !currentUserCompanyId || !accessToken) return;
+      btn.disabled = true;
+      try {
+        await apiRequest("/companies/" + currentUserCompanyId + "/leave-requests/" + id + "/messages", {
+          method: "POST", auth: true, body: { message: text },
+        });
+      } catch (err) {
+        window.alert(err.message);
+        btn.disabled = false;
+        return;
+      }
+      delete leaveMessagesByRequestId[id]; // 强制下一次重新拉取真实的完整列表(含刚发的这条),不本地拼接猜测
+      input.value = "";
+      await loadAndRenderLeaveMessages(id, container);
       const thread = container.querySelector("#msg-thread-" + id);
       if (thread) thread.classList.remove("hidden");
+      btn.disabled = false;
     });
   });
 }
 
 function renderLeaveRequests() {
-  saveState();
   const container = document.getElementById("leaveRequestList");
   if (!container) return;
   const dict = i18n[currentLang];
-  container.innerHTML = leaveRequests.length
-    ? leaveRequests.map(req => buildLeaveCardHtml(req, true)).join("")
+  container.innerHTML = realLeaveRequestsAdmin.length
+    ? realLeaveRequestsAdmin.map(req => buildLeaveCardHtml(req, true)).join("")
     : '<div class="insight-empty">' + dict.noLeaveRequestsYet + '</div>';
   wireLeaveCardEvents(container, true);
 }
 
 function renderLeaveHistory() {
-  saveState();
   const container = document.getElementById("leaveHistoryList");
   if (!container) return;
   const dict = i18n[currentLang];
-  // "我的请假中心"只显示当前真实登录的这名员工自己的记录——不再写死某个演示姓名。
-  const mine = leaveRequests.filter(r => r.employeeName === currentEmployeeName());
-  container.innerHTML = mine.length
-    ? mine.map(req => buildLeaveCardHtml(req, false)).join("")
+  // "我的请假中心"这份数据本来就是只按 currentUserId 向后端查询回来的(见
+  // refreshMyLeaveRequests()),不需要再在前端按姓名过滤一次。
+  container.innerHTML = realLeaveRequestsMine.length
+    ? realLeaveRequestsMine.map(req => buildLeaveCardHtml(req, false)).join("")
     : '<div class="insight-empty">' + dict.noLeaveRequestsYet + '</div>';
   wireLeaveCardEvents(container, false);
 }
 
-function approveLeaveRequest(id) {
-  const req = leaveRequests.find(r => r.id === id);
-  if (!req) return;
-  req.status = "approved";
-  // 批准即计入已休天数——不再局限于 ANNUAL 类别或写死某个员工姓名,
-  // 任何员工、任何请假类型批准后都会更新对应的余额(和后端 applyUsedDays() 语义一致)。
-  const bal = getEmployeeLeaveBalance(req.employeeName, req.category);
-  bal.used += req.days;
-  updateLeaveBalanceDisplays(currentEmployeeName()); // 只刷新当前登录者自己看到的卡片,其余员工的余额在后台调整表单里可见
-  renderLeaveRequests();
-  renderLeaveHistory();
-  renderCaDashboardMetrics();
-}
-function rejectLeaveRequest(id) {
-  const req = leaveRequests.find(r => r.id === id);
-  if (!req) return;
-  req.status = "rejected";
-  renderLeaveRequests();
-  renderLeaveHistory();
-  renderCaDashboardMetrics();
+/** 批准/拒绝一条请假申请——真实调用后端审批接口,批准会由后端自动把这次天数计入
+    used_days(见 LeaveService.reviewLeaveRequest),前端不需要、也不应该自己在本地
+    重复算一遍余额。 */
+async function reviewLeaveRequest(id, decision) {
+  if (!currentUserCompanyId || !accessToken) return;
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/leave-requests/" + id + "/review", {
+      method: "PATCH", auth: true, body: { decision },
+    });
+  } catch (err) {
+    window.alert(err.message);
+    return;
+  }
+  await refreshCompanyLeaveRequests();
 }
 
 document.getElementById("leaveTypeSelect").addEventListener("change", e => {
   const val = e.target.value;
-  const config = leaveTypeConfigs[val] || {};
-  document.getElementById("sickAttachmentField").classList.toggle("hidden", !config.requiresAttachment);
+  const type = realLeaveTypesByCategory[val];
+  document.getElementById("sickAttachmentField").classList.toggle("hidden", !(type && type.requiresAttachment));
   document.getElementById("tripDetailsField").classList.toggle("hidden", val !== "TRAINING" && val !== "BUSINESS_TRIP");
   document.getElementById("leaveBalanceInsufficientHint").classList.add("hidden");
 });
 
-document.getElementById("form-leave-request").addEventListener("submit", e => {
+document.getElementById("form-leave-request").addEventListener("submit", async e => {
   e.preventDefault();
   const category = document.getElementById("leaveTypeSelect").value;
   const start = document.getElementById("leaveStartDate").value;
@@ -3759,37 +3854,45 @@ document.getElementById("form-leave-request").addEventListener("submit", e => {
   insufficientHint.classList.add("hidden");
   attachmentHint.classList.add("hidden");
   if (!start || !end || !reason) return;
+  if (!currentUserId || !currentUserCompanyId || !accessToken) return; // 理论上走不到这里(没登录看不到这个表单),多一层保护
 
-  const days = Math.max(1, Math.round((new Date(end) - new Date(start)) / 86400000) + 1);
-  const config = leaveTypeConfigs[category] || {};
-  const hasAttachment = document.getElementById("doctorNoteFile").files.length > 0;
+  const leaveType = realLeaveTypesByCategory[category];
+  if (!leaveType) { window.alert(i18n[currentLang].leaveTypesNotReadyAlert || "请假类型还没准备好,请稍后重试"); return; }
 
-  // 和后端 createLeaveRequest() 的两条校验完全一致:
-  // 1) 该类型要求凭证时(如病假),没有附件不允许提交。
-  if (config.requiresAttachment && !hasAttachment) {
-    attachmentHint.classList.remove("hidden");
+  const fileInput = document.getElementById("doctorNoteFile");
+  const hasAttachment = fileInput.files.length > 0;
+  // 如实说明:这里还没有真正的文件存储后端,"上传"目前只是把文件名拼成一个占位
+  // 字符串传给后端满足"必须提供凭证"这条业务规则,并不会真的把文件内容存到服务器上——
+  // 交付说明里已经披露过这个限制。
+  const attachmentUrl = hasAttachment ? ("local-placeholder://" + encodeURIComponent(fileInput.files[0].name)) : undefined;
+
+  let finalReason = reason;
+  if ((category === "TRAINING" || category === "BUSINESS_TRIP") && destinationInput.value.trim()) {
+    // 后端 leave_requests 表没有单独的"目的地"字段,这里并入 reason 文本一起提交,
+    // 审批时管理员在事由里就能看到完整的行程信息,不需要额外的字段。
+    finalReason = reason + "\n" + (i18n[currentLang].fieldDestination || "目的地/行程") + ": " + destinationInput.value.trim();
+  }
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/employees/" + currentUserId + "/leave-requests", {
+      method: "POST", auth: true,
+      body: { leaveTypeId: leaveType.id, startDate: start, endDate: end, reason: finalReason, attachmentUrl },
+    });
+  } catch (err) {
+    if (err.code === "LEAVE_ATTACHMENT_REQUIRED") {
+      attachmentHint.classList.remove("hidden");
+    } else if (err.code === "LEAVE_BALANCE_INSUFFICIENT") {
+      insufficientHint.classList.remove("hidden");
+    } else {
+      window.alert(err.message);
+    }
+    if (submitBtn) submitBtn.disabled = false;
     return;
   }
-  // 2) 该类型设了有限额度时,剩余天数不够也不允许提交。
-  const employeeName = currentEmployeeName();
-  if (!employeeName) return; // 理论上走不到这里(没登录看不到这个表单),多一层保护避免生成归属不明的记录
-  const quota = effectiveQuota(employeeName, category);
-  if (quota !== null && quota !== undefined) {
-    const bal = getEmployeeLeaveBalance(employeeName, category);
-    const remaining = Math.max(0, quota - bal.used);
-    if (remaining < days) {
-      insufficientHint.classList.remove("hidden");
-      return;
-    }
-  }
-
-  const req = { id: leaveRequestIdCounter++, employeeName, category, days, reason, status: "pending", hasAttachment, messages: [] };
-  if ((category === "TRAINING" || category === "BUSINESS_TRIP") && destinationInput.value.trim()) {
-    req.destination = destinationInput.value.trim();
-  }
-  leaveRequests.push(req);
-  renderLeaveRequests();
-  renderLeaveHistory();
+  if (submitBtn) submitBtn.disabled = false;
+  await Promise.all([refreshMyLeaveRequests(), refreshMyLeaveBalances()]);
   renderCaDashboardMetrics();
   e.target.reset();
   document.getElementById("sickAttachmentField").classList.add("hidden");
@@ -3807,7 +3910,14 @@ document.getElementById("doctorNoteFile").addEventListener("change", e => {
   }
 });
 
-document.getElementById("btnOpenLeaveCenter").addEventListener("click", () => openModal("modal-leave-center"));
+document.getElementById("btnOpenLeaveCenter").addEventListener("click", () => {
+  openModal("modal-leave-center");
+  // 每次打开"请假中心"都重新拉一次真实数据,避免上次打开之后员工在另一台设备提交/
+  // 管理员审批过,这台设备上还显示旧的一份。
+  refreshLeaveTypes();
+  refreshMyLeaveRequests();
+  refreshMyLeaveBalances();
+});
 
 /* ---------- 设置:公司资料 + 邀请码管理 ----------
    邀请码现在由后端真正生成(公司注册瞬间自动生成一个常用邀请码,见
@@ -3856,8 +3966,8 @@ document.getElementById("btnCopyInviteCode").addEventListener("click", () => {
 // Bug 修复:这个按钮点击后之前只弹一个"已保存"的提示,却从来没有把"默认年假天数"
 // 输入框里的值写回 leaveTypeConfigs.ANNUAL.quota——真正生效的年假额度只有"请假类型与
 // 额度设置"表格那一份。结果管理员在这里改了数字、看到"已保存",但员工的余额卡片、
-// 请假中心、请假申请校验全都没有变化,是一个看得见摸不着的假保存。现在统一写回同一份
-// leaveTypeConfigs,并联动刷新所有读取它的地方。
+// 请假中心、请假申请校验全都没有变化,是一个看得见摸不着的假保存。现在改成真实
+// PATCH 后端 leave-types/:id(ANNUAL 这一条),不再是本地变量赋值。
 // Bug 修复:这个按钮点击之前只把公司名称/口号/年假天数存进浏览器 localStorage,
 // 地址(国家/城市/邮编/详细地址)这几个输入框根本不存在——"设置里根本没有地址设置的
 // 记录"说的就是这个。现在补上地址字段,保存时真正 PATCH 给后端 /companies/:id,
@@ -3865,7 +3975,6 @@ document.getElementById("btnCopyInviteCode").addEventListener("click", () => {
 document.getElementById("btnSaveCompanyProfile").addEventListener("click", async () => {
   const quotaInput = document.getElementById("settingsAnnualQuota");
   const newQuota = Math.max(0, Number(quotaInput.value) || 0);
-  leaveTypeConfigs.ANNUAL.quota = newQuota;
   const dict = i18n[currentLang];
   const notice = document.getElementById("profileSaveNotice");
   const newName = document.getElementById("settingsCompanyName").value.trim() || companyDisplayName;
@@ -3914,6 +4023,18 @@ document.getElementById("btnSaveCompanyProfile").addEventListener("click", async
         addressLine: orUndef(addressLine),
       },
     });
+    // Bug 修复:年假天数现在是数据库里真实的 leave_types 记录(ANNUAL 这一条),
+    // 单独 PATCH 给后端,不再是"看起来保存了、其实只改了一个本地变量"。
+    if (realLeaveTypesByCategory.ANNUAL) {
+      try {
+        await apiRequest("/companies/" + currentUserCompanyId + "/leave-types/" + realLeaveTypesByCategory.ANNUAL.id, {
+          method: "PATCH", auth: true, body: { defaultAnnualQuota: newQuota },
+        });
+        await refreshLeaveTypes(); // 重新拉一次,保证本地缓存和刚保存的值一致
+      } catch (err) {
+        console.warn("保存默认年假天数失败(公司资料本身已保存成功):", err);
+      }
+    }
     applyLocalUpdates();
     // 地址保存成功后,立刻用后端返回的最新经纬度刷新 GPS 看板的店铺位置标记,
     // 不需要用户重新登录或刷新页面才能看到地图更新。
@@ -3940,14 +4061,13 @@ document.getElementById("btnSaveCompanyProfile").addEventListener("click", async
     saveBtn.disabled = false;
   }
 });
-/** 让"设置"页的默认年假天数输入框始终显示 leaveTypeConfigs.ANNUAL.quota 的当前值,
-    这样管理员在"请假类型与额度设置"表格里改了年假天数后,这里不会继续显示旧数字。 */
+/** 让"设置"页的默认年假天数输入框始终显示后端真实 leave_types(ANNUAL)的当前值,
+    这样这个输入框不会显示一个和数据库脱节的旧数字。 */
 function syncSettingsAnnualQuotaInput() {
   const quotaInput = document.getElementById("settingsAnnualQuota");
   if (!quotaInput) return;
-  quotaInput.value = leaveTypeConfigs.ANNUAL.quota === null || leaveTypeConfigs.ANNUAL.quota === undefined
-    ? ""
-    : leaveTypeConfigs.ANNUAL.quota;
+  const annual = realLeaveTypesByCategory.ANNUAL;
+  quotaInput.value = (!annual || annual.defaultAnnualQuota === null || annual.defaultAnnualQuota === undefined) ? "" : annual.defaultAnnualQuota;
 }
 
 /**
@@ -5532,9 +5652,14 @@ updateAnnualBalanceDisplay();
 if (accessToken && currentUserCompanyId) {
   if (currentUserRole === "COMPANY_ADMIN") {
     syncEmployeesFromBackend(); // 内部会一并调用 refreshRealAttendanceData()
+    refreshLeaveTypes();
+    refreshCompanyLeaveRequests(); // Bug 修复(用户反馈:"其他手机用户使用请假功能,在公司管理后台根本看不见"):刷新页面恢复登录状态后也要重新拉一次全公司真实请假队列
   } else if (currentUserRole === "EMPLOYEE") {
     refreshRealAttendanceData();
     refreshMyWageConfig();
+    refreshLeaveTypes();
+    refreshMyLeaveBalances();
+    refreshMyLeaveRequests();
   }
   startAttendanceLiveRefresh(); // 刷新页面/重新打开 App 恢复登录状态之后,同样要继续每 20 秒自动同步,不能只在刚登录那一刻同步一次
 }
