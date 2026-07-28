@@ -555,6 +555,12 @@
             <span class="field-hint hidden" id="employeeBalanceSavedNotice" style="color:var(--success);margin-left:10px;" data-i18n="employeeBalanceSaved">已保存</span>
           </div>
 
+          <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;">
+            <div style="font-weight:700;margin-bottom:4px;" data-i18n="leaveSummaryTitle">员工请假总览</div>
+            <p class="section-sub" style="margin:0 0 12px;" data-i18n="leaveSummarySub">全体员工的年假、事假、病假使用情况和最近一次请假记录,方便人事排班参考。</p>
+            <div id="leaveSummaryTableWrap" style="overflow-x:auto;"></div>
+          </div>
+
           <div id="leaveRequestList"></div>
         </div>
         <div class="glass ca-section" id="ca-settings" style="display:none;margin-top:20px;">
@@ -1179,6 +1185,12 @@ const i18n = {
     employeeBalanceOverrideNotALeaveRequest: "注意:这里只是设置\"额度上限\",不是替员工提交请假申请——没有请假事由/日期/留言板。真正的请假申请由员工自己在\"请假中心\"提交,提交后会出现在本页下方的请假列表里,才能看到事由和留言板。",
     fieldSelectEmployee: "员工", fieldSelectLeaveType: "请假类型", fieldAllocatedDays: "这一年可休天数",
     saveEmployeeBalance: "保存额度", employeeBalanceSaved: "已保存",
+    leaveSummaryTitle: "员工请假总览", leaveSummarySub: "全体员工的年假、事假、病假使用情况和最近一次请假记录,方便人事排班参考。",
+    leaveSummaryColEmployee: "员工", leaveSummaryColAnnual: "年假", leaveSummaryColPersonal: "事假(已休)",
+    leaveSummaryColSick: "病假(已休)", leaveSummaryColRecent: "最近请假",
+    leaveSummaryUsedLabel: "已休", leaveSummaryRemainingLabel: "剩余",
+    leaveSummaryNoRecent: "暂无记录", leaveSummaryEmpty: "公司还没有已加入的员工,暂无数据可统计。",
+    leaveSummaryLoading: "正在加载员工请假数据…",
     subscriptionNoticeTitle: "订阅与付款",
     subscriptionNoticeBody: "提交注册后会跳转到 Stripe 安全支付页面填写付款方式;30 天免费试用期内不会扣款,试用结束后按 €12.50/月自动续费,可随时在设置里取消。",
     subscriptionPriceLine: "€12.50 / 月 · 30 天免费试用",
@@ -1410,6 +1422,12 @@ const i18n = {
     employeeBalanceOverrideNotALeaveRequest: "Note: this only sets a quota cap — it does not submit a leave request on the employee's behalf, so there's no reason/dates/message thread here. Employees submit real leave requests themselves via \"Leave Center\"; once submitted, they'll appear in the request list below, where you'll see the reason and message thread.",
     fieldSelectEmployee: "Employee", fieldSelectLeaveType: "Leave type", fieldAllocatedDays: "Days allocated this year",
     saveEmployeeBalance: "Save balance", employeeBalanceSaved: "Saved",
+    leaveSummaryTitle: "Employee Leave Overview", leaveSummarySub: "Every employee's annual/personal/sick leave usage and most recent leave, at a glance for scheduling.",
+    leaveSummaryColEmployee: "Employee", leaveSummaryColAnnual: "Annual leave", leaveSummaryColPersonal: "Personal leave (used)",
+    leaveSummaryColSick: "Sick leave (used)", leaveSummaryColRecent: "Most recent leave",
+    leaveSummaryUsedLabel: "Used", leaveSummaryRemainingLabel: "remaining",
+    leaveSummaryNoRecent: "No record yet", leaveSummaryEmpty: "No joined employees yet — nothing to summarize.",
+    leaveSummaryLoading: "Loading employee leave data…",
     subscriptionNoticeTitle: "Subscription & payment",
     subscriptionNoticeBody: "After you submit, you'll be redirected to a secure Stripe Checkout page to add a payment method. You won't be charged during the 30-day free trial; billing starts automatically afterward at €12.50/month, and you can cancel anytime from Settings.",
     subscriptionPriceLine: "€12.50 / month · 30-day free trial",
@@ -1896,6 +1914,7 @@ function applyI18n() {
   updateWelcomeTitle();
   renderEmployeeBalanceOverrideForm();
   syncSettingsAnnualQuotaInput();
+  renderLeaveEmployeeSummaryTable(); // 只重渲染已经拉取过的数据,不重新发请求,切换语言不应该触发额外的网络请求
 }
 
 document.getElementById("langSelect").addEventListener("change", e => {
@@ -3551,6 +3570,118 @@ async function refreshCompanyLeaveRequests() {
   }
   renderLeaveRequests();
   renderCaDashboardMetrics();
+  refreshLeaveEmployeeSummary(); // 用户要求:"请假中心有一个总表格,每一个员工名字都在...最近的请假一定要有显示"——不 await,不阻塞审批队列本身的渲染
+}
+
+/* ---------- 员工请假总览表格(应用户要求:"请假中心有一个总表格,每一个员工名字都在,
+   上面记录他请假的日子,年假的时间,病假次数...最近的请假一定要有显示,这样便于公司
+   的人事安排") ----------
+   年假/事假/病假的"已休天数"直接读后端 leave_balances 表的真实累计值(批准或
+   免审批自动生效的申请都会实时累加进这张表,不是前端自己数请假条数算出来的,
+   口径和"请假中心"卡片、"单个员工额度调整"完全一致)。"最近请假"从已经在
+   refreshCompanyLeaveRequests() 里拉取过的全公司请假队列(realLeaveRequestsAdmin)
+   按员工筛出未被拒绝/未被撤销的最新一条。后端没有"批量查全体员工余额"的接口,
+   这里对每位已加入员工各发一次 GET .../leave-balances 请求,用 Promise.all 并行, 不逐个排队。 */
+let leaveEmployeeSummaryRows = []; // [{employeeId, name, annualAllocated, annualUsed, annualRemaining, personalUsed, sickUsed, mostRecent: LeaveRequestView|null}]
+let leaveEmployeeSummaryLoading = false;
+
+async function refreshLeaveEmployeeSummary() {
+  const container = document.getElementById("leaveSummaryTableWrap");
+  if (!container) return;
+  if (!accessToken || !currentUserCompanyId) { leaveEmployeeSummaryRows = []; renderLeaveEmployeeSummaryTable(); return; }
+  const roster = employees.filter(e => e.joined && e.backendId);
+  if (roster.length === 0) { leaveEmployeeSummaryRows = []; renderLeaveEmployeeSummaryTable(); return; }
+
+  leaveEmployeeSummaryLoading = true;
+  renderLeaveEmployeeSummaryTable(); // 先显示"正在加载"提示,员工人数多时并行请求也需要一点时间
+
+  const year = new Date().getFullYear();
+  const validStatuses = { PENDING: true, APPROVED: true }; // 被拒绝/撤销的申请不算"发生过的请假",不计入统计和"最近请假"
+
+  const rows = await Promise.all(roster.map(async (emp) => {
+    let balances = [];
+    try {
+      balances = await apiRequest(
+        "/companies/" + currentUserCompanyId + "/employees/" + emp.backendId + "/leave-balances?year=" + year,
+        { auth: true },
+      );
+    } catch (err) {
+      console.warn("获取 " + emp.name + " 的请假余额失败(总览表格这一行会显示 —):", err);
+    }
+    const byCategory = {};
+    balances.forEach(b => { byCategory[b.category] = b; });
+    const annual = byCategory.ANNUAL || null;
+
+    const myRequests = realLeaveRequestsAdmin
+      .filter(r => r.employeeId === emp.backendId && validStatuses[r.status])
+      .sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+
+    return {
+      employeeId: emp.backendId,
+      name: emp.name,
+      annualAllocated: annual ? annual.allocatedDays : null,
+      annualUsed: annual ? annual.usedDays : 0,
+      annualRemaining: annual ? annual.remainingDays : null,
+      personalUsed: byCategory.PERSONAL ? byCategory.PERSONAL.usedDays : 0,
+      sickUsed: byCategory.SICK ? byCategory.SICK.usedDays : 0,
+      mostRecent: myRequests[0] || null,
+    };
+  }));
+
+  leaveEmployeeSummaryLoading = false;
+  leaveEmployeeSummaryRows = rows;
+  renderLeaveEmployeeSummaryTable();
+}
+
+function formatLeaveSummaryDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString(
+    currentLang === "zh" ? "zh-CN" : "en-GB",
+    { year: "numeric", month: "2-digit", day: "2-digit" },
+  );
+}
+
+function renderLeaveEmployeeSummaryTable() {
+  const container = document.getElementById("leaveSummaryTableWrap");
+  if (!container) return;
+  const dict = i18n[currentLang];
+
+  if (leaveEmployeeSummaryLoading && leaveEmployeeSummaryRows.length === 0) {
+    container.innerHTML = '<div class="insight-empty">' + dict.leaveSummaryLoading + '</div>';
+    return;
+  }
+  if (leaveEmployeeSummaryRows.length === 0) {
+    container.innerHTML = '<div class="insight-empty">' + dict.leaveSummaryEmpty + '</div>';
+    return;
+  }
+
+  const rowsHtml = leaveEmployeeSummaryRows.map(row => {
+    const annualText = row.annualAllocated === null
+      ? "—"
+      : dict.leaveSummaryUsedLabel + " " + row.annualUsed + " " + dict.days + " · " +
+        dict.leaveSummaryRemainingLabel + " " + Math.max(0, row.annualRemaining) + " " + dict.days;
+    let recentText = dict.leaveSummaryNoRecent;
+    if (row.mostRecent) {
+      const info = leaveTypeBadgeInfo(dict, row.mostRecent.category);
+      const statusSuffix = row.mostRecent.status === "PENDING" ? "(" + dict.statusPending2 + ")" : "";
+      recentText = formatLeaveSummaryDate(row.mostRecent.startDate) + " · " + info.label + statusSuffix;
+    }
+    return "<tr>" +
+      "<td><strong>" + row.name + "</strong></td>" +
+      "<td>" + annualText + "</td>" +
+      "<td>" + row.personalUsed + " " + dict.days + "</td>" +
+      "<td>" + row.sickUsed + " " + dict.days + "</td>" +
+      "<td>" + recentText + "</td>" +
+      "</tr>";
+  }).join("");
+
+  container.innerHTML =
+    '<table class="data-table"><thead><tr>' +
+    "<th>" + dict.leaveSummaryColEmployee + "</th>" +
+    "<th>" + dict.leaveSummaryColAnnual + "</th>" +
+    "<th>" + dict.leaveSummaryColPersonal + "</th>" +
+    "<th>" + dict.leaveSummaryColSick + "</th>" +
+    "<th>" + dict.leaveSummaryColRecent + "</th>" +
+    "</tr></thead><tbody>" + rowsHtml + "</tbody></table>";
 }
 
 /** "14 / 21 天" 或(不限额类型)"已请 3 天" 这类文案——只用于"当前登录这名员工自己"的卡片,
@@ -3667,6 +3798,7 @@ document.getElementById("btnSaveEmployeeBalance").addEventListener("click", asyn
   // 只有当管理员调整的正好是"当前登录的员工"本人的额度时,才需要刷新员工端卡片——
   // 调整的是其他员工,员工端此刻显示的是登录者自己的数据,不受影响。
   if (employeeId === currentUserId) refreshMyLeaveBalances();
+  refreshLeaveEmployeeSummary(); // 额度一改,下面"员工请假总览"表格里这一行的年假总额也要跟着变,不用等 20 秒轮询
   const notice = document.getElementById("employeeBalanceSavedNotice");
   notice.classList.remove("hidden");
   setTimeout(() => notice.classList.add("hidden"), 2000);
