@@ -2055,10 +2055,24 @@ async function refreshRealAttendanceData() {
  */
 let attendanceLiveRefreshHandle = null;
 
+/**
+ * Bug 修复(用户明确反馈:"工资管理这个栏目与员工工作时间管理没有链接在一起,是一个
+ * 没有任何变化的列表"):"工资管理"页面用的 renderPayrollTable() 以前只在"点进这个
+ * 导航页面"或者"增加/删除一条调整项"这几个动作发生时才会重新拉一次数据——如果管理员
+ * 打开这个页面之后不动,或者压根还没点进去过,页面上的工时/工资数字就会一直停在很久
+ * 以前的旧快照上,完全跟不上员工实际打卡累积的真实工时,和"员工管理"表格以前的那个
+ * bug是同一类问题。这里让它跟"员工管理/考勤记录"用同一套 20 秒自动轮询——只有
+ * COMPANY_ADMIN 才会看到这个页面、也只有 COMPANY_ADMIN 才有权限调用这个区间成本汇总
+ * 接口(员工看不到同事的工资),所以这里额外判断一下当前登录角色,员工登录时不会
+ * 多打这几个不需要、也没权限的请求。
+ */
 function startAttendanceLiveRefresh() {
   stopAttendanceLiveRefresh();
   if (!accessToken || !currentUserCompanyId) return;
-  attendanceLiveRefreshHandle = setInterval(refreshRealAttendanceData, 20000);
+  attendanceLiveRefreshHandle = setInterval(() => {
+    refreshRealAttendanceData();
+    if (currentUserRole === "COMPANY_ADMIN") renderPayrollTable();
+  }, 20000);
 }
 
 function stopAttendanceLiveRefresh() {
@@ -2338,7 +2352,9 @@ document.getElementById("btnRefreshEmployeeHours").addEventListener("click", asy
   const btn = document.getElementById("btnRefreshEmployeeHours");
   const notice = document.getElementById("employeeHoursRefreshedNotice");
   btn.disabled = true;
-  await Promise.all([syncEmployeesFromBackend(), refreshRealAttendanceData()]);
+  // 一次点击,把"员工管理/考勤记录"和"工资管理"一起刷新——这几块数据本来就是同一份
+  // 真实考勤记录算出来的,不应该只更新一半、让管理员自己再跑到另一个页面点一次。
+  await Promise.all([syncEmployeesFromBackend(), refreshRealAttendanceData(), renderPayrollTable()]);
   btn.disabled = false;
   if (notice) {
     notice.textContent = (i18n[currentLang].refreshedJustNow || "已刷新") + " " +
