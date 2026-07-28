@@ -530,23 +530,6 @@
           <p class="section-sub" data-i18n="caLeaveSub">年假 / 病假 / 事假 / 培训 / 出差统一在这里审批,每条请求都有留言板可与员工沟通</p>
 
           <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;">
-            <div style="font-weight:700;margin-bottom:4px;" data-i18n="leaveTypeConfigTitle">请假类型与额度设置</div>
-            <p class="section-sub" style="margin:0 0 12px;" data-i18n="leaveTypeConfigSub">每种请假类型的默认天数、工资比例、是否需要审批/凭证均由公司自行配置,不是系统写死的固定值;留空天数表示不限额。</p>
-            <table class="data-table" id="leaveTypeConfigTable">
-              <tr>
-                <th data-i18n="colLeaveType">类型</th>
-                <th data-i18n="colQuotaDays">默认天数/年</th>
-                <th data-i18n="colPayRate">工资比例(%)</th>
-                <th data-i18n="colRequiresApproval">需要审批</th>
-                <th data-i18n="colRequiresAttachment">需要凭证</th>
-                <th data-i18n="colActions">操作</th>
-              </tr>
-              <tbody id="leaveTypeConfigBody"></tbody>
-            </table>
-            <span class="field-hint hidden" id="leaveTypeConfigSavedNotice" style="color:var(--success);" data-i18n="leaveTypeConfigSaved">已保存</span>
-          </div>
-
-          <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;">
             <div style="font-weight:700;margin-bottom:4px;" data-i18n="employeeBalanceOverrideTitle">单个员工额度调整</div>
             <p class="section-sub" style="margin:0 0 12px;" data-i18n="employeeBalanceOverrideSub">例如工龄较久的员工年假天数高于公司默认值,或需要为某位员工单独补发/扣减某类请假额度。</p>
             <div class="form-grid">
@@ -1914,7 +1897,6 @@ function applyI18n() {
   renderTodayAttendanceList();
   renderAttendanceRangeList();
   updateWelcomeTitle();
-  renderLeaveTypeConfigPanel();
   renderEmployeeBalanceOverrideForm();
   syncSettingsAnnualQuotaInput();
 }
@@ -3502,9 +3484,10 @@ let leaveRequestIdCounter = 500;
 const leaveRequests = [];
 
 /* ---------- 请假配额配置("变量系统",对应后端 LeaveModule 的 leave_types) ----------
-   quota=null 表示不限额(如培训假/出差)。这些值全部可以在公司后台"请假类型与额度设置"
-   面板里编辑保存,不是写死在代码里的常量——和 leaveTypeConfigTable 的渲染/保存逻辑
-   一一对应,数值改了之后,员工端的余额卡片、请假中心、请假申请表单校验都会立刻用新值。 */
+   quota=null 表示不限额(如培训假/出差)。应用户要求,逐类别可视化编辑面板("请假类型
+   与额度设置"表格)已经整体删除,这里的默认值现在是纯代码常量,不再有管理后台页面能
+   改除年假之外的其余类别;"默认年假天数"这一项例外,继续通过"设置"页单独可编辑
+   (见 btnSaveCompanyProfile 点击事件,直接写 leaveTypeConfigs.ANNUAL.quota)。 */
 let leaveTypeConfigs = {
   ANNUAL:        { quota: 21,   payRate: 100, requiresApproval: true,  requiresAttachment: false },
   SICK:          { quota: null, payRate: 100, requiresApproval: false, requiresAttachment: true  },
@@ -3584,48 +3567,15 @@ function leaveTypeBadgeInfo(dict, category) {
   return { label: info.label, cls: info.cls, payRate: config.payRate };
 }
 
-/* ---------- 请假类型与额度设置面板(公司后台) ----------
-   对应后端 PATCH /companies/:id/leave-types/:leaveTypeId —— 每一行都是数据库里的一条
-   可编辑记录,保存后立刻影响员工端显示与请假申请表单的校验规则,不需要改代码/重新部署。 */
-const LEAVE_CATEGORIES_ORDER = ["ANNUAL", "SICK", "PERSONAL", "TRAINING", "BUSINESS_TRIP"];
-
-function renderLeaveTypeConfigPanel() {
-  saveState();
-  const tbody = document.getElementById("leaveTypeConfigBody");
-  if (!tbody) return;
-  const dict = i18n[currentLang];
-  tbody.innerHTML = LEAVE_CATEGORIES_ORDER.map(cat => {
-    const config = leaveTypeConfigs[cat];
-    const info = leaveTypeBadgeInfo(dict, cat);
-    return '<tr>' +
-      '<td><span class="badge ' + info.cls + '">' + info.label + '</span></td>' +
-      '<td><input type="number" min="0" max="365" style="width:80px;" placeholder="' + dict.unlimitedQuota + '" id="cfgQuota-' + cat + '" value="' + (config.quota === null ? "" : config.quota) + '" /></td>' +
-      '<td><input type="number" min="0" max="100" style="width:70px;" id="cfgPayRate-' + cat + '" value="' + config.payRate + '" /></td>' +
-      '<td style="text-align:center;"><input type="checkbox" id="cfgApproval-' + cat + '" ' + (config.requiresApproval ? "checked" : "") + ' /></td>' +
-      '<td style="text-align:center;"><input type="checkbox" id="cfgAttachment-' + cat + '" ' + (config.requiresAttachment ? "checked" : "") + ' /></td>' +
-      '<td><button type="button" class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-save-leave-config="' + cat + '">' + dict.saveRow + '</button></td>' +
-    '</tr>';
-  }).join("");
-  tbody.querySelectorAll("[data-save-leave-config]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const cat = btn.dataset.saveLeaveConfig;
-      const quotaInput = document.getElementById("cfgQuota-" + cat).value.trim();
-      leaveTypeConfigs[cat] = {
-        quota: quotaInput === "" ? null : Math.max(0, Number(document.getElementById("cfgQuota-" + cat).value)),
-        payRate: Math.max(0, Math.min(100, Number(document.getElementById("cfgPayRate-" + cat).value))),
-        requiresApproval: document.getElementById("cfgApproval-" + cat).checked,
-        requiresAttachment: document.getElementById("cfgAttachment-" + cat).checked,
-      };
-      updateLeaveBalanceDisplays(currentEmployeeName());
-      renderLeaveRequests();
-      renderLeaveHistory();
-      syncSettingsAnnualQuotaInput(); // 两处年假天数入口保持同步,见 syncSettingsAnnualQuotaInput 说明
-      const notice = document.getElementById("leaveTypeConfigSavedNotice");
-      notice.classList.remove("hidden");
-      setTimeout(() => notice.classList.add("hidden"), 2000);
-    });
-  });
-}
+/* ---------- 请假类型与额度设置面板(公司后台)——已按用户要求整体删除 ----------
+   Bug 修复(用户明确要求:"上面那个大项目没有什么用处,可以删除"——指的就是这一整块
+   "请假类型与额度设置"表格,年假/病假/事假/培训/出差的配额/工资比例/审批/凭证全部
+   在这里配置):这个 UI 面板已经删除,不再提供逐类别的可视化编辑入口。
+   底层 leaveTypeConfigs 这份数据结构本身继续保留、继续生效(病假仍然默认需要凭证、
+   事假默认配额仍是 5 天等),只是变成纯代码里的默认值,不再有对应的管理后台页面能
+   改它——"默认年假天数"这一项例外,继续保留在"设置"页里单独可编辑
+   (见 btnSaveCompanyProfile 点击事件、syncSettingsAnnualQuotaInput()),
+   因为那是一个独立的输入框,不属于这张被删除的表格。 */
 
 /* ---------- 单个员工额度调整(公司后台) ----------
    对应后端 PUT /companies/:id/employees/:employeeId/leave-balances/:leaveTypeId。 */
@@ -3930,7 +3880,6 @@ document.getElementById("btnSaveCompanyProfile").addEventListener("click", async
     if (empNameEl) empNameEl.textContent = companyDisplayName;
     const empSloganEl = document.getElementById("employeeCompanySlogan");
     if (empSloganEl) empSloganEl.textContent = companySloganText;
-    renderLeaveTypeConfigPanel();
     updateLeaveBalanceDisplays(currentEmployeeName());
     renderLeaveRequests();
     renderLeaveHistory();
