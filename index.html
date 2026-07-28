@@ -427,6 +427,10 @@
           <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportWageTitle">今日工时与工资成本</div>
           <table class="data-table" id="dailyReportWageTable"></table>
 
+          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportLeaveTitle">人员排班提醒</div>
+          <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportLeaveSub">今天正在请假、以及未来 7 天内即将请假的员工,提前安排替补人手上班,避免临时缺人。</p>
+          <div id="dailyReportLeaveList"></div>
+
           <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportInventoryTitle">库存提醒</div>
           <div id="dailyReportInventoryList"></div>
         </div>
@@ -1293,6 +1297,10 @@ const i18n = {
     dailyReportSub: "整合当天的 GPS 异常停留、员工工时与工资成本、库存预警,老板打开 App 30 秒内就能看到今天需要关注什么。以下全部是数据库里的真实数据,来自后端 ReportsModule/GpsModule/PayrollModule 的真实接口。",
     dailyReportGpsTitle: "GPS 异常停留", dailyReportGpsSub: "连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)",
     dailyReportWageTitle: "今日工时与工资成本", dailyReportInventoryTitle: "库存提醒",
+    dailyReportLeaveTitle: "人员排班提醒",
+    dailyReportLeaveSub: "今天正在请假、以及未来 7 天内即将请假的员工,提前安排替补人手上班,避免临时缺人。",
+    dailyReportLeaveTodayHeading: "今天请假", dailyReportLeaveUpcomingHeading: "未来 7 天内即将请假",
+    dailyReportLeaveEmpty: "今天没有员工请假,未来 7 天也没有已排定的请假,人手安排正常。",
     noGpsAnomalies: "今天没有检测到异常停留,配送情况正常。",
     gpsAnomalyMessage: function (name, start, end, minutes) { return name + " 在 " + start + " 至 " + end + "(共 " + minutes + " 分钟)几乎没有移动,存在异常停留,建议核实是否配送延误、路况拥堵或其他情况;如果同一路段反复出现异常停留,建议考虑调整配送路线。"; },
     missingWageConfigNotice: function (names) { return "以下员工在这段时间内有打卡记录,但还没有设置时薪,暂未计入工资成本:" + names + "——请去\"员工管理\"点\"编辑时薪\"补上。"; },
@@ -1533,6 +1541,10 @@ const i18n = {
     dailyReportSub: "Rolls up today's GPS dwell anomalies, employee hours and wage cost, and inventory alerts — the owner can see what needs attention within 30 seconds of opening the app. Everything below is real data straight from the database, via the backend ReportsModule/GpsModule/PayrollModule.",
     dailyReportGpsTitle: "GPS dwell anomalies", dailyReportGpsSub: "20+ consecutive minutes below 3 km/h counts as one dwell anomaly (advisory only, never an automatic violation)",
     dailyReportWageTitle: "Today's hours & wage cost", dailyReportInventoryTitle: "Inventory alerts",
+    dailyReportLeaveTitle: "Staffing / leave reminders",
+    dailyReportLeaveSub: "Employees on leave today, and those with leave scheduled in the next 7 days — plan replacement staff ahead of time.",
+    dailyReportLeaveTodayHeading: "On leave today", dailyReportLeaveUpcomingHeading: "Upcoming leave (next 7 days)",
+    dailyReportLeaveEmpty: "No one is on leave today, and nothing scheduled in the next 7 days — staffing looks normal.",
     noGpsAnomalies: "No dwell anomalies detected today — deliveries look normal.",
     gpsAnomalyMessage: function (name, start, end, minutes) { return name + " barely moved from " + start + " to " + end + " (" + minutes + " minutes) — worth checking whether this was a delivery delay, traffic, or something else. If the same stretch keeps flagging, consider adjusting the delivery route."; },
     missingWageConfigNotice: function (names) { return "These employees clocked in during this period but don't have an hourly rate set yet, so they're not included in the wage cost: " + names + " — set a rate for them under \"Employees\" (\"Edit rate\")."; },
@@ -5627,14 +5639,64 @@ async function renderWageTable(tableId) {
   table.innerHTML = html;
 }
 
-// Bug 修复(用户明确反馈:"我不需要死代码,我需要真正的报告"):这三块以前分别是:
+/** "每日经营报告"里的"人员排班提醒"(应用户要求:"能否把员工请假、休假年月日等信息
+    给管理员一个报告?提醒安排替补人员上班?"):分两组列出——"今天请假"(今天正好落在
+    某条请假记录的日期区间内)、"未来 7 天内即将请假"(开始日期在今天之后、7 天之内),
+    方便管理员提前安排替补人手,而不是等到人已经不在了才发现。已拒绝/已撤销的申请
+    不算数。数据复用 realLeaveRequestsAdmin(renderDailyReport() 里已经先刷新过一次),
+    不为这个板块单独发请求。 */
+function renderDailyReportLeaveReminder() {
+  const container = document.getElementById("dailyReportLeaveList");
+  if (!container) return;
+  const dict = i18n[currentLang];
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const sevenDaysLater = new Date();
+  sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+  const in7DaysStr = sevenDaysLater.toISOString().slice(0, 10);
+  const validStatuses = { PENDING: true, APPROVED: true };
+
+  const onLeaveToday = [];
+  const upcoming = [];
+  realLeaveRequestsAdmin.filter(r => validStatuses[r.status]).forEach(r => {
+    if (r.startDate <= todayStr && r.endDate >= todayStr) onLeaveToday.push(r);
+    else if (r.startDate > todayStr && r.startDate <= in7DaysStr) upcoming.push(r);
+  });
+  onLeaveToday.sort((a, b) => a.startDate.localeCompare(b.startDate));
+  upcoming.sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+  if (onLeaveToday.length === 0 && upcoming.length === 0) {
+    container.innerHTML = '<div class="insight-empty">' + dict.dailyReportLeaveEmpty + "</div>";
+    return;
+  }
+
+  const renderGroup = (title, list) => {
+    if (list.length === 0) return "";
+    const itemsHtml = list.map(req => {
+      const info = leaveTypeBadgeInfo(dict, req.category);
+      const statusSuffix = req.status === "PENDING" ? " (" + dict.statusPending2 + ")" : "";
+      return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:13px;">' +
+        "<strong>" + employeeNameByBackendId(req.employeeId) + "</strong>" +
+        '<span class="badge ' + info.cls + '">' + info.label + "</span>" +
+        "<span>📅 " + formatLeaveDateRange(req) + statusSuffix + "</span>" +
+      "</div>";
+    }).join("");
+    return '<div style="font-size:12.5px;font-weight:700;color:var(--text-2);margin:4px 0 4px;">' + title + "</div>" + itemsHtml;
+  };
+
+  container.innerHTML = renderGroup(dict.dailyReportLeaveTodayHeading, onLeaveToday) + renderGroup(dict.dailyReportLeaveUpcomingHeading, upcoming);
+}
+
+// Bug 修复(用户明确反馈:"我不需要死代码,我需要真正的报告"):这几块以前分别是:
 // GPS 异常停留(已经是真实接口)、工时与工资成本(本地假算法,见 renderWageTable()
 // 的说明)、库存提醒(已经是真实接口,但依赖别的页面之前访问过才会有数据)。现在
-// 三块全部来自数据库真实数据:库存这里主动先 syncInventoryFromBackend() 拉一次最新的,
-// 不依赖管理员有没有先点过"智能库存"页面。
+// 全部来自数据库真实数据:库存这里主动先 syncInventoryFromBackend() 拉一次最新的,
+// 不依赖管理员有没有先点过"智能库存"页面;请假队列同理,主动 refreshCompanyLeaveRequests()
+// 拉一次最新的,不依赖管理员有没有先点过"请假审批"页面。
 async function renderDailyReport() {
   renderGpsAnomalyReport("dailyReportGpsList");
   renderWageTable("dailyReportWageTable");
+  if (currentUserRole === "COMPANY_ADMIN") await refreshCompanyLeaveRequests();
+  renderDailyReportLeaveReminder();
   await syncInventoryFromBackend();
   renderInventoryInsights("dailyReportInventoryList");
 }
