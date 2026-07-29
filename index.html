@@ -539,27 +539,6 @@
           <h2 class="section-title" data-i18n="navLeave">请假审批</h2>
           <p class="section-sub" data-i18n="caLeaveSub">年假 / 病假 / 事假 / 培训 / 出差统一在这里审批,每条请求都有留言板可与员工沟通</p>
 
-          <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;padding:12px 16px;">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <strong style="font-size:13px;" data-i18n="employeeBalanceOverrideTitle">单个员工额度调整</strong>
-              <span style="cursor:help;color:var(--text-2);border:1px solid var(--border);border-radius:50%;width:16px;height:16px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;" data-i18n-title="employeeBalanceOverrideNotALeaveRequest" title="注意:这里只是设置&quot;额度上限&quot;,不是替员工提交请假申请——没有请假事由/日期/留言板。真正的请假申请由员工自己在&quot;请假中心&quot;提交,提交后会出现在本页下方的请假列表里,才能看到事由和留言板。">i</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
-              <select id="balanceOverrideEmployee" style="height:34px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;padding:0 8px;"></select>
-              <span style="font-size:13px;color:var(--text-2);" data-i18n="employeeBalanceOverrideOf">的</span>
-              <select id="balanceOverrideType" style="height:34px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;padding:0 8px;">
-                <option value="ANNUAL" data-i18n="annual">年假</option>
-                <option value="SICK" data-i18n="sick">病假</option>
-                <option value="PERSONAL" data-i18n="personal">事假</option>
-              </select>
-              <span style="font-size:13px;color:var(--text-2);" data-i18n="employeeBalanceOverrideEquals">今年额度 =</span>
-              <input type="number" id="balanceOverrideDays" min="0" max="365" value="21" style="height:34px;width:70px;padding:0 8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;" />
-              <span style="font-size:13px;color:var(--text-2);" data-i18n="days">天</span>
-              <button class="btn btn-outline" id="btnSaveEmployeeBalance" style="height:34px;padding:0 14px;font-size:12px;" data-i18n="saveEmployeeBalance">保存额度</button>
-              <span class="field-hint hidden" id="employeeBalanceSavedNotice" style="color:var(--success);" data-i18n="employeeBalanceSaved">已保存</span>
-            </div>
-          </div>
-
           <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;">
             <div style="font-weight:700;margin-bottom:4px;" data-i18n="leaveSummaryTitle">员工请假总览</div>
             <p class="section-sub" style="margin:0 0 12px;" data-i18n="leaveSummarySub">全体员工的年假、事假、病假使用情况和最近一次请假记录,方便人事排班参考。</p>
@@ -1186,12 +1165,7 @@ const i18n = {
     colLeaveType: "类型", colQuotaDays: "默认天数/年", colPayRate: "工资比例(%)",
     colRequiresApproval: "需要审批", colRequiresAttachment: "需要凭证", colActions: "操作",
     saveRow: "保存", leaveTypeConfigSaved: "已保存",
-    employeeBalanceOverrideTitle: "单个员工额度调整",
-    employeeBalanceOverrideSub: "例如工龄较久的员工年假天数高于公司默认值,或需要为某位员工单独补发/扣减某类请假额度。",
-    employeeBalanceOverrideNotALeaveRequest: "注意:这里只是设置\"额度上限\",不是替员工提交请假申请——没有请假事由/日期/留言板。真正的请假申请由员工自己在\"请假中心\"提交,提交后会出现在本页下方的请假列表里,才能看到事由和留言板。",
-    employeeBalanceOverrideOf: "的", employeeBalanceOverrideEquals: "今年额度 =",
     fieldSelectEmployee: "员工", fieldSelectLeaveType: "请假类型", fieldAllocatedDays: "这一年可休天数",
-    saveEmployeeBalance: "保存额度", employeeBalanceSaved: "已保存",
     leaveSummaryTitle: "员工请假总览", leaveSummarySub: "全体员工的年假、事假、病假使用情况和最近一次请假记录,方便人事排班参考。",
     leaveSummaryColEmployee: "员工", leaveSummaryColAnnual: "年假", leaveSummaryColPersonal: "事假(已休)",
     leaveSummaryColSick: "病假(已休)", leaveSummaryColRecent: "当前/即将请假",
@@ -1443,12 +1417,7 @@ const i18n = {
     colLeaveType: "Type", colQuotaDays: "Default days/year", colPayRate: "Pay rate (%)",
     colRequiresApproval: "Needs approval", colRequiresAttachment: "Needs attachment", colActions: "Actions",
     saveRow: "Save", leaveTypeConfigSaved: "Saved",
-    employeeBalanceOverrideTitle: "Per-Employee Balance Adjustment",
-    employeeBalanceOverrideSub: "E.g. a senior employee gets more annual days than the company default, or you need to grant/deduct a specific employee's balance.",
-    employeeBalanceOverrideNotALeaveRequest: "Note: this only sets a quota cap — it does not submit a leave request on the employee's behalf, so there's no reason/dates/message thread here. Employees submit real leave requests themselves via \"Leave Center\"; once submitted, they'll appear in the request list below, where you'll see the reason and message thread.",
-    employeeBalanceOverrideOf: "for", employeeBalanceOverrideEquals: "this year's allocation =",
     fieldSelectEmployee: "Employee", fieldSelectLeaveType: "Leave type", fieldAllocatedDays: "Days allocated this year",
-    saveEmployeeBalance: "Save balance", employeeBalanceSaved: "Saved",
     leaveSummaryTitle: "Employee Leave Overview", leaveSummarySub: "Every employee's annual/personal/sick leave usage and most recent leave, at a glance for scheduling.",
     leaveSummaryColEmployee: "Employee", leaveSummaryColAnnual: "Annual leave", leaveSummaryColPersonal: "Personal leave (used)",
     leaveSummaryColSick: "Sick leave (used)", leaveSummaryColRecent: "Current / upcoming leave",
@@ -2027,7 +1996,6 @@ function applyI18n() {
   renderTodayAttendanceList();
   renderAttendanceRangeList();
   updateWelcomeTitle();
-  renderEmployeeBalanceOverrideForm();
   syncSettingsAnnualQuotaInput();
   renderLeaveEmployeeSummaryTable(); // 只重渲染已经拉取过的数据,不重新发请求,切换语言不应该触发额外的网络请求
 }
@@ -2291,7 +2259,6 @@ async function syncEmployeesFromBackend() {
 
     renderEmployeeTable();
     renderPayrollTable();
-    renderEmployeeBalanceOverrideForm();
     renderCaDashboardMetrics();
     saveState();
     refreshRealAttendanceData(); // 员工名单刚同步完,顺带把这几位员工真实的考勤数据(工时/考勤记录/仪表盘)也拉一遍
@@ -2372,7 +2339,6 @@ function renderEmployeeTable() {
       if (idx !== -1) employees.splice(idx, 1);
       renderEmployeeTable();
       renderPayrollTable();
-      renderEmployeeBalanceOverrideForm();
       renderCaDashboardMetrics();
     });
   });
@@ -2530,7 +2496,6 @@ document.getElementById("form-add-employee").addEventListener("submit", async e 
       });
       renderEmployeeTable();
       renderPayrollTable();
-      renderEmployeeBalanceOverrideForm();
       renderCaDashboardMetrics();
       e.target.reset();
       closeModal(document.getElementById("modal-add-employee"));
@@ -2545,7 +2510,6 @@ document.getElementById("form-add-employee").addEventListener("submit", async e 
   employees.push({ id: employeeIdCounter++, name, role, status: "pending", employmentType: "full_time", hourlyRateCents, employeeId: employeeCode.toUpperCase() || null, password: null });
   renderEmployeeTable();
   renderPayrollTable();
-  renderEmployeeBalanceOverrideForm();
   renderCaDashboardMetrics();
   e.target.reset();
   closeModal(document.getElementById("modal-add-employee"));
@@ -2690,7 +2654,6 @@ document.getElementById("form-employee-register").addEventListener("submit", asy
     loggedInEmployeeId = newEmployeeId.toUpperCase();
     renderEmployeeTable();
     renderPayrollTable();
-    renderEmployeeBalanceOverrideForm();
     renderCaDashboardMetrics();
     updateWelcomeTitle();
     updateEmployeeSummaryCards();
@@ -3985,73 +3948,13 @@ function leaveTypeBadgeInfo(dict, category) {
    "设置"页里单独可编辑(见 btnSaveCompanyProfile 点击事件、
    syncSettingsAnnualQuotaInput()),现在改成真实 PATCH 后端 leave-types/:id。 */
 
-/* ---------- 单个员工额度调整(公司后台) ----------
-   对应后端 PUT /companies/:id/employees/:employeeId/leave-balances/:leaveTypeId。 */
-function renderEmployeeBalanceOverrideForm() {
-  const select = document.getElementById("balanceOverrideEmployee");
-  if (!select) return;
-  const currentValue = select.value;
-  // Bug 修复(这次一起接真实后端):以前 value 存的是 emp.name(员工姓名字符串),
-  // 现在改存 emp.backendId(真实数据库 UUID)——员工额度是按 employeeId 存在
-  // leave_balances 表里的,姓名不能唯一确定一个人(理论上允许重名)。只列出已经
-  // 加入、有真实账号的员工,还没注册的邀请不适用"设置额度"这个操作。
-  const options = employees.filter(e => e.joined && e.backendId);
-  select.innerHTML = options.map(e => '<option value="' + e.backendId + '">' + e.name + "</option>").join("");
-  if (currentValue && options.some(e => e.backendId === currentValue)) select.value = currentValue;
-  refreshBalanceOverridePreview();
-}
-
-/** 选好"员工+请假类型"之后,把这两人这个类型真实的当前额度回填进"这一年可休天数"这个
-    输入框——避免管理员看不到现状、盲目填一个数字把原有额度覆盖掉。 */
-async function refreshBalanceOverridePreview() {
-  const employeeId = document.getElementById("balanceOverrideEmployee").value;
-  const category = document.getElementById("balanceOverrideType").value;
-  const daysInput = document.getElementById("balanceOverrideDays");
-  if (!employeeId || !currentUserCompanyId || !accessToken) return;
-  try {
-    const balances = await apiRequest(
-      "/companies/" + currentUserCompanyId + "/employees/" + employeeId + "/leave-balances?year=" + new Date().getFullYear(),
-      { auth: true },
-    );
-    const match = balances.find(b => b.category === category);
-    if (match && match.allocatedDays !== null && match.allocatedDays !== undefined) {
-      daysInput.value = match.allocatedDays;
-    }
-  } catch (err) {
-    console.warn("获取该员工现有额度失败(不影响手动填写):", err);
-  }
-}
-document.getElementById("balanceOverrideEmployee").addEventListener("change", refreshBalanceOverridePreview);
-document.getElementById("balanceOverrideType").addEventListener("change", refreshBalanceOverridePreview);
-
-document.getElementById("btnSaveEmployeeBalance").addEventListener("click", async () => {
-  const employeeId = document.getElementById("balanceOverrideEmployee").value;
-  if (!employeeId) return; // 员工名单是空的(下拉框没有选项)时不做任何事,避免生成归属不明的额度记录
-  const category = document.getElementById("balanceOverrideType").value;
-  const days = Math.max(0, Number(document.getElementById("balanceOverrideDays").value));
-  const leaveType = realLeaveTypesByCategory[category];
-  if (!leaveType || !currentUserCompanyId || !accessToken) return;
-  const btn = document.getElementById("btnSaveEmployeeBalance");
-  btn.disabled = true;
-  try {
-    await apiRequest(
-      "/companies/" + currentUserCompanyId + "/employees/" + employeeId + "/leave-balances/" + leaveType.id,
-      { method: "PUT", auth: true, body: { year: new Date().getFullYear(), allocatedDays: days } },
-    );
-  } catch (err) {
-    window.alert(err.message);
-    btn.disabled = false;
-    return;
-  }
-  btn.disabled = false;
-  // 只有当管理员调整的正好是"当前登录的员工"本人的额度时,才需要刷新员工端卡片——
-  // 调整的是其他员工,员工端此刻显示的是登录者自己的数据,不受影响。
-  if (employeeId === currentUserId) refreshMyLeaveBalances();
-  refreshLeaveEmployeeSummary(); // 额度一改,下面"员工请假总览"表格里这一行的年假总额也要跟着变,不用等 20 秒轮询
-  const notice = document.getElementById("employeeBalanceSavedNotice");
-  notice.classList.remove("hidden");
-  setTimeout(() => notice.classList.add("hidden"), 2000);
-});
+/* ---------- 单个员工额度调整(公司后台)——应用户要求整体删除 ----------
+   ("我感觉这个表格没有必要保存" / "可以删除"):以前这里是一个独立的表单区块,
+   管理员可以给某个员工的某个请假类型单独设置额度上限。用户看过压缩成一行的版本后
+   仍然认为完全不需要保留这个功能,于是这里连同 HTML 区块、事件绑定一起整体删除。
+   对应后端 PUT /companies/:id/employees/:employeeId/leave-balances/:leaveTypeId
+   接口本身没有删,只是前端不再提供这个操作入口——年假默认额度继续在"设置"页里
+   统一配置(syncSettingsAnnualQuotaInput())。 */
 
 function buildLeaveCardHtml(req, isAdminView) {
   const dict = i18n[currentLang];
