@@ -431,7 +431,8 @@
           <div id="dailyReportGpsList"></div>
 
           <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportWageTitle">今日工时与工资成本</div>
-          <p class="section-sub" style="margin:0 0 8px;font-size:12px;" id="dailyReportWageRangeCaption"></p>
+          <p class="section-sub" style="margin:0 0 4px;font-size:12px;" id="dailyReportWageRangeCaption"></p>
+          <p class="section-sub" style="margin:0 0 8px;font-size:12px;" data-i18n="overtimeRuleCaption">规则:每人每天工作超过 8 小时的部分算加班,加班时薪 = 正常时薪 × 1.5倍(例如时薪 €15,加班时薪就是 €22.50)。工资成本 = 正常工时×时薪 + 加班工时×加班时薪。</p>
           <table class="data-table" id="dailyReportWageTable"></table>
           <p class="section-sub" style="margin:8px 0 0;font-size:12px;" id="dailyReportWageMonthToDateCaption"></p>
 
@@ -541,7 +542,8 @@
         <div class="glass ca-section" id="ca-payroll" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navPayroll">工资管理</h2>
           <p class="section-sub" data-i18n="payrollSub">工资按"员工名单 + 考勤记录(未作废部分)+ 每位员工设置的时薪"自动计算,和每日经营报告用的是同一套算法;需要额外发放奖金或做扣款时,可以给单个员工手动增加调整项。</p>
-          <p class="section-sub" style="margin:0 0 12px;font-weight:600;" id="payrollRangeCaption"></p>
+          <p class="section-sub" style="margin:0 0 4px;font-weight:600;" id="payrollRangeCaption"></p>
+          <p class="section-sub" style="margin:0 0 12px;font-size:12px;" data-i18n="overtimeRuleCaption">规则:每人每天工作超过 8 小时的部分算加班,加班时薪 = 正常时薪 × 1.5倍(例如时薪 €15,加班时薪就是 €22.50)。工资成本 = 正常工时×时薪 + 加班工时×加班时薪。</p>
           <div id="payrollTable"></div>
         </div>
         <div class="glass ca-section" id="ca-leave" style="display:none;margin-top:20px;">
@@ -1116,7 +1118,7 @@ const i18n = {
     submitRegister: "提交注册", submitRegisterCompany: "提交注册,开始 30 天免费试用",
     footerText: "© 2026 WorkTrack AI",
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "欢迎回来", clockIn: "上班打卡", clockOut: "下班打卡",
-    todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "工资摘要", attendanceRate: "出勤率",
+    todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "本月工资(估算)", attendanceRate: "出勤率",
     todayAttendanceTitle: "今日打卡记录", inProgressLabel: "进行中", noAttendanceToday: "今天还没有打卡记录",
     attendanceSummaryTitle: "打卡明细", tabThisWeek: "本周", tabThisMonth: "本月",
     noAttendanceInRange: "这段时间还没有打卡记录", dailyTotalLabel: "当日合计",
@@ -1154,7 +1156,7 @@ const i18n = {
     confirmSuspendEmployee: "确定要停用这名员工吗?停用后对方无法再登录,随时可以恢复。",
     confirmCancelInvite: "确定要撤销这份还没被认领的邀请吗?撤销后对方不能再用这个邀请码注册。",
     deleteEmployee: "删除", confirmDeleteEmployee: "确定要删除这名员工吗?该员工将无法再登录,并从员工列表中移除;考勤/工资/请假等历史记录会保留,不会被清除。",
-    colRegular: "正常工时", colOvertime: "加班工时", colTotal: "应发合计", approve: "批准", reject: "拒绝",
+    colRegular: "正常工时", colOvertime: "加班工时(1.5倍时薪)", colTotal: "应发合计", approve: "批准", reject: "拒绝",
     navCompanies: "公司管理", navRevenue: "收入看板", navAds: "广告管理",
     paDashboardTitle: "平台概览", totalCompanies: "入驻公司总数", mrr: "月经常性收入",
     activeTrials: "试用中公司", systemHealth: "系统健康度",
@@ -1243,6 +1245,7 @@ const i18n = {
     fieldHourlyRate: "时薪(欧元/小时)", hourlyRateHint: "用于自动计算这名员工的工资,之后可以在员工列表里随时修改",
     payrollSub: "工资按「员工名单 + 考勤记录(未作废部分)+ 每位员工设置的时薪」自动计算,和每日经营报告用的是同一套算法;需要额外发放奖金或做扣款时,可以给单个员工手动增加调整项。",
     payrollRangeCaption: function (start, end) { return "统计范围:本月 " + start + " – " + end + "(和「每日经营报告」里的「今日」是两个不同的统计范围,本月总额会比单独一天的数字大,这是正常的,不是bug)"; },
+    overtimeRuleCaption: "规则:每人每天工作超过 8 小时的部分算加班,加班时薪 = 正常时薪 × 1.5倍(例如时薪 €15,加班时薪就是 €22.50)。工资成本 = 正常工时×时薪 + 加班工时×加班时薪。",
     colBasePay: "基础工资", colAdjustments: "调整项", deleteAction: "删除", noAdjustmentsYet: "暂无调整项",
     addPayrollAdjustment: "+ 增加调整项", confirmDeleteAdjustment: "确定要删除这条调整项吗?",
     payrollAdjustmentSub: "比如奖金、补贴填正数;扣款、更正多发填负数,会累加进这名员工的应发合计。",
@@ -1386,7 +1389,7 @@ const i18n = {
     submitRegister: "Submit registration", submitRegisterCompany: "Submit and start your 30-day free trial",
     footerText: "© 2026 WorkTrack AI",
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "Welcome back", clockIn: "Clock in", clockOut: "Clock out",
-    todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "Salary summary", attendanceRate: "Attendance rate",
+    todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "This month's pay (est.)", attendanceRate: "Attendance rate",
     todayAttendanceTitle: "Today's clock-ins", inProgressLabel: "In progress", noAttendanceToday: "No clock-ins yet today",
     attendanceSummaryTitle: "Clock-in details", tabThisWeek: "This week", tabThisMonth: "This month",
     noAttendanceInRange: "No clock-ins in this period yet", dailyTotalLabel: "Daily total",
@@ -1420,7 +1423,7 @@ const i18n = {
     confirmSuspendEmployee: "Suspend this employee? They won't be able to log in until reactivated.",
     confirmCancelInvite: "Cancel this pending invitation? They won't be able to register with this code afterwards.",
     deleteEmployee: "Delete", confirmDeleteEmployee: "Delete this employee? They will no longer be able to log in and will be removed from the employee list; attendance/payroll/leave history is kept, not erased.",
-    colRegular: "Regular hours", colOvertime: "Overtime", colTotal: "Total pay", approve: "Approve", reject: "Reject",
+    colRegular: "Regular hours", colOvertime: "Overtime (1.5× rate)", colTotal: "Total pay", approve: "Approve", reject: "Reject",
     navCompanies: "Companies", navRevenue: "Revenue", navAds: "Advertisements",
     paDashboardTitle: "Platform overview", totalCompanies: "Total companies", mrr: "Monthly recurring revenue",
     activeTrials: "Companies trialing", systemHealth: "System health",
@@ -1509,6 +1512,7 @@ const i18n = {
     fieldHourlyRate: "Hourly rate (EUR/hour)", hourlyRateHint: "Used to auto-calculate this employee's pay; can be changed anytime from the employee list",
     payrollSub: "Pay is calculated automatically from the employee list + attendance records (excluding voided ones) + each employee's hourly rate — the same logic used in the daily report. You can add a manual adjustment for a specific employee for bonuses or deductions.",
     payrollRangeCaption: function (start, end) { return "Range: this month, " + start + " – " + end + " (a different range from \"Today\" in the daily report — the monthly total being larger than a single day's number is expected, not a bug)"; },
+    overtimeRuleCaption: "Rule: any time worked beyond 8 hours in a single day counts as overtime, paid at 1.5× the regular rate (e.g. €15/h regular → €22.50/h overtime). Wage cost = regular hours × rate + overtime hours × overtime rate.",
     colBasePay: "Base pay", colAdjustments: "Adjustments", deleteAction: "Delete", noAdjustmentsYet: "No adjustments yet",
     addPayrollAdjustment: "+ Add adjustment", confirmDeleteAdjustment: "Delete this adjustment?",
     payrollAdjustmentSub: "Use a positive amount for bonuses/allowances, a negative amount for deductions/corrections — it's added to this employee's total pay.",
