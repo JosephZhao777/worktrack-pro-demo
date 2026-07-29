@@ -1120,6 +1120,11 @@ const i18n = {
     todayAttendanceTitle: "今日打卡记录", inProgressLabel: "进行中", noAttendanceToday: "今天还没有打卡记录",
     attendanceSummaryTitle: "打卡明细", tabThisWeek: "本周", tabThisMonth: "本月",
     noAttendanceInRange: "这段时间还没有打卡记录", dailyTotalLabel: "当日合计",
+    // Bug 修复(用户反馈:"11:27→16:13 显示 4.77h,这一定是计算上出现了 Bug"):数字本身没算错
+    // (4 小时 46 分钟 = 4.766...,四舍五入就是 4.77),但"小数点后两位的小时数"这种写法很容易被
+    // 误读成"4 小时 77 分钟",不是每个人都习惯把 0.77 小时心算成 46 分钟。这里把所有"工时"类的
+    // 展示统一换成"X 小时 Y 分钟"这种一看就懂的写法,不需要读者自己换算。
+    hoursMinutesFormat: function (h, m) { return h > 0 ? (h + "小时" + m + "分钟") : (m + "分钟"); },
     gpsForegroundNoticeTitle: "WorkTrack AI · 打卡追踪中", gpsForegroundNoticeText: "上班打卡期间会持续记录您的位置,点击下班打卡即可停止",
     leaveBalance: "请假余额", annual: "年假", sick: "病假", personal: "事假", days: "天",
     announcements: "公司公告", announcementEmpty: "暂无公告",
@@ -1385,6 +1390,7 @@ const i18n = {
     todayAttendanceTitle: "Today's clock-ins", inProgressLabel: "In progress", noAttendanceToday: "No clock-ins yet today",
     attendanceSummaryTitle: "Clock-in details", tabThisWeek: "This week", tabThisMonth: "This month",
     noAttendanceInRange: "No clock-ins in this period yet", dailyTotalLabel: "Daily total",
+    hoursMinutesFormat: function (h, m) { return h > 0 ? (h + "h " + m + "m") : (m + "m"); },
     gpsForegroundNoticeTitle: "WorkTrack AI · Tracking your shift", gpsForegroundNoticeText: "Your location is recorded while clocked in — tap clock-out to stop",
     leaveBalance: "Leave balance", annual: "Annual", sick: "Sick", personal: "Personal", days: "days",
     announcements: "Announcements", announcementEmpty: "No announcements yet",
@@ -1963,8 +1969,8 @@ function updateEmployeeSummaryCards() {
   const monthStart = startOfMonth(today);
   const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
 
-  setText("empWeekHoursValue", sumRealHoursForEmployee(currentUserId, weekStart, weekEnd).toFixed(1) + "h");
-  setText("empMonthHoursValue", sumRealHoursForEmployee(currentUserId, monthStart, monthEnd).toFixed(1) + "h");
+  setText("empWeekHoursValue", formatHoursAsHm(sumRealHoursForEmployee(currentUserId, weekStart, weekEnd)));
+  setText("empMonthHoursValue", formatHoursAsHm(sumRealHoursForEmployee(currentUserId, monthStart, monthEnd)));
 
   if (myWageConfig && typeof myWageConfig.hourlyRateCents === "number") {
     const secondsByDay = {};
@@ -2343,9 +2349,9 @@ function renderEmployeeTable() {
     // Bug 修复:分别用 refreshRealAttendanceHours() 算出来的真实周/月工时,不再是
     // 同一个 hoursText 用在两栏——之前两栏数字永远相同,也永远是这台设备本地的假象。
     const realHours = emp.backendId ? realAttendanceHoursByEmployeeId[emp.backendId] : null;
-    const todayHoursText = emp.status === "active" ? (realHours ? realHours.today.toFixed(2) : "0.00") + "h" : "—";
-    const weekHoursText = emp.status === "active" ? (realHours ? realHours.week.toFixed(1) : "0.0") + "h" : "—";
-    const monthHoursText = emp.status === "active" ? (realHours ? realHours.month.toFixed(1) : "0.0") + "h" : "—";
+    const todayHoursText = emp.status === "active" ? formatHoursAsHm(realHours ? realHours.today : 0) : "—";
+    const weekHoursText = emp.status === "active" ? formatHoursAsHm(realHours ? realHours.week : 0) : "—";
+    const monthHoursText = emp.status === "active" ? formatHoursAsHm(realHours ? realHours.month : 0) : "—";
     const row = document.createElement("tr");
     // 已加入的真实员工(joined=true):可以调整时薪、停用/恢复、删除。
     // 还没注册、只是一份待认领邀请(joined=false):不适用时薪/停用,只能撤销邀请。
@@ -3088,6 +3094,20 @@ function formatHhMm(d) {
 }
 
 /**
+ * Bug 修复(用户反馈:"11:27→16:13 显示 4.77h,这一定是计算上出现了 Bug"):算法本身没有问题——
+ * 4 小时 46 分钟换算成小数是 4 + 46/60 = 4.766...,四舍五入到两位小数正好是 4.77,不是"4 小时 77
+ * 分钟"。但这种"小数点后两位的小时数"写法确实很容易被误读,不该指望每个用户都会心算 0.77 小时
+ * 等于多少分钟。这里统一提供一个"X 小时 Y 分钟"的格式化函数,把原来所有 (秒数/3600).toFixed(2)+"h"
+ * 这种写法全部换掉,不需要读者自己换算。
+ */
+function formatHoursAsHm(hoursDecimal) {
+  const totalMinutes = Math.round(hoursDecimal * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return i18n[currentLang].hoursMinutesFormat(h, m);
+}
+
+/**
  * Bug 修复(用户明确要求:"员工工时管理...要支持其它设备登录使用"):以前这里读的是
  * 浏览器本地 attendanceRecords(只有触发过打卡的那台设备才有数据),现在改成从
  * realAttendanceSessions(真实后端数据)按 employeeId=currentUserId 过滤出"今天"
@@ -3117,7 +3137,7 @@ function renderTodayAttendanceList() {
       return '<div class="list-item"><span>' + formatHhMm(clockInAt) + ' → ' + dict.inProgressLabel + '</span></div>';
     }
     const clockOutAt = new Date(s.clockOutAt);
-    const hoursText = (s.totalSeconds / 3600).toFixed(2) + "h";
+    const hoursText = formatHoursAsHm(s.totalSeconds / 3600);
     return '<div class="list-item"><span>' + formatHhMm(clockInAt) + ' → ' + formatHhMm(clockOutAt) + '</span><span style="margin-left:auto;opacity:.7;">' + hoursText + '</span></div>';
   });
   container.innerHTML = rows.length ? rows.join("") : '<div class="insight-empty">' + dict.noAttendanceToday + '</div>';
@@ -3191,14 +3211,14 @@ function renderAttendanceRangeList() {
         return '<div class="list-item" style="padding-left:10px;"><span>' + formatHhMm(clockInAt) + ' → ' + dict.inProgressLabel + '</span></div>';
       }
       const clockOutAt = new Date(s.clockOutAt);
-      const hoursText = (s.totalSeconds / 3600).toFixed(2) + "h";
+      const hoursText = formatHoursAsHm(s.totalSeconds / 3600);
       dayTotalHours += s.totalSeconds / 3600;
       return '<div class="list-item" style="padding-left:10px;"><span>' + formatHhMm(clockInAt) + ' → ' + formatHhMm(clockOutAt) + '</span>' +
         '<span style="margin-left:auto;opacity:.7;">' + hoursText + '</span></div>';
     }).join("");
     return '<div style="margin-bottom:8px;">' +
       '<div style="display:flex;justify-content:space-between;font-weight:600;font-size:12.5px;padding:4px 0;">' +
-      '<span>' + dateStr + '</span><span>' + dict.dailyTotalLabel + ': ' + dayTotalHours.toFixed(2) + 'h</span></div>' +
+      '<span>' + dateStr + '</span><span>' + dict.dailyTotalLabel + ': ' + formatHoursAsHm(dayTotalHours) + '</span></div>' +
       sessionRows + '</div>';
   }).join("");
 }
@@ -4597,7 +4617,7 @@ function buildAttendanceRowHtml(session) {
   const clockInAt = new Date(session.clockInAt);
   const clockInText = formatHhMm(clockInAt);
   const clockOutText = session.clockOutAt ? formatHhMm(new Date(session.clockOutAt)) : dict.inProgressLabel;
-  const hoursText = typeof session.totalSeconds === "number" ? (session.totalSeconds / 3600).toFixed(2) + "h" : "—";
+  const hoursText = typeof session.totalSeconds === "number" ? formatHoursAsHm(session.totalSeconds / 3600) : "—";
   const isVoided = !!session.voidedAt;
   const statusBadge = isVoided
     ? '<span class="badge danger">' + dict.statusVoided + "</span>"
@@ -5886,8 +5906,8 @@ async function renderPayrollTable() {
       : '<span style="color:var(--text-2);font-size:12px;">' + dict.noAdjustmentsYet + '</span>';
     html += '<tr>' +
       '<td>' + emp.name + '</td>' +
-      '<td>' + row.regularHours.toFixed(2) + 'h</td>' +
-      '<td>' + row.overtimeHours.toFixed(2) + 'h</td>' +
+      '<td>' + formatHoursAsHm(row.regularHours) + '</td>' +
+      '<td>' + formatHoursAsHm(row.overtimeHours) + '</td>' +
       '<td>€' + (row.baseCostCents / 100).toFixed(2) + '</td>' +
       '<td>' + adjustmentsHtml + '</td>' +
       '<td><strong>€' + (row.totalCostCents / 100).toFixed(2) + '</strong></td>' +
@@ -5998,7 +6018,7 @@ async function renderWageTable(tableId) {
   let html = "<tr><th>" + dict.colName + "</th><th>" + dict.colRegular + "</th><th>" + dict.colOvertime + "</th><th>" + dict.colWageCost + "</th></tr>";
   (report.breakdown || []).forEach(r => {
     const name = employeeNameByBackendId(r.employeeId);
-    html += "<tr><td>" + name + "</td><td>" + r.regularHours.toFixed(2) + "h</td><td>" + r.overtimeHours.toFixed(2) + "h</td><td>€" + (r.costCents / 100).toFixed(2) + "</td></tr>";
+    html += "<tr><td>" + name + "</td><td>" + formatHoursAsHm(r.regularHours) + "</td><td>" + formatHoursAsHm(r.overtimeHours) + "</td><td>€" + (r.costCents / 100).toFixed(2) + "</td></tr>";
   });
   html += "<tr><td><strong>" + dict.totalRow + "</strong></td><td></td><td></td><td><strong>€" + (report.totalCostCents / 100).toFixed(2) + "</strong></td></tr>";
   if ((report.missingWageConfigEmployeeIds || []).length) {
