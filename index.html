@@ -143,6 +143,12 @@
     background: rgba(120,130,160,.06); color: var(--text-1); padding: 0 14px; font-size: 13.5px;
   }
   .field input:focus, .field select:focus { outline: 2px solid var(--brand-blue); outline-offset: 1px; }
+  .field textarea {
+    width: 100%; min-height: 80px; border-radius: var(--radius-sm); border: 1px solid var(--border-c);
+    background: rgba(120,130,160,.06); color: var(--text-1); padding: 10px 14px; font-size: 13.5px;
+    font-family: inherit; resize: vertical;
+  }
+  .field textarea:focus { outline: 2px solid var(--brand-blue); outline-offset: 1px; }
   .field-hint { font-size: 11.5px; color: var(--text-2); margin-top: 5px; line-height: 1.5; }
   /* Bug 修复(用户明确要求):登录/注册/改密码这些密码输入框之前完全没有"显示密码"的
      小眼睛图标,用户打错了字符也看不出来。这里给密码框统一加一个可点击切换明文/密文
@@ -376,7 +382,7 @@
 
         <div class="glass" style="padding:14px;margin-top:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);">
           <div style="font-weight:600;margin-bottom:6px;" data-i18n="announcements">公司公告</div>
-          <div style="font-size:13px;opacity:.85;" data-i18n="announcementSample">下周三全员培训,请准时参加。</div>
+          <div id="empAnnouncementBody" style="font-size:13px;opacity:.85;" data-i18n="announcementEmpty">暂无公告</div>
         </div>
 
         <div class="glass" style="padding:14px;margin-top:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);">
@@ -589,6 +595,19 @@
               </span>
             </div>
             <div class="field-hint" id="regenerateNotice" style="display:none;color:var(--success);"></div>
+          </div>
+
+          <div class="glass" style="background:rgba(123,38,53,.05);margin-top:16px;">
+            <div style="font-weight:700;margin-bottom:4px;" data-i18n="announcementManagementTitle">公司公告</div>
+            <p class="section-sub" style="margin:0 0 12px;" data-i18n="announcementManagementSub">发布后,员工首页会显示最新一条公告;想换内容,发一条新的即可,旧的可以随时删除。</p>
+            <div class="form-grid">
+              <div class="field full"><label data-i18n="fieldAnnouncementTitle">标题</label><input type="text" id="announcementTitleInput" maxlength="200" data-i18n-placeholder="announcementTitlePlaceholder" placeholder="例如:下周三全员培训" /></div>
+              <div class="field full"><label data-i18n="fieldAnnouncementBody">内容</label><textarea id="announcementBodyInput" data-i18n-placeholder="announcementBodyPlaceholder" placeholder="例如:下周三下午2点全员培训,请准时参加。"></textarea></div>
+              <div class="field"><label data-i18n="fieldAnnouncementExpiry">过期日期(可选)</label><input type="date" id="announcementExpiryInput" /></div>
+            </div>
+            <button class="btn btn-outline" id="btnPublishAnnouncement" data-i18n="publishAnnouncement">发布公告</button>
+            <span class="field-hint hidden" id="announcementPublishedNotice" style="color:var(--success);margin-left:10px;" data-i18n="announcementPublished">已发布</span>
+            <div id="announcementListWrap" style="margin-top:14px;"></div>
           </div>
 
           <div class="glass" style="background:rgba(123,38,53,.05);margin-top:16px;">
@@ -1102,7 +1121,7 @@ const i18n = {
     noAttendanceInRange: "这段时间还没有打卡记录", dailyTotalLabel: "当日合计",
     gpsForegroundNoticeTitle: "WorkTrack AI · 打卡追踪中", gpsForegroundNoticeText: "上班打卡期间会持续记录您的位置,点击下班打卡即可停止",
     leaveBalance: "请假余额", annual: "年假", sick: "病假", personal: "事假", days: "天",
-    announcements: "公司公告", announcementSample: "下周三全员培训,请准时参加。",
+    announcements: "公司公告", announcementEmpty: "暂无公告",
     navDashboard: "首页", navEmployees: "员工管理", navGps: "GPS 看板", navPayroll: "工资管理", navLeave: "请假审批",
     gpsSub: "仅在员工\"上班打卡\"到\"下班打卡\"期间追踪,地图数据来自 OpenStreetMap(完全免费,不使用任何付费地图/导航 API)",
     gpsLegendShop: "店铺位置", gpsLegendMoving: "员工实时位置(打卡上班期间)",
@@ -1149,6 +1168,16 @@ const i18n = {
     inviteCodeManagementSub: "注册公司时已自动生成一个常用邀请码(公司名前缀 + 随机数字),员工凭此码即可自动归属到本公司,无需从列表里选择,不会混淆。可随时重新生成,或为单个新员工单独生成一次性邀请码。",
     currentInviteCode: "当前公司邀请码", copyCode: "复制", regenerateCode: "重新生成",
     codeCopied: "已复制到剪贴板", codeRegenerated: "已生成新邀请码,旧邀请码立即失效",
+    announcementManagementTitle: "公司公告",
+    announcementManagementSub: "发布后,员工首页会显示最新一条公告;想换内容,发一条新的即可,旧的可以随时删除。",
+    fieldAnnouncementTitle: "标题", fieldAnnouncementBody: "内容", fieldAnnouncementExpiry: "过期日期(可选)",
+    announcementTitlePlaceholder: "例如:下周三全员培训", announcementBodyPlaceholder: "例如:下周三下午2点全员培训,请准时参加。",
+    publishAnnouncement: "发布公告", announcementPublished: "已发布",
+    announcementTitleRequired: "请填写标题和内容",
+    announcementListEmpty: "还没有发布过任何公告",
+    announcementDeleteConfirm: "确定要删除这条公告吗?",
+    announcementExpiredBadge: "已过期",
+    announcementColPublished: "发布时间", announcementColExpiry: "有效期至", announcementNoExpiry: "长期有效",
     leaveCenterOpen: "请假中心 →", leaveCenterTitle: "请假中心",
     leaveCenterSub: "年假、病假、事假、出差、培训统一在这里申请与查看,每条请求都可以留言与经理沟通",
     newLeaveRequest: "新的请假申请", fieldLeaveType: "请假类型", training: "培训", businessTrip: "出差",
@@ -1357,7 +1386,7 @@ const i18n = {
     noAttendanceInRange: "No clock-ins in this period yet", dailyTotalLabel: "Daily total",
     gpsForegroundNoticeTitle: "WorkTrack AI · Tracking your shift", gpsForegroundNoticeText: "Your location is recorded while clocked in — tap clock-out to stop",
     leaveBalance: "Leave balance", annual: "Annual", sick: "Sick", personal: "Personal", days: "days",
-    announcements: "Announcements", announcementSample: "Company-wide training next Wednesday, please attend on time.",
+    announcements: "Announcements", announcementEmpty: "No announcements yet",
     navDashboard: "Dashboard", navEmployees: "Employees", navGps: "GPS dashboard", navPayroll: "Payroll", navLeave: "Leave approval",
     gpsSub: "Tracking only runs from clock-in to clock-out. Map data © OpenStreetMap contributors (completely free, no paid maps/navigation API involved).",
     gpsLegendShop: "Shop location", gpsLegendMoving: "Employee live location (while clocked in)",
@@ -1404,6 +1433,16 @@ const i18n = {
     inviteCodeManagementSub: "A standing invitation code (company-name prefix + random digits) was auto-generated the moment your company registered — employees who enter it are placed in your company automatically, no picking from a list, no cross-company mix-ups. Regenerate it any time, or mint a one-time code for a single new hire.",
     currentInviteCode: "Current company invitation code", copyCode: "Copy", regenerateCode: "Regenerate",
     codeCopied: "Copied to clipboard", codeRegenerated: "New code generated — the old code is now invalid",
+    announcementManagementTitle: "Company announcements",
+    announcementManagementSub: "Once published, employees see the latest announcement on their home screen. To change it, just publish a new one — old ones can be deleted any time.",
+    fieldAnnouncementTitle: "Title", fieldAnnouncementBody: "Body", fieldAnnouncementExpiry: "Expires on (optional)",
+    announcementTitlePlaceholder: "e.g. All-hands training next Wednesday", announcementBodyPlaceholder: "e.g. Training session next Wednesday at 2pm, please attend on time.",
+    publishAnnouncement: "Publish announcement", announcementPublished: "Published",
+    announcementTitleRequired: "Please fill in both the title and the body",
+    announcementListEmpty: "No announcements published yet",
+    announcementDeleteConfirm: "Delete this announcement?",
+    announcementExpiredBadge: "Expired",
+    announcementColPublished: "Published", announcementColExpiry: "Valid until", announcementNoExpiry: "No expiry",
     leaveCenterOpen: "Leave center →", leaveCenterTitle: "Leave center",
     leaveCenterSub: "Annual, sick, personal, business-trip and training requests all in one place, each with a message thread to your manager",
     newLeaveRequest: "New leave request", fieldLeaveType: "Leave type", training: "Training", businessTrip: "Business trip",
@@ -2164,9 +2203,11 @@ function startAttendanceLiveRefresh() {
     if (currentUserRole === "COMPANY_ADMIN") {
       renderPayrollTable();
       refreshCompanyLeaveRequests(); // Bug 修复(用户反馈:"其他手机用户使用请假功能,在公司管理后台根本看不见"):请假审批队列也要跟考勤/工资一样每 20 秒自动跨设备同步一次
+      refreshAnnouncementListForAdmin(); // 多个管理员/多台设备发布或删除公告,设置页的公告列表也一样自动跨设备同步
     } else if (currentUserRole === "EMPLOYEE") {
       refreshMyLeaveBalances();
       refreshMyLeaveRequests(); // 员工自己在别的设备提交/被审批的请假记录,也要能在 20 秒内自动同步过来,不需要手动刷新页面
+      refreshLatestAnnouncement(); // 管理员刚发布/删除的公告,也在 20 秒内自动同步过来
     }
   }, 20000);
 }
@@ -2610,6 +2651,7 @@ document.getElementById("form-employee-login").addEventListener("submit", async 
       refreshLeaveTypes(); // 请假类型(年假/病假/事假/培训/出差)+ 我自己的余额/请假记录,全部改成真实数据
       refreshMyLeaveBalances();
       refreshMyLeaveRequests();
+      refreshLatestAnnouncement(); // 首页"公司公告"卡片改成真实数据,不再是写死的演示文案
       startAttendanceLiveRefresh(); // 之后每 20 秒自动重新拉一次,不用等下次手动切换页面/打卡才更新
     }
   } catch (err) {
@@ -2680,6 +2722,7 @@ document.getElementById("form-employee-register").addEventListener("submit", asy
       refreshLeaveTypes();
       refreshMyLeaveBalances();
       refreshMyLeaveRequests();
+      refreshLatestAnnouncement();
       startAttendanceLiveRefresh();
     }
   } catch (err) {
@@ -2724,6 +2767,7 @@ document.getElementById("form-company-login").addEventListener("submit", async e
       syncInventoryFromBackend();
       refreshLeaveTypes();
       refreshCompanyLeaveRequests(); // 管理员登录后立刻拉一次全公司真实请假审批队列,不再是空的本地数组
+      refreshAnnouncementListForAdmin(); // 登录后立刻拉一次公司公告历史列表,不用等进设置页才刷新
       startAttendanceLiveRefresh(); // 管理员登录后也一样每 20 秒自动刷新,"员工管理"列表能自己跟上员工端的实时变化
     }
   } catch (err) {
@@ -2818,6 +2862,7 @@ document.getElementById("form-company-register").addEventListener("submit", asyn
     startAnomalyPolling();
     syncEmployeesFromBackend();
     syncInventoryFromBackend();
+    refreshAnnouncementListForAdmin(); // 新公司还没发过公告,这里主要是清空设置页公告列表的旧快照,避免残留上一次登录的内容
 
     const geocodingStatus = registerResult.company.geocodingStatus;
     if (geocodingStatus === "SUCCESS") {
@@ -3647,6 +3692,27 @@ async function refreshMyLeaveBalances() {
   updateLeaveBalanceDisplays(currentEmployeeName());
 }
 
+/** 员工首页"公司公告"卡片(应用户要求:"这是一个死代码吗?我希望能够使用上这个
+    代码,任何一家公司都会有工作重点通告"):以前这张卡片是写死的演示文案,不管
+    公司管理员做什么都不会变。现在真正调用后端 GET .../announcements/latest,
+    拿到当前有效的最新一条公告(标题+正文);没有任何公告时显示"暂无公告",
+    不再假装有一条固定不变的通知。 */
+async function refreshLatestAnnouncement() {
+  const el = document.getElementById("empAnnouncementBody");
+  if (!el) return;
+  const dict = i18n[currentLang];
+  if (!accessToken || !currentUserCompanyId) { el.textContent = dict.announcementEmpty; return; }
+  try {
+    const announcement = await apiRequest("/companies/" + currentUserCompanyId + "/announcements/latest", { auth: true });
+    el.innerHTML = announcement
+      ? "<strong>" + announcement.title + "</strong><br>" + announcement.body
+      : dict.announcementEmpty;
+  } catch (err) {
+    console.warn("获取最新公司公告失败:", err);
+    el.textContent = dict.announcementEmpty;
+  }
+}
+
 async function refreshMyLeaveRequests() {
   if (!accessToken || !currentUserCompanyId || !currentUserId) { realLeaveRequestsMine = []; renderLeaveHistory(); return; }
   try {
@@ -4260,6 +4326,118 @@ document.getElementById("btnCopyInviteCode").addEventListener("click", () => {
   notice.style.display = "block";
   setTimeout(() => { notice.style.display = "none"; }, 2000);
 });
+
+/**
+ * 公司公告管理(应用户明确要求:"我希望在公司管理页面有填写这个公司公告的连接")。
+ * 这张 announcements 表建库那天就存在,但一直没有配套的业务代码——员工首页那块
+ * "公司公告"卡片以前是写死的演示文案,不是死代码就是硬编码,现在补上真正的后端接口
+ * (见 backend/src/modules/announcements/)和这里的管理界面。
+ *
+ * 设计上不做"编辑"功能:管理员想换内容,直接发一条新的、把旧的删掉即可,列表默认
+ * 按发布时间倒序展示全部历史(含已过期的),方便管理员自己清理。
+ */
+function renderAnnouncementList(list) {
+  const wrap = document.getElementById("announcementListWrap");
+  if (!wrap) return;
+  const dict = i18n[currentLang];
+  if (!list || !list.length) {
+    wrap.innerHTML = '<div class="insight-empty">' + dict.announcementListEmpty + '</div>';
+    return;
+  }
+  const now = new Date();
+  let html = '<table class="data-table"><tr><th>' + dict.fieldAnnouncementTitle + '</th><th>' +
+    dict.fieldAnnouncementBody + '</th><th>' + dict.announcementColPublished + '</th><th>' +
+    dict.announcementColExpiry + '</th><th>' + dict.colActions + '</th></tr>';
+  list.forEach(a => {
+    const expired = a.expiresAt ? new Date(a.expiresAt) < now : false;
+    const expiryText = a.expiresAt
+      ? formatLeaveSummaryDate(String(a.expiresAt).slice(0, 10)) + (expired ? ' (' + dict.announcementExpiredBadge + ')' : '')
+      : dict.announcementNoExpiry;
+    html += '<tr>' +
+      '<td>' + a.title + '</td>' +
+      '<td style="max-width:280px;white-space:pre-wrap;font-size:12.5px;">' + a.body + '</td>' +
+      '<td>' + formatLeaveSummaryDate(String(a.publishedAt).slice(0, 10)) + '</td>' +
+      '<td style="' + (expired ? 'color:var(--text-2);' : '') + '">' + expiryText + '</td>' +
+      '<td><button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-delete-announcement="' + a.id + '">' + dict.deleteAction + '</button></td>' +
+    '</tr>';
+  });
+  html += '</table>';
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll("[data-delete-announcement]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const dict2 = i18n[currentLang];
+      if (!window.confirm(dict2.announcementDeleteConfirm)) return;
+      try {
+        await apiRequest("/companies/" + currentUserCompanyId + "/announcements/" + encodeURIComponent(btn.dataset.deleteAnnouncement), {
+          method: "DELETE", auth: true,
+        });
+      } catch (err) {
+        window.alert(err.message);
+        return;
+      }
+      refreshAnnouncementListForAdmin();
+      refreshLatestAnnouncement(); // 万一管理员删的正好是员工首页正在显示的那一条,不用等 20 秒轮询也能立刻反映
+    });
+  });
+}
+
+async function refreshAnnouncementListForAdmin() {
+  const wrap = document.getElementById("announcementListWrap");
+  if (!wrap) return;
+  const dict = i18n[currentLang];
+  if (!accessToken || !currentUserCompanyId) { wrap.innerHTML = ""; return; }
+  try {
+    const list = await apiRequest("/companies/" + currentUserCompanyId + "/announcements", { auth: true });
+    renderAnnouncementList(list);
+  } catch (err) {
+    console.warn("获取公司公告列表失败:", err);
+    wrap.innerHTML = '<div class="insight-empty">' + dict.announcementListEmpty + '</div>';
+  }
+}
+
+document.getElementById("btnPublishAnnouncement").addEventListener("click", async () => {
+  const dict = i18n[currentLang];
+  const titleInput = document.getElementById("announcementTitleInput");
+  const bodyInput = document.getElementById("announcementBodyInput");
+  const expiryInput = document.getElementById("announcementExpiryInput");
+  const title = titleInput.value.trim();
+  const body = bodyInput.value.trim();
+  const expiryDate = expiryInput.value; // yyyy-mm-dd 或空字符串
+  if (!title || !body) {
+    window.alert(dict.announcementTitleRequired);
+    return;
+  }
+  if (!accessToken || !currentUserCompanyId) {
+    window.alert(dict.reauthRequiredNotice);
+    return;
+  }
+  const btn = document.getElementById("btnPublishAnnouncement");
+  btn.disabled = true;
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/announcements", {
+      method: "POST",
+      auth: true,
+      // 过期日期只填了"日"没填时间——统一按当天结束(23:59:59)算,避免选了"今天"却
+      // 因为当前时刻已经过了 00:00:00 而立刻被判定成"已过期"。
+      body: { title, body, expiresAt: expiryDate ? expiryDate + "T23:59:59" : undefined },
+    });
+  } catch (err) {
+    window.alert(err.message);
+    btn.disabled = false;
+    return;
+  }
+  btn.disabled = false;
+  titleInput.value = "";
+  bodyInput.value = "";
+  expiryInput.value = "";
+  const notice = document.getElementById("announcementPublishedNotice");
+  notice.classList.remove("hidden");
+  setTimeout(() => { notice.classList.add("hidden"); }, 2000);
+  refreshAnnouncementListForAdmin();
+  refreshLatestAnnouncement(); // 管理员自己当前会话如果同时也开着员工视角(理论上不会,但保持和其它模块一致的即时刷新习惯)
+});
+
 // Bug 修复:这个按钮点击后之前只弹一个"已保存"的提示,却从来没有把"默认年假天数"
 // 输入框里的值写回 leaveTypeConfigs.ANNUAL.quota——真正生效的年假额度只有"请假类型与
 // 额度设置"表格那一份。结果管理员在这里改了数字、看到"已保存",但员工的余额卡片、
@@ -6165,12 +6343,14 @@ if (accessToken && currentUserCompanyId) {
     syncEmployeesFromBackend(); // 内部会一并调用 refreshRealAttendanceData()
     refreshLeaveTypes();
     refreshCompanyLeaveRequests(); // Bug 修复(用户反馈:"其他手机用户使用请假功能,在公司管理后台根本看不见"):刷新页面恢复登录状态后也要重新拉一次全公司真实请假队列
+    refreshAnnouncementListForAdmin(); // 刷新页面恢复登录状态后,设置页的公司公告列表也要重新拉一次真实数据
   } else if (currentUserRole === "EMPLOYEE") {
     refreshRealAttendanceData();
     refreshMyWageConfig();
     refreshLeaveTypes();
     refreshMyLeaveBalances();
     refreshMyLeaveRequests();
+    refreshLatestAnnouncement();
   }
   startAttendanceLiveRefresh(); // 刷新页面/重新打开 App 恢复登录状态之后,同样要继续每 20 秒自动同步,不能只在刚登录那一刻同步一次
 }
