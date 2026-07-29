@@ -490,9 +490,15 @@
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
             <div>
               <h2 class="section-title" data-i18n="navAttendance">考勤记录</h2>
-              <p class="section-sub" style="margin:0;" data-i18n="attendanceSub">发现打卡时间有误可以"更正"(保留原始记录与修改留痕);明显重复/错误的记录可以"作废"(不计入工资,但不会被物理删除,可随时恢复)。系统不提供真正删除历史打卡记录的功能——工时记录属于工资凭证,随意删除对企业和员工都没有保护作用。</p>
+              <p class="section-sub" style="margin:0;" data-i18n="attendanceSub">全体员工一天一行,一眼看出谁忘记打卡、方便手动干预。发现打卡时间有误可以"更正"(保留原始记录与修改留痕);明显重复/错误的记录可以"作废"(不计入工资,但不会被物理删除,可随时恢复)。系统不提供真正删除历史打卡记录的功能——工时记录属于工资凭证,随意删除对企业和员工都没有保护作用。</p>
             </div>
             <button class="btn btn-primary" id="btnAddAttendance" data-i18n="addAttendanceRecord">+ 补录打卡</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin:12px 0 4px;flex-wrap:wrap;">
+            <label for="attendanceDateFilter" style="font-size:13px;color:var(--text-2);" data-i18n="attendanceDateFilterLabel">查看日期</label>
+            <input type="date" id="attendanceDateFilter" style="height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;" />
+            <button class="btn btn-outline" id="btnAttendanceToday" style="height:34px;padding:0 12px;font-size:12px;" data-i18n="attendanceJumpToday">回到今天</button>
+            <span style="font-size:12px;color:var(--text-2);" data-i18n="attendanceDateFilterHint">默认显示今天,方便快速核对谁忘记打卡</span>
           </div>
           <div id="attendanceList"></div>
         </div>
@@ -533,30 +539,25 @@
           <h2 class="section-title" data-i18n="navLeave">请假审批</h2>
           <p class="section-sub" data-i18n="caLeaveSub">年假 / 病假 / 事假 / 培训 / 出差统一在这里审批,每条请求都有留言板可与员工沟通</p>
 
-          <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;">
-            <div style="font-weight:700;margin-bottom:4px;" data-i18n="employeeBalanceOverrideTitle">单个员工额度调整</div>
-            <p class="section-sub" style="margin:0 0 4px;" data-i18n="employeeBalanceOverrideSub">例如工龄较久的员工年假天数高于公司默认值,或需要为某位员工单独补发/扣减某类请假额度。</p>
-            <p class="section-sub" style="margin:0 0 12px;color:var(--brand-blue);" data-i18n="employeeBalanceOverrideNotALeaveRequest">注意:这里只是设置"额度上限",不是替员工提交请假申请——没有请假事由/日期/留言板。真正的请假申请由员工自己在"请假中心"提交,提交后会出现在本页下方的请假列表里,才能看到事由和留言板。</p>
-            <div class="form-grid">
-              <div class="field">
-                <label data-i18n="fieldSelectEmployee">员工</label>
-                <select id="balanceOverrideEmployee"></select>
-              </div>
-              <div class="field">
-                <label data-i18n="fieldSelectLeaveType">请假类型</label>
-                <select id="balanceOverrideType">
-                  <option value="ANNUAL" data-i18n="annual">年假</option>
-                  <option value="SICK" data-i18n="sick">病假</option>
-                  <option value="PERSONAL" data-i18n="personal">事假</option>
-                </select>
-              </div>
-              <div class="field">
-                <label data-i18n="fieldAllocatedDays">这一年可休天数</label>
-                <input type="number" id="balanceOverrideDays" min="0" max="365" value="21" />
-              </div>
+          <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;padding:12px 16px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <strong style="font-size:13px;" data-i18n="employeeBalanceOverrideTitle">单个员工额度调整</strong>
+              <span style="cursor:help;color:var(--text-2);border:1px solid var(--border);border-radius:50%;width:16px;height:16px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;" data-i18n-title="employeeBalanceOverrideNotALeaveRequest" title="注意:这里只是设置&quot;额度上限&quot;,不是替员工提交请假申请——没有请假事由/日期/留言板。真正的请假申请由员工自己在&quot;请假中心&quot;提交,提交后会出现在本页下方的请假列表里,才能看到事由和留言板。">i</span>
             </div>
-            <button class="btn btn-outline" id="btnSaveEmployeeBalance" data-i18n="saveEmployeeBalance">保存额度</button>
-            <span class="field-hint hidden" id="employeeBalanceSavedNotice" style="color:var(--success);margin-left:10px;" data-i18n="employeeBalanceSaved">已保存</span>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
+              <select id="balanceOverrideEmployee" style="height:34px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;padding:0 8px;"></select>
+              <span style="font-size:13px;color:var(--text-2);" data-i18n="employeeBalanceOverrideOf">的</span>
+              <select id="balanceOverrideType" style="height:34px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;padding:0 8px;">
+                <option value="ANNUAL" data-i18n="annual">年假</option>
+                <option value="SICK" data-i18n="sick">病假</option>
+                <option value="PERSONAL" data-i18n="personal">事假</option>
+              </select>
+              <span style="font-size:13px;color:var(--text-2);" data-i18n="employeeBalanceOverrideEquals">今年额度 =</span>
+              <input type="number" id="balanceOverrideDays" min="0" max="365" value="21" style="height:34px;width:70px;padding:0 8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;" />
+              <span style="font-size:13px;color:var(--text-2);" data-i18n="days">天</span>
+              <button class="btn btn-outline" id="btnSaveEmployeeBalance" style="height:34px;padding:0 14px;font-size:12px;" data-i18n="saveEmployeeBalance">保存额度</button>
+              <span class="field-hint hidden" id="employeeBalanceSavedNotice" style="color:var(--success);" data-i18n="employeeBalanceSaved">已保存</span>
+            </div>
           </div>
 
           <div class="glass" style="background:rgba(123,38,53,.05);margin-bottom:16px;">
@@ -1188,13 +1189,15 @@ const i18n = {
     employeeBalanceOverrideTitle: "单个员工额度调整",
     employeeBalanceOverrideSub: "例如工龄较久的员工年假天数高于公司默认值,或需要为某位员工单独补发/扣减某类请假额度。",
     employeeBalanceOverrideNotALeaveRequest: "注意:这里只是设置\"额度上限\",不是替员工提交请假申请——没有请假事由/日期/留言板。真正的请假申请由员工自己在\"请假中心\"提交,提交后会出现在本页下方的请假列表里,才能看到事由和留言板。",
+    employeeBalanceOverrideOf: "的", employeeBalanceOverrideEquals: "今年额度 =",
     fieldSelectEmployee: "员工", fieldSelectLeaveType: "请假类型", fieldAllocatedDays: "这一年可休天数",
     saveEmployeeBalance: "保存额度", employeeBalanceSaved: "已保存",
     leaveSummaryTitle: "员工请假总览", leaveSummarySub: "全体员工的年假、事假、病假使用情况和最近一次请假记录,方便人事排班参考。",
     leaveSummaryColEmployee: "员工", leaveSummaryColAnnual: "年假", leaveSummaryColPersonal: "事假(已休)",
-    leaveSummaryColSick: "病假(已休)", leaveSummaryColRecent: "最近请假",
+    leaveSummaryColSick: "病假(已休)", leaveSummaryColRecent: "当前/即将请假",
     leaveSummaryUsedLabel: "已休", leaveSummaryRemainingLabel: "剩余",
     leaveSummaryNoRecent: "暂无记录", leaveSummaryEmpty: "公司还没有已加入的员工,暂无数据可统计。",
+    leaveStatusUpcoming: "即将休假", leaveStatusOnLeave: "正在休假", leaveStatusNormal: "正常工作",
     leaveSummaryLoading: "正在加载员工请假数据…",
     leaveSummaryColArchive: "档案", leaveSummaryViewArchive: "查看档案", leaveSummaryHideArchive: "收起档案",
     leaveSummaryArchiveEmpty: "这名员工还没有任何请假记录。",
@@ -1216,6 +1219,12 @@ const i18n = {
     fieldAttendanceDate: "日期", submitAddAttendance: "补录这条记录", addAttendanceInvalidRange: "下班时间必须晚于上班时间",
     backfillOverlapError: "这段时间和这名员工已有的打卡记录重叠,请检查时间是否填错",
     noAttendanceYet: "暂无考勤记录,员工上班打卡后会显示在这里,也可以点击「补录打卡」手动添加",
+    attendanceDateFilterLabel: "查看日期", attendanceJumpToday: "回到今天",
+    attendanceDateFilterHint: "默认显示今天,方便快速核对谁忘记打卡",
+    attendanceColEmployee: "员工", attendanceColClockIn: "上班", attendanceColClockOut: "下班",
+    attendanceColHours: "工时", attendanceColStatus: "状态", attendanceColActions: "操作",
+    attendanceStatusMissing: "未打卡", attendanceQuickBackfill: "+ 补录",
+    noAttendanceForDate: "这一天全体员工都没有打卡记录",
     noEmployeesYet: "暂无员工,点击「添加员工」开始,或等待员工凭邀请码自行注册",
     editHourlyRate: "调整时薪", editHourlyRatePrompt: "请输入这名员工的新时薪(欧元/小时):",
     editHourlyRateEffectiveFromPrompt: "这个新时薪从哪天开始生效?(格式 年-月-日,例如 2026-07-01)\n\n留空 = 交给系统自动判断:如果这名员工是第一次设置时薪,会自动覆盖 ta 入职以来的全部历史打卡;如果是涨薪/调薪,默认从今天开始生效。\n\n如果你发现这名员工之前打过卡、但工资管理里一直显示 0 工时/€0(说明当时设置晚了),可以在这里手动填一个更早的日期(比如 ta 入职第一天),把之前的工时也一起补算进去。",
@@ -1437,13 +1446,15 @@ const i18n = {
     employeeBalanceOverrideTitle: "Per-Employee Balance Adjustment",
     employeeBalanceOverrideSub: "E.g. a senior employee gets more annual days than the company default, or you need to grant/deduct a specific employee's balance.",
     employeeBalanceOverrideNotALeaveRequest: "Note: this only sets a quota cap — it does not submit a leave request on the employee's behalf, so there's no reason/dates/message thread here. Employees submit real leave requests themselves via \"Leave Center\"; once submitted, they'll appear in the request list below, where you'll see the reason and message thread.",
+    employeeBalanceOverrideOf: "for", employeeBalanceOverrideEquals: "this year's allocation =",
     fieldSelectEmployee: "Employee", fieldSelectLeaveType: "Leave type", fieldAllocatedDays: "Days allocated this year",
     saveEmployeeBalance: "Save balance", employeeBalanceSaved: "Saved",
     leaveSummaryTitle: "Employee Leave Overview", leaveSummarySub: "Every employee's annual/personal/sick leave usage and most recent leave, at a glance for scheduling.",
     leaveSummaryColEmployee: "Employee", leaveSummaryColAnnual: "Annual leave", leaveSummaryColPersonal: "Personal leave (used)",
-    leaveSummaryColSick: "Sick leave (used)", leaveSummaryColRecent: "Most recent leave",
+    leaveSummaryColSick: "Sick leave (used)", leaveSummaryColRecent: "Current / upcoming leave",
     leaveSummaryUsedLabel: "Used", leaveSummaryRemainingLabel: "remaining",
     leaveSummaryNoRecent: "No record yet", leaveSummaryEmpty: "No joined employees yet — nothing to summarize.",
+    leaveStatusUpcoming: "Upcoming leave", leaveStatusOnLeave: "On leave", leaveStatusNormal: "Normal",
     leaveSummaryLoading: "Loading employee leave data…",
     leaveSummaryColArchive: "Archive", leaveSummaryViewArchive: "View archive", leaveSummaryHideArchive: "Hide archive",
     leaveSummaryArchiveEmpty: "This employee has no leave records yet.",
@@ -1451,7 +1462,7 @@ const i18n = {
     subscriptionNoticeBody: "After you submit, you'll be redirected to a secure Stripe Checkout page to add a payment method. You won't be charged during the 30-day free trial; billing starts automatically afterward at €12.50/month, and you can cancel anytime from Settings.",
     subscriptionPriceLine: "€12.50 / month · 30-day free trial",
     navAttendance: "Attendance records",
-    attendanceSub: "Found a wrong clock-in/out time? Use \"Correct\" — the original value and the change are both kept on record. Clearly duplicate or erroneous entries can be \"Voided\" (excluded from payroll, never physically deleted, reversible anytime). There is no real delete for past attendance records — working-time records are payroll evidence, and deleting them doesn't actually protect the company or the employee.",
+    attendanceSub: "One row per employee per day, so you can spot at a glance who forgot to clock in. Found a wrong clock-in/out time? Use \"Correct\" — the original value and the change are both kept on record. Clearly duplicate or erroneous entries can be \"Voided\" (excluded from payroll, never physically deleted, reversible anytime). There is no real delete for past attendance records — working-time records are payroll evidence, and deleting them doesn't actually protect the company or the employee.",
     statusNormal: "Normal", statusVoided: "Voided",
     correctAttendance: "Correct attendance record", fieldClockIn: "Clock-in time", fieldClockOut: "Clock-out time",
     fieldCorrectionReason: "Reason for correction (required, kept on permanent record)", submitCorrection: "Save correction (tracked)",
@@ -1465,6 +1476,12 @@ const i18n = {
     fieldAttendanceDate: "Date", submitAddAttendance: "Add this record", addAttendanceInvalidRange: "Clock-out time must be later than clock-in time",
     backfillOverlapError: "This time range overlaps with an existing attendance record for this employee — please check the times",
     noAttendanceYet: "No attendance records yet — they'll appear here once employees clock in, or you can add one manually via \"Add attendance record\"",
+    attendanceDateFilterLabel: "Date", attendanceJumpToday: "Jump to today",
+    attendanceDateFilterHint: "Defaults to today, so you can quickly spot who forgot to clock in",
+    attendanceColEmployee: "Employee", attendanceColClockIn: "Clock in", attendanceColClockOut: "Clock out",
+    attendanceColHours: "Hours", attendanceColStatus: "Status", attendanceColActions: "Actions",
+    attendanceStatusMissing: "No clock-in", attendanceQuickBackfill: "+ Add",
+    noAttendanceForDate: "No one clocked in on this date",
     noEmployeesYet: "No employees yet — click \"Add employee\" to start, or wait for employees to self-register with an invite code",
     editHourlyRate: "Edit hourly rate", editHourlyRatePrompt: "Enter this employee's new hourly rate (EUR/hour):",
     editHourlyRateEffectiveFromPrompt: "What date should this new rate take effect from? (YYYY-MM-DD, e.g. 2026-07-01)\n\nLeave blank = let the system decide automatically: if this is the employee's first-ever rate, it will automatically cover all of their attendance since joining; if this is a raise/adjustment, it defaults to today.\n\nIf this employee already clocked in before but Payroll has been showing 0 hours/€0 for them (because the rate was set too late), you can enter an earlier date here (e.g. their first day) to retroactively include those hours.",
@@ -1986,6 +2003,10 @@ function applyI18n() {
   document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
     const key = el.getAttribute("data-i18n-placeholder");
     if (dict[key] !== undefined) el.placeholder = dict[key];
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach(el => {
+    const key = el.getAttribute("data-i18n-title");
+    if (dict[key] !== undefined) el.title = dict[key];
   });
   const clockBtn = document.getElementById("clockBtn");
   clockBtn.textContent = clockBtn.classList.contains("clocked-in") ? dict.clockOut : dict.clockIn;
@@ -3688,7 +3709,7 @@ async function refreshCompanyLeaveRequests() {
    refreshCompanyLeaveRequests() 里拉取过的全公司请假队列(realLeaveRequestsAdmin)
    按员工筛出未被拒绝/未被撤销的最新一条。后端没有"批量查全体员工余额"的接口,
    这里对每位已加入员工各发一次 GET .../leave-balances 请求,用 Promise.all 并行, 不逐个排队。 */
-let leaveEmployeeSummaryRows = []; // [{employeeId, name, annualAllocated, annualUsed, annualRemaining, personalUsed, sickUsed, mostRecent: LeaveRequestView|null}]
+let leaveEmployeeSummaryRows = []; // [{employeeId, name, annualAllocated, annualUsed, annualRemaining, personalUsed, sickUsed, status: "RED"|"YELLOW"|"GREEN", statusReq: LeaveRequestView|null}]
 let leaveEmployeeSummaryLoading = false;
 // 20 秒轮询每次都会重新生成整张表格的 innerHTML——如果不单独记一下"当前哪几位员工的
 // 档案是展开的",管理员正在看某个人的档案时,轮询一来就会被强制收起,体验很差。
@@ -3725,6 +3746,21 @@ async function refreshLeaveEmployeeSummary() {
       .filter(r => r.employeeId === emp.backendId && validStatuses[r.status])
       .sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
 
+    // 红/黄/绿状态灯(应用户要求:"准备休假的员工旁边要有一个红色的警示灯,代表着
+    // 即将休假。假期结束正常工作的,都用绿色的灯来表示,要请事假病假的都用黄色的
+    // 灯表示"):黄=今天正好在请假区间内(不分类型,今天人不在就是人不在);
+    // 红=还没开始、但已经排定了未来的请假(不管哪一天开始,只要还没到那天都算
+    // "即将休假");都没有 = 绿,代表正常上班,近期没有请假安排。
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const activeToday = myRequests.find(r => r.startDate <= todayStr && r.endDate >= todayStr);
+    const nextUpcoming = myRequests
+      .filter(r => r.startDate > todayStr)
+      .sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
+    let status = "GREEN";
+    let statusReq = null;
+    if (activeToday) { status = "YELLOW"; statusReq = activeToday; }
+    else if (nextUpcoming) { status = "RED"; statusReq = nextUpcoming; }
+
     return {
       employeeId: emp.backendId,
       name: emp.name,
@@ -3733,7 +3769,8 @@ async function refreshLeaveEmployeeSummary() {
       annualRemaining: annual ? annual.remainingDays : null,
       personalUsed: byCategory.PERSONAL ? byCategory.PERSONAL.usedDays : 0,
       sickUsed: byCategory.SICK ? byCategory.SICK.usedDays : 0,
-      mostRecent: myRequests[0] || null,
+      status: status,
+      statusReq: statusReq,
     };
   }));
 
@@ -3788,21 +3825,33 @@ function renderLeaveEmployeeSummaryTable() {
     return;
   }
 
+  // 状态灯颜色/文字(应用户要求:红=即将休假,黄=正在休假,绿=正常工作)——
+  // 一个小圆点 + 简短文字,放在员工名字前面,不用单独占一整列,保持表格紧凑。
+  const statusDotColor = { RED: "#c0392b", YELLOW: "#c98a12", GREEN: "#2e8b57" };
+  const statusDotLabel = { RED: dict.leaveStatusUpcoming, YELLOW: dict.leaveStatusOnLeave, GREEN: dict.leaveStatusNormal };
+
   const rowsHtml = leaveEmployeeSummaryRows.map(row => {
     const annualText = row.annualAllocated === null
       ? "—"
       : dict.leaveSummaryUsedLabel + " " + row.annualUsed + " " + dict.days + " · " +
         dict.leaveSummaryRemainingLabel + " " + Math.max(0, row.annualRemaining) + " " + dict.days;
-    let recentText = dict.leaveSummaryNoRecent;
-    if (row.mostRecent) {
-      const info = leaveTypeBadgeInfo(dict, row.mostRecent.category);
-      const statusSuffix = row.mostRecent.status === "PENDING" ? "(" + dict.statusPending2 + ")" : "";
-      // Bug 修复(用户反馈:"不知道具体是哪几天在请假"):以前这里只显示开始日期一天,
-      // 现在改成完整的"几月几号 - 几月几号"日期范围。
-      recentText = formatLeaveDateRange(row.mostRecent) + " · " + info.label + statusSuffix;
+
+    const dotHtml = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' +
+      statusDotColor[row.status] + ';margin-right:6px;flex:none;" title="' + statusDotLabel[row.status] + '"></span>';
+
+    // "当前/即将请假"这一列跟着状态灯走,而不是简单的"最近一条请假记录"——正在休假
+    // 显示今天这一条的具体日期,即将休假显示下一条尚未开始的具体日期,方便管理员
+    // 提前安排替补人手(应用户要求:"用一个统一列表来表达休假的日期,便于公司管理")。
+    let recentText = '<span style="color:var(--text-2);">' + dict.leaveStatusNormal + "</span>";
+    if (row.statusReq) {
+      const info = leaveTypeBadgeInfo(dict, row.statusReq.category);
+      const statusSuffix = row.statusReq.status === "PENDING" ? "(" + dict.statusPending2 + ")" : "";
+      recentText = (row.status === "YELLOW" ? dict.leaveStatusOnLeave : dict.leaveStatusUpcoming) + "·" +
+        formatLeaveDateRange(row.statusReq) + " · " + info.label + statusSuffix;
     }
+
     return "<tr>" +
-      "<td><strong>" + row.name + "</strong></td>" +
+      "<td>" + dotHtml + "<strong>" + row.name + "</strong></td>" +
       "<td>" + annualText + "</td>" +
       "<td>" + row.personalUsed + " " + dict.days + "</td>" +
       "<td>" + row.sickUsed + " " + dict.days + "</td>" +
@@ -3821,6 +3870,11 @@ function renderLeaveEmployeeSummaryTable() {
   }).join("");
 
   container.innerHTML =
+    '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--text-2);margin-bottom:8px;">' +
+      '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#c0392b;margin-right:4px;"></span>' + dict.leaveStatusUpcoming + "</span>" +
+      '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#c98a12;margin-right:4px;"></span>' + dict.leaveStatusOnLeave + "</span>" +
+      '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2e8b57;margin-right:4px;"></span>' + dict.leaveStatusNormal + "</span>" +
+    "</div>" +
     '<table class="data-table"><thead><tr>' +
     "<th>" + dict.leaveSummaryColEmployee + "</th>" +
     "<th>" + dict.leaveSummaryColAnnual + "</th>" +
@@ -4432,11 +4486,24 @@ function computeHoursBetween(clockIn, clockOut) {
   return Math.max(0, Math.round((minutes / 60) * 100) / 100);
 }
 
-function buildAttendanceCardHtml(session) {
+/** 今天的日期字符串,和后端/其它报表用同一种口径(toISOString slice 10),
+    避免这个筛选器和"每日经营报告"/GPS 异常报告对"今天"的定义不一致。 */
+function todayDateStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function sessionDateStr(session) {
+  return new Date(session.clockInAt).toISOString().slice(0, 10);
+}
+
+/** 考勤记录表格里一行打卡记录(应用户要求:"用一个简洁的列表来显示,把所有的员工
+    统一到一个列表上,只有一天的考勤记录"——这里改成表格行,而不是以前一张一张铺开的
+    大卡片)。每条真实记录对应两行表格行:第一行是数据本身,第二行默认隐藏,点开
+    "查看修改记录"才展开,平时不占空间。 */
+function buildAttendanceRowHtml(session) {
   const dict = i18n[currentLang];
   const employeeName = employeeNameByBackendId(session.employeeId);
   const clockInAt = new Date(session.clockInAt);
-  const dateStr = clockInAt.toISOString().slice(0, 10);
   const clockInText = formatHhMm(clockInAt);
   const clockOutText = session.clockOutAt ? formatHhMm(new Date(session.clockOutAt)) : dict.inProgressLabel;
   const hoursText = typeof session.totalSeconds === "number" ? (session.totalSeconds / 3600).toFixed(2) + "h" : "—";
@@ -4445,23 +4512,40 @@ function buildAttendanceCardHtml(session) {
     ? '<span class="badge danger">' + dict.statusVoided + "</span>"
     : '<span class="badge success">' + dict.statusNormal + "</span>";
   const actionBtns = isVoided
-    ? '<button class="btn btn-outline" style="height:32px;padding:0 14px;font-size:12px;" data-restore-attendance="' + session.id + '">' + dict.restoreRecord + "</button>"
-    : '<button class="btn btn-outline" style="height:32px;padding:0 14px;font-size:12px;" data-correct-attendance="' + session.id + '">' + dict.correctRecord + "</button>" +
-      '<button class="btn" style="background:var(--danger);color:#fff;height:32px;padding:0 14px;font-size:12px;" data-void-attendance="' + session.id + '">' + dict.voidRecord + "</button>";
+    ? '<button class="btn btn-outline" style="height:26px;padding:0 10px;font-size:11.5px;" data-restore-attendance="' + session.id + '">' + dict.restoreRecord + "</button>"
+    : '<button class="btn btn-outline" style="height:26px;padding:0 10px;font-size:11.5px;" data-correct-attendance="' + session.id + '">' + dict.correctRecord + "</button>" +
+      '<button class="btn" style="background:var(--danger);color:#fff;height:26px;padding:0 10px;font-size:11.5px;" data-void-attendance="' + session.id + '">' + dict.voidRecord + "</button>";
   const voidReasonHtml = isVoided && session.voidReason
-    ? '<div class="leave-card-reason">' + dict.voidedByLabel + ": " + session.voidReason + "</div>"
+    ? '<div style="font-size:11px;color:var(--text-2);margin-top:2px;">' + dict.voidedByLabel + ": " + session.voidReason + "</div>"
     : "";
 
-  return '<div class="leave-card' + (isVoided ? " voided" : "") + '" data-attendance-card="' + session.id + '">' +
-    '<div class="leave-card-head">' +
-      "<span><strong>" + employeeName + "</strong> · " + dateStr + "</span>" +
-      '<span style="margin-left:auto;display:flex;gap:8px;align-items:center;">' + statusBadge + actionBtns + "</span>" +
-    "</div>" +
-    '<div class="leave-card-reason">' + dict.clockInTime + " " + clockInText + " · " + dict.clockOutTime + " " + clockOutText + " · " + dict.totalHours + " " + hoursText + "</div>" +
-    voidReasonHtml +
-    '<button class="msg-toggle" data-toggle-edits="' + session.id + '" style="margin-top:8px;">' + dict.viewEditHistory + "</button>" +
-    '<div class="msg-thread hidden" id="edit-thread-' + session.id + '"><div style="font-size:12px;color:var(--text-2);">' + dict.noEditsYet + "</div></div>" +
-  "</div>";
+  return '<tr>' +
+      "<td><strong>" + employeeName + "</strong></td>" +
+      "<td>" + clockInText + "</td>" +
+      "<td>" + clockOutText + "</td>" +
+      "<td>" + hoursText + "</td>" +
+      "<td>" + statusBadge + voidReasonHtml + "</td>" +
+      '<td><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' +
+        actionBtns +
+        '<button class="msg-toggle" data-toggle-edits="' + session.id + '">' + dict.viewEditHistory + "</button>" +
+      "</div></td>" +
+    "</tr>" +
+    '<tr class="hidden" id="edit-thread-row-' + session.id + '"><td colspan="6" style="border-top:none;padding-top:0;">' +
+      '<div id="edit-thread-' + session.id + '" style="font-size:12px;color:var(--text-2);">' + dict.noEditsYet + "</div>" +
+    "</td></tr>";
+}
+
+/** 没有打卡记录的员工——这是本次改动的核心诉求:"有的员工忘记打卡也有可能",
+    管理员一眼就能看到谁今天(或所选那天)没打卡,直接在这一行点"+ 补录"手动干预,
+    不需要自己去猜、也不需要翻一大堆卡片找。 */
+function buildMissingAttendanceRowHtml(emp, dateStr) {
+  const dict = i18n[currentLang];
+  return '<tr>' +
+      "<td><strong>" + emp.name + "</strong></td>" +
+      "<td>—</td><td>—</td><td>—</td>" +
+      '<td><span class="badge warning">' + dict.attendanceStatusMissing + "</span></td>" +
+      '<td><button class="btn btn-outline" style="height:26px;padding:0 10px;font-size:11.5px;" data-quick-backfill="' + emp.backendId + '" data-quick-backfill-date="' + dateStr + '">' + dict.attendanceQuickBackfill + "</button></td>" +
+    "</tr>";
 }
 
 function wireAttendanceCardEvents(container) {
@@ -4470,8 +4554,9 @@ function wireAttendanceCardEvents(container) {
       const dict = i18n[currentLang];
       const sessionId = btn.dataset.toggleEdits;
       const thread = document.getElementById("edit-thread-" + sessionId);
-      if (!thread.classList.contains("hidden")) {
-        thread.classList.add("hidden");
+      const row = document.getElementById("edit-thread-row-" + sessionId);
+      if (!row.classList.contains("hidden")) {
+        row.classList.add("hidden");
         btn.textContent = dict.viewEditHistory;
         return;
       }
@@ -4490,7 +4575,7 @@ function wireAttendanceCardEvents(container) {
           console.warn("获取更正历史失败:", err);
         }
       }
-      thread.classList.remove("hidden");
+      row.classList.remove("hidden");
       btn.textContent = dict.hideEditHistory;
     });
   });
@@ -4541,18 +4626,78 @@ function wireAttendanceCardEvents(container) {
       renderPayrollTable();
     });
   });
+  container.querySelectorAll("[data-quick-backfill]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      openAddAttendanceModal(btn.dataset.quickBackfill, btn.dataset.quickBackfillDate);
+    });
+  });
 }
 
+/** 应用户要求:"考勤记录能不能用一个简洁的列表来显示?把所有的员工统一到一个列表上,
+    只有一天的考勤记录。作为手工干预,因为有的员工忘记打卡也有可能。"
+    以前是把全公司历史上所有打卡记录一次性倒序铺成一张一张的大卡片,员工一多、
+    天数一多,页面就变得非常长、很难管理。现在改成:顶部一个日期筛选器(默认今天),
+    列表按"全体已加入员工"各占一行——当天有打卡记录的显示真实时间,没有打卡记录的
+    显示"未打卡"红黄提醒并放在最前面,方便管理员一眼扫过去就知道谁需要手动补录。
+    需要看更早的历史记录(比如上周某天),切换日期筛选器即可,不需要再翻一长串卡片。 */
 function renderAttendanceTable() {
   const container = document.getElementById("attendanceList");
   if (!container) return;
   const dict = i18n[currentLang];
-  const sorted = realAttendanceSessions.slice().sort((a, b) => new Date(b.clockInAt) - new Date(a.clockInAt));
-  container.innerHTML = sorted.length
-    ? sorted.map(session => buildAttendanceCardHtml(session)).join("")
-    : '<div class="insight-empty">' + dict.noAttendanceYet + '</div>';
+
+  const dateInput = document.getElementById("attendanceDateFilter");
+  if (dateInput && !dateInput.value) dateInput.value = todayDateStr();
+  const selectedDate = dateInput ? dateInput.value : todayDateStr();
+
+  const roster = employees.filter(e => e.joined && e.backendId);
+  if (roster.length === 0) {
+    container.innerHTML = '<div class="insight-empty">' + dict.noAttendanceYet + '</div>';
+    return;
+  }
+
+  const sessionsByEmployee = new Map();
+  realAttendanceSessions
+    .filter(s => sessionDateStr(s) === selectedDate)
+    .forEach(s => {
+      const list = sessionsByEmployee.get(s.employeeId) || [];
+      list.push(s);
+      sessionsByEmployee.set(s.employeeId, list);
+    });
+
+  const missingRows = [];
+  const presentRows = [];
+  roster
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .forEach(emp => {
+      const sessions = (sessionsByEmployee.get(emp.backendId) || []).sort((a, b) => new Date(a.clockInAt) - new Date(b.clockInAt));
+      if (sessions.length === 0) {
+        missingRows.push(buildMissingAttendanceRowHtml(emp, selectedDate));
+      } else {
+        sessions.forEach(s => presentRows.push(buildAttendanceRowHtml(s)));
+      }
+    });
+
+  // 没打卡的员工排在最前面——这是"手工干预"最需要优先看到的信息。
+  const rowsHtml = missingRows.join("") + presentRows.join("");
+
+  container.innerHTML = '<table class="data-table"><thead><tr>' +
+    "<th>" + dict.attendanceColEmployee + "</th>" +
+    "<th>" + dict.attendanceColClockIn + "</th>" +
+    "<th>" + dict.attendanceColClockOut + "</th>" +
+    "<th>" + dict.attendanceColHours + "</th>" +
+    "<th>" + dict.attendanceColStatus + "</th>" +
+    "<th>" + dict.attendanceColActions + "</th>" +
+    "</tr></thead><tbody>" + rowsHtml + "</tbody></table>";
+
   wireAttendanceCardEvents(container);
 }
+
+document.getElementById("attendanceDateFilter").addEventListener("change", () => renderAttendanceTable());
+document.getElementById("btnAttendanceToday").addEventListener("click", () => {
+  document.getElementById("attendanceDateFilter").value = todayDateStr();
+  renderAttendanceTable();
+});
 
 /** 补录打卡、工资调整项这两个下拉框都需要真实的后端 employeeId(不是姓名)——调用
     的后端接口都是按 employeeId 定位员工;只有已经真正注册、有 backendId 的员工
@@ -4564,11 +4709,19 @@ function populateEmployeeSelect(selectId) {
   select.innerHTML = real.map(emp => '<option value="' + emp.backendId + '">' + emp.name + "</option>").join("");
 }
 
-document.getElementById("btnAddAttendance").addEventListener("click", () => {
+/** 顶部的"+ 补录打卡"按钮、以及考勤表格里"未打卡"那一行的"+ 补录"快捷按钮,
+    共用同一个弹窗——后者会提前把员工和日期都填好,管理员只需要填上/下班时间。 */
+function openAddAttendanceModal(prefillEmployeeId, prefillDate) {
   document.getElementById("addAttendanceError").classList.add("hidden");
   document.getElementById("form-add-attendance").reset();
   populateEmployeeSelect("addAttendanceEmployee");
+  if (prefillEmployeeId) document.getElementById("addAttendanceEmployee").value = prefillEmployeeId;
+  if (prefillDate) document.getElementById("addAttendanceDate").value = prefillDate;
   openModal("modal-add-attendance");
+}
+
+document.getElementById("btnAddAttendance").addEventListener("click", () => {
+  openAddAttendanceModal(null, null);
 });
 
 document.getElementById("form-add-attendance").addEventListener("submit", async e => {
