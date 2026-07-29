@@ -425,7 +425,9 @@
           <div id="dailyReportGpsList"></div>
 
           <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportWageTitle">今日工时与工资成本</div>
+          <p class="section-sub" style="margin:0 0 8px;font-size:12px;" id="dailyReportWageRangeCaption"></p>
           <table class="data-table" id="dailyReportWageTable"></table>
+          <p class="section-sub" style="margin:8px 0 0;font-size:12px;" id="dailyReportWageMonthToDateCaption"></p>
 
           <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportLeaveTitle">人员排班提醒</div>
           <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportLeaveSub">今天正在请假、以及未来 7 天内即将请假的员工,提前安排替补人手上班,避免临时缺人。</p>
@@ -533,6 +535,7 @@
         <div class="glass ca-section" id="ca-payroll" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navPayroll">工资管理</h2>
           <p class="section-sub" data-i18n="payrollSub">工资按"员工名单 + 考勤记录(未作废部分)+ 每位员工设置的时薪"自动计算,和每日经营报告用的是同一套算法;需要额外发放奖金或做扣款时,可以给单个员工手动增加调整项。</p>
+          <p class="section-sub" style="margin:0 0 12px;font-weight:600;" id="payrollRangeCaption"></p>
           <div id="payrollTable"></div>
         </div>
         <div class="glass ca-section" id="ca-leave" style="display:none;margin-top:20px;">
@@ -1204,6 +1207,7 @@ const i18n = {
     editHourlyRateEffectiveFromPrompt: "这个新时薪从哪天开始生效?(格式 年-月-日,例如 2026-07-01)\n\n留空 = 交给系统自动判断:如果这名员工是第一次设置时薪,会自动覆盖 ta 入职以来的全部历史打卡;如果是涨薪/调薪,默认从今天开始生效。\n\n如果你发现这名员工之前打过卡、但工资管理里一直显示 0 工时/€0(说明当时设置晚了),可以在这里手动填一个更早的日期(比如 ta 入职第一天),把之前的工时也一起补算进去。",
     fieldHourlyRate: "时薪(欧元/小时)", hourlyRateHint: "用于自动计算这名员工的工资,之后可以在员工列表里随时修改",
     payrollSub: "工资按「员工名单 + 考勤记录(未作废部分)+ 每位员工设置的时薪」自动计算,和每日经营报告用的是同一套算法;需要额外发放奖金或做扣款时,可以给单个员工手动增加调整项。",
+    payrollRangeCaption: function (start, end) { return "统计范围:本月 " + start + " – " + end + "(和「每日经营报告」里的「今日」是两个不同的统计范围,本月总额会比单独一天的数字大,这是正常的,不是bug)"; },
     colBasePay: "基础工资", colAdjustments: "调整项", deleteAction: "删除", noAdjustmentsYet: "暂无调整项",
     addPayrollAdjustment: "+ 增加调整项", confirmDeleteAdjustment: "确定要删除这条调整项吗?",
     payrollAdjustmentSub: "比如奖金、补贴填正数;扣款、更正多发填负数,会累加进这名员工的应发合计。",
@@ -1285,6 +1289,8 @@ const i18n = {
     dailyReportSub: "整合当天的 GPS 异常停留、员工工时与工资成本、库存预警,老板打开 App 30 秒内就能看到今天需要关注什么。以下全部是数据库里的真实数据,来自后端 ReportsModule/GpsModule/PayrollModule 的真实接口。",
     dailyReportGpsTitle: "GPS 异常停留", dailyReportGpsSub: "连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)",
     dailyReportWageTitle: "今日工时与工资成本", dailyReportInventoryTitle: "库存提醒",
+    dailyReportWageRangeCaption: function (dateStr) { return "统计范围:今天(" + dateStr + ")"; },
+    dailyReportWageMonthToDateCaption: function (amount) { return "本月至今累计工资成本:€" + amount + "(明细见「工资管理」页)"; },
     dailyReportLeaveTitle: "人员排班提醒",
     dailyReportLeaveSub: "今天正在请假、以及未来 7 天内即将请假的员工,提前安排替补人手上班,避免临时缺人。",
     dailyReportLeaveTodayHeading: "今天请假", dailyReportLeaveUpcomingHeading: "未来 7 天内即将请假",
@@ -1456,6 +1462,7 @@ const i18n = {
     editHourlyRateEffectiveFromPrompt: "What date should this new rate take effect from? (YYYY-MM-DD, e.g. 2026-07-01)\n\nLeave blank = let the system decide automatically: if this is the employee's first-ever rate, it will automatically cover all of their attendance since joining; if this is a raise/adjustment, it defaults to today.\n\nIf this employee already clocked in before but Payroll has been showing 0 hours/€0 for them (because the rate was set too late), you can enter an earlier date here (e.g. their first day) to retroactively include those hours.",
     fieldHourlyRate: "Hourly rate (EUR/hour)", hourlyRateHint: "Used to auto-calculate this employee's pay; can be changed anytime from the employee list",
     payrollSub: "Pay is calculated automatically from the employee list + attendance records (excluding voided ones) + each employee's hourly rate — the same logic used in the daily report. You can add a manual adjustment for a specific employee for bonuses or deductions.",
+    payrollRangeCaption: function (start, end) { return "Range: this month, " + start + " – " + end + " (a different range from \"Today\" in the daily report — the monthly total being larger than a single day's number is expected, not a bug)"; },
     colBasePay: "Base pay", colAdjustments: "Adjustments", deleteAction: "Delete", noAdjustmentsYet: "No adjustments yet",
     addPayrollAdjustment: "+ Add adjustment", confirmDeleteAdjustment: "Delete this adjustment?",
     payrollAdjustmentSub: "Use a positive amount for bonuses/allowances, a negative amount for deductions/corrections — it's added to this employee's total pay.",
@@ -1537,6 +1544,8 @@ const i18n = {
     dailyReportSub: "Rolls up today's GPS dwell anomalies, employee hours and wage cost, and inventory alerts — the owner can see what needs attention within 30 seconds of opening the app. Everything below is real data straight from the database, via the backend ReportsModule/GpsModule/PayrollModule.",
     dailyReportGpsTitle: "GPS dwell anomalies", dailyReportGpsSub: "20+ consecutive minutes below 3 km/h counts as one dwell anomaly (advisory only, never an automatic violation)",
     dailyReportWageTitle: "Today's hours & wage cost", dailyReportInventoryTitle: "Inventory alerts",
+    dailyReportWageRangeCaption: function (dateStr) { return "Range: today (" + dateStr + ")"; },
+    dailyReportWageMonthToDateCaption: function (amount) { return "Month-to-date wage cost so far: €" + amount + " (see \"Payroll\" for the breakdown)"; },
     dailyReportLeaveTitle: "Staffing / leave reminders",
     dailyReportLeaveSub: "Employees on leave today, and those with leave scheduled in the next 7 days — plan replacement staff ahead of time.",
     dailyReportLeaveTodayHeading: "On leave today", dailyReportLeaveUpcomingHeading: "Upcoming leave (next 7 days)",
@@ -5651,6 +5660,15 @@ async function renderPayrollTable() {
   if (!currentUserCompanyId || !accessToken) { container.innerHTML = ""; return; }
 
   const { from, to } = payrollPeriodRange();
+  // 明确标出这里统计的是"本自然月"、具体是哪几号到哪几号——应用户反馈:"每日经营报告"
+  // 的"今日工时与工资成本"和这张"工资管理"表数字对不上,感觉应该同步。其实两边统计的
+  // 时间范围本来就不一样(今天 vs 本月),数据没有错,只是页面上从来没写清楚统计范围,
+  // 才会让人误以为是bug。这里把范围明明白白写出来,避免同样的困惑反复出现。
+  const rangeCaptionEl = document.getElementById("payrollRangeCaption");
+  if (rangeCaptionEl) {
+    const monthLastDay = new Date(to.getTime() - 86400000);
+    rangeCaptionEl.textContent = dict.payrollRangeCaption(formatLeaveSummaryDate(from.toISOString().slice(0, 10)), formatLeaveSummaryDate(monthLastDay.toISOString().slice(0, 10)));
+  }
   let report, adjustments;
   try {
     [report, adjustments] = await Promise.all([
@@ -5773,17 +5791,30 @@ async function renderWageTable(tableId) {
   const dict = i18n[currentLang];
   const table = document.getElementById(tableId);
   if (!table) return;
-  if (!currentUserCompanyId || !accessToken) { table.innerHTML = ""; return; }
+  const rangeCaptionEl = document.getElementById("dailyReportWageRangeCaption");
+  const mtdCaptionEl = document.getElementById("dailyReportWageMonthToDateCaption");
+  if (!currentUserCompanyId || !accessToken) {
+    table.innerHTML = "";
+    if (rangeCaptionEl) rangeCaptionEl.textContent = "";
+    if (mtdCaptionEl) mtdCaptionEl.textContent = "";
+    return;
+  }
 
+  const todayStr = new Date().toISOString().slice(0, 10);
   let report;
   try {
-    const todayStr = new Date().toISOString().slice(0, 10);
     report = await apiRequest("/companies/" + currentUserCompanyId + "/payroll/daily-cost?date=" + todayStr, { auth: true });
   } catch (err) {
     console.warn("获取今日工时与工资成本失败:", err);
     table.innerHTML = "";
+    if (rangeCaptionEl) rangeCaptionEl.textContent = "";
+    if (mtdCaptionEl) mtdCaptionEl.textContent = "";
     return;
   }
+
+  // 应用户反馈("这两项应该是同步的,我需要让管理人员一目了然"):明确标出这张表只统计
+  // "今天",避免和"工资管理"页(统计本自然月)的数字放在一起看时,误以为对不上是bug。
+  if (rangeCaptionEl) rangeCaptionEl.textContent = dict.dailyReportWageRangeCaption(formatLeaveSummaryDate(todayStr));
 
   let html = "<tr><th>" + dict.colName + "</th><th>" + dict.colRegular + "</th><th>" + dict.colOvertime + "</th><th>" + dict.colWageCost + "</th></tr>";
   (report.breakdown || []).forEach(r => {
@@ -5796,6 +5827,22 @@ async function renderWageTable(tableId) {
     html += "<tr><td colspan=\"4\" style=\"color:var(--warning);font-size:12.5px;\">" + dict.missingWageConfigNotice(names) + "</td></tr>";
   }
   table.innerHTML = html;
+
+  // 顺手在"今日"表格下面补一行"本月至今累计",管理员不用跳到"工资管理"页去对照,
+  // 一眼就能看出今天这笔数字只是本月总数里的一部分,数字变大是正常的、不是两边不同步。
+  if (mtdCaptionEl) {
+    try {
+      const { from, to } = payrollPeriodRange();
+      const monthReport = await apiRequest(
+        "/companies/" + currentUserCompanyId + "/payroll/cost?from=" + from.toISOString() + "&to=" + to.toISOString(),
+        { auth: true },
+      );
+      mtdCaptionEl.textContent = dict.dailyReportWageMonthToDateCaption((monthReport.totalCostCents / 100).toFixed(2));
+    } catch (err) {
+      console.warn("获取本月至今工资成本失败(不影响今日表格显示):", err);
+      mtdCaptionEl.textContent = "";
+    }
+  }
 }
 
 /** "每日经营报告"里的"人员排班提醒"(应用户要求:"能否把员工请假、休假年月日等信息
