@@ -979,6 +979,7 @@
             <option value="piece" data-i18n="unitPiece">件</option>
             <option value="box" data-i18n="unitBox">箱</option>
             <option value="pack" data-i18n="unitPack">包</option>
+            <option value="strip" data-i18n="unitStrip">条</option>
           </select>
         </div>
         <div class="field"><label data-i18n="fieldReorderThreshold">进货阈值(可选)</label><input type="number" min="0" step="0.01" id="invFieldReorderThreshold" /></div>
@@ -1253,7 +1254,7 @@ const i18n = {
     reorderThresholdHint: "当前库存总量低于“进货阈值”时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。",
     inventoryItemHint: "库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过\"记录流水\"入库(员工每次从仓库补货到操作间,这里的总量也会相应减少)。",
     inventoryItemEditHint: function (qty, unit) { return "当前库存(" + qty + " " + unit + ")不能在这里直接改——如果盘点后发现数字不对,请用\"记录流水 → 盘点调整\"来修正,系统会自动算出差值并留下记录,不会出现来路不明的数字变动。"; },
-    unitPiece: "件", unitBox: "箱", unitPack: "包",
+    unitPiece: "件", unitBox: "箱", unitPack: "包", unitStrip: "条",
     recordTransaction: "记录流水", fieldTransactionType: "流水类型",
     typeReceipt: "入库(采购到货)", typeConsumption: "消耗(正常使用)", typeWaste: "浪费/报废", typeAdjustment: "盘点调整",
     fieldQuantity: "数量(本次变化量)", fieldQuantityAdjustment: "盘点后的实际库存数量",
@@ -1518,7 +1519,7 @@ const i18n = {
     reorderThresholdHint: "When current stock drops below the \"reorder threshold\", the system automatically works out a suggested reorder quantity and surfaces it in the inventory alerts — no manual math needed.",
     inventoryItemHint: "Stock quantity can't be set here directly — a new item always starts at 0, then goes up via \"Record transaction\" (each time an employee restocks from the warehouse to the prep area, this total goes down accordingly).",
     inventoryItemEditHint: function (qty, unit) { return "Current stock (" + qty + " " + unit + ") can't be edited here — if a stock count turns up a wrong number, use \"Record transaction → Adjustment\" instead; the system works out the difference and keeps a record, so there's never an untraceable change to the number."; },
-    unitPiece: "piece", unitBox: "box", unitPack: "pack",
+    unitPiece: "piece", unitBox: "box", unitPack: "pack", unitStrip: "strip",
     recordTransaction: "Record transaction", fieldTransactionType: "Transaction type",
     typeReceipt: "Receipt (purchase arrived)", typeConsumption: "Consumption (used in operations)", typeWaste: "Waste / spoilage", typeAdjustment: "Stock count adjustment",
     fieldQuantity: "Quantity (change this time)", fieldQuantityAdjustment: "Actual counted quantity",
