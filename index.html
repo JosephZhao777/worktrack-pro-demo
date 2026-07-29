@@ -1097,6 +1097,7 @@ const i18n = {
     companyRegisterMissingFields: "请填写公司名称、您的姓名、联络电话、邮箱和密码",
     companyRegisterInvalidEmail: "邮箱格式不正确",
     reauthRequiredNotice: "登录状态已失效,请重新登录后再试。",
+    sessionExpiredNotice: "登录状态已过期(超过30天没有使用,或已在别处重新登录),请重新登录。",
     fieldEmployeeCode: "员工编号 / 手机号", fieldPassword: "密码", fieldFullName: "姓名", fieldPhone: "电话号码",
     fieldEmployeeId: "员工编号", fieldInviteCode: "公司邀请码", fieldEmail: "邮箱", fieldLogo: "公司 Logo",
     uploadLogo: "点击上传 Logo", fieldCompanyName: "公司名称", fieldSlogan: "公司口号", fieldCountry: "国家(可选)",
@@ -1341,6 +1342,7 @@ const i18n = {
     companyRegisterMissingFields: "Please fill in the company name, your full name, contact phone, email, and password",
     companyRegisterInvalidEmail: "That doesn't look like a valid email address",
     reauthRequiredNotice: "Your session has expired — please log in again.",
+    sessionExpiredNotice: "Your login has expired (unused for 30+ days, or you logged in elsewhere) — please log in again.",
     fieldEmployeeCode: "Employee ID / phone", fieldPassword: "Password", fieldFullName: "Full name", fieldPhone: "Phone number",
     fieldEmployeeId: "Employee ID", fieldInviteCode: "Company invitation code", fieldEmail: "Email", fieldLogo: "Company logo",
     uploadLogo: "Click to upload logo", fieldCompanyName: "Company name", fieldSlogan: "Company slogan", fieldCountry: "Country (optional)",
@@ -1626,8 +1628,15 @@ const API_BASE_URL = "https://api.worktrackai.com/api/v1";
     Error(err.code 是后端的稳定错误码,err.message 是人类可读说明)。
     已知限制(如实披露):后端的错误文案目前只有中文,英文界面下会退化显示中文
     原文——这不是这次改动引入的新问题,是后端错误信息目前还没做国际化,留到
-    之后的阶段一起处理。 */
-async function apiRequest(path, { method = "GET", body, auth = false } = {}) {
+    之后的阶段一起处理。
+    Bug 修复(用户实测反馈:在某个页面停留一段时间后点操作报"Unauthorized"):
+    access token 只有 15 分钟有效期,以前完全没有做"过期自动用 refreshToken 换新"
+    这一步——用户只是多逛了一会儿页面,后台什么都没坏,却被迫看到一个不明所以的
+    "Unauthorized"报错。现在改成:带 auth:true 的请求如果收到 401,先用 refreshToken
+    换一对新的 access/refresh token,换成功就用新 token 自动重试这次请求一次(用户
+    完全无感知);如果 refreshToken 本身也失效了(比如超过 30 天没用、或者已经在
+    另一台设备登出过),才清空登录状态、带回首页并提示重新登录。*/
+async function apiRequest(path, { method = "GET", body, auth = false, _isRetryAfterRefresh = false } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (auth && accessToken) headers["Authorization"] = "Bearer " + accessToken;
   let response;
@@ -1642,6 +1651,15 @@ async function apiRequest(path, { method = "GET", body, auth = false } = {}) {
     err.code = "NETWORK_ERROR";
     throw err;
   }
+
+  if (response.status === 401 && auth && !_isRetryAfterRefresh && path !== "/auth/refresh") {
+    const refreshed = await refreshAccessTokenSilently();
+    if (refreshed) {
+      return apiRequest(path, { method, body, auth, _isRetryAfterRefresh: true });
+    }
+    forceLogoutDueToExpiredSession();
+  }
+
   let payload = null;
   try { payload = await response.json(); } catch (parseErr) { /* 无响应体(比如个别 204)时会走到这里,忽略即可 */ }
   if (!response.ok || !payload || payload.success === false) {
@@ -1652,10 +1670,60 @@ async function apiRequest(path, { method = "GET", body, auth = false } = {}) {
   return payload.data;
 }
 
+// 同一时间可能有好几个请求(比如 20 秒轮询里一次触发好几个 apiRequest)同时撞上
+// access token 过期,这里用一个共享的 Promise 去重,保证同一轮只真正发一次
+// /auth/refresh,其余请求都等这同一个结果,不会重复换出好几对新 token。
+let pendingTokenRefresh = null;
+
+async function refreshAccessTokenSilently() {
+  if (!refreshToken) return false;
+  if (!pendingTokenRefresh) {
+    pendingTokenRefresh = (async () => {
+      try {
+        const pair = await apiRequest("/auth/refresh", { method: "POST", body: { refreshToken } });
+        accessToken = pair.accessToken;
+        refreshToken = pair.refreshToken;
+        saveState();
+        return true;
+      } catch (err) {
+        console.warn("用 refreshToken 换新 access token 失败,需要重新登录:", err);
+        return false;
+      } finally {
+        pendingTokenRefresh = null;
+      }
+    })();
+  }
+  return pendingTokenRefresh;
+}
+
+let sessionExpiredAlertShown = false;
+
+/** refreshToken 也失效了时的兜底:清空本地登录状态、停掉所有后台轮询,带回首页并
+    提示重新登录——不能让界面停留在一个"看起来是登录状态,但任何请求都会失败"的
+    假登录状态里,那样用户只会一直看到莫名其妙的报错,却不知道该怎么办。 */
+function forceLogoutDueToExpiredSession() {
+  accessToken = null;
+  refreshToken = null;
+  currentUserId = null;
+  currentUserRole = null;
+  currentUserCompanyId = null;
+  stopAttendanceLiveRefresh();
+  stopAnomalyPolling();
+  stopGpsLiveRefresh();
+  saveState();
+  if (!sessionExpiredAlertShown) {
+    sessionExpiredAlertShown = true;
+    showView("view-home");
+    window.alert(i18n[currentLang].sessionExpiredNotice);
+    setTimeout(() => { sessionExpiredAlertShown = false; }, 3000);
+  }
+}
+
 // 当前登录会话的真实凭证——公司管理员/员工这两条身份线现在由后端签发的 JWT 驱动。
-// accessToken 有效期短(默认 15 分钟,见后端 JWT_ACCESS_EXPIRES_IN 配置),这一次改动
-// 暂时没有做"access token 过期自动用 refreshToken 静默换新"这一步(已知的分阶段限制),
-// 过期后需要的操作会报错提示重新登录,下一阶段可以补上自动刷新重试。
+// accessToken 有效期短(默认 15 分钟,见后端 JWT_ACCESS_EXPIRES_IN 配置)。Bug 修复
+// (用户实测反馈:多逛了一会儿页面后点操作报"Unauthorized"):以前这里过期后完全
+// 没有自动处理,现在 apiRequest() 收到 401 会自动用 refreshToken 静默换新重试一次,
+// 只有 refreshToken(默认 30 天有效)也失效时才会真的提示重新登录。
 let accessToken = null;
 let refreshToken = null;
 let currentUserId = null;
