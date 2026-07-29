@@ -1254,6 +1254,10 @@ const i18n = {
     deactivateCategory: "停用", reactivateCategory: "启用",
     confirmDeactivateSubCategory: function (name) { return "确定要停用「" + name + "」吗?停用后新建商品时不会再看到它,但已经使用这个分类的商品历史保持不变。"; },
     confirmDeactivateTopCategory: function (name) { return "确定要停用「" + name + "」吗?这会连同它下面的所有子类一并停用,已经使用这些分类的商品历史保持不变。"; },
+    deleteCategory: "删除",
+    confirmDeleteSubCategory: function (name) { return "确定要删除「" + name + "」吗?如果这个子类从来没有商品用过,会被彻底删除;如果已经有商品用过,会自动改为停用(不影响已有商品的历史记录)。"; },
+    confirmDeleteTopCategory: function (name) { return "确定要删除「" + name + "」吗?如果这个大类和它下面的全部子类都从来没有商品用过,会被彻底删除;只要有一个被用过,就会自动改为停用(不影响已有商品的历史记录)。"; },
+    categoryInUseNotice: "这个分类以前有商品用过,不能彻底删除——已经自动改为「停用」,不会出现在新建商品的选择列表里,但不影响已有商品的历史记录。",
     noCategoriesYet: "还没有任何分类,点上面的「+ 新建大类」开始",
     categoryInactiveBadge: "已停用",
     noCategorySelected: "不选择分类", wholeCategoryOption: function (name) { return name + "(不细分子类)"; },
@@ -1499,6 +1503,10 @@ const i18n = {
     deactivateCategory: "Deactivate", reactivateCategory: "Reactivate",
     confirmDeactivateSubCategory: function (name) { return "Deactivate \"" + name + "\"? It won't show up when adding new items, but items that already use it are unaffected."; },
     confirmDeactivateTopCategory: function (name) { return "Deactivate \"" + name + "\"? This also deactivates all of its sub-categories. Items that already use these categories are unaffected."; },
+    deleteCategory: "Delete",
+    confirmDeleteSubCategory: function (name) { return "Delete \"" + name + "\"? If no item has ever used this sub-category, it will be permanently removed; if any item has used it, it will be deactivated instead (existing item history is unaffected)."; },
+    confirmDeleteTopCategory: function (name) { return "Delete \"" + name + "\"? If neither this category nor any of its sub-categories has ever been used by an item, it will be permanently removed; if any of them has been used, it will be deactivated instead (existing item history is unaffected)."; },
+    categoryInUseNotice: "This category has been used by inventory items before, so it can't be permanently deleted — it has been deactivated instead. It won't show up when adding new items, but existing item history is unaffected.",
     noCategoriesYet: "No categories yet — click \"+ Add top category\" above to start",
     categoryInactiveBadge: "Deactivated",
     noCategorySelected: "No category", wholeCategoryOption: function (name) { return name + " (whole category)"; },
@@ -5249,6 +5257,7 @@ function buildCategoryCardHtml(top, dict) {
       '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
         '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;" data-rename-category="' + child.id + '" data-current-name="' + child.name + '">' + dict.renameCategory + "</button>" +
         '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;" data-toggle-category="' + child.id + '" data-current-name="' + child.name + '" data-is-top="false" data-currently-active="' + child.isActive + '">' + (child.isActive ? dict.deactivateCategory : dict.reactivateCategory) + "</button>" +
+        '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;color:var(--danger);border-color:var(--danger);" data-delete-category="' + child.id + '" data-current-name="' + child.name + '" data-is-top="false">' + dict.deleteCategory + "</button>" +
       "</div>" +
     "</div>";
   }).join("");
@@ -5260,6 +5269,7 @@ function buildCategoryCardHtml(top, dict) {
         '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;" data-add-subcategory="' + top.id + '" data-parent-name="' + top.name + '">' + dict.addSubCategory + "</button>" +
         '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;" data-rename-category="' + top.id + '" data-current-name="' + top.name + '">' + dict.renameCategory + "</button>" +
         '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;" data-toggle-category="' + top.id + '" data-current-name="' + top.name + '" data-is-top="true" data-currently-active="' + top.isActive + '">' + (top.isActive ? dict.deactivateCategory : dict.reactivateCategory) + "</button>" +
+        '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:12px;color:var(--danger);border-color:var(--danger);" data-delete-category="' + top.id + '" data-current-name="' + top.name + '" data-is-top="true">' + dict.deleteCategory + "</button>" +
       "</div>" +
     "</div>" +
     (childrenHtml || '<div style="padding:6px 0 0 20px;font-size:12px;color:var(--text-2);">—</div>') +
@@ -5283,6 +5293,9 @@ function renderInventoryCategoriesModal() {
   });
   container.querySelectorAll("[data-toggle-category]").forEach(btn => {
     btn.addEventListener("click", () => handleToggleCategory(btn.dataset.toggleCategory, btn.dataset.currentName, btn.dataset.isTop === "true", btn.dataset.currentlyActive === "true"));
+  });
+  container.querySelectorAll("[data-delete-category]").forEach(btn => {
+    btn.addEventListener("click", () => handleDeleteCategory(btn.dataset.deleteCategory, btn.dataset.currentName, btn.dataset.isTop === "true"));
   });
 }
 
@@ -5344,6 +5357,28 @@ async function handleToggleCategory(categoryId, currentName, isTop, currentlyAct
   } catch (err) {
     window.alert(err.message);
   }
+}
+
+/** 真正的"删除"——和"停用"不是同一个操作(用户明确要求增加单独的删除按钮)。
+    后端会自动判断:这个分类(大类连同它全部子类)如果从来没被任何商品用过,
+    就彻底删掉;只要被用过一次,后端会自动改成"停用"并返回 INVENTORY_CATEGORY_IN_USE,
+    这里要把这种情况用一个更友好的提示告诉管理员,而不是显示原始错误信息。
+    无论哪种结果,服务器那边都已经真实生效了,所以两种情况都要刷新列表。 */
+async function handleDeleteCategory(categoryId, currentName, isTop) {
+  const dict = i18n[currentLang];
+  const confirmMsg = isTop ? dict.confirmDeleteTopCategory(currentName) : dict.confirmDeleteSubCategory(currentName);
+  if (!window.confirm(confirmMsg)) return;
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/inventory/categories/" + categoryId, { method: "DELETE", auth: true });
+  } catch (err) {
+    if (err.code === "INVENTORY_CATEGORY_IN_USE") {
+      window.alert(dict.categoryInUseNotice);
+    } else {
+      window.alert(err.message);
+    }
+  }
+  await syncInventoryFromBackend();
+  renderInventoryCategoriesModal();
 }
 
 /** 一键按照之前沟通过的分类结构(鱼类/Poke Bowl消耗品/寿司消耗品/热食/包装盒/配料消耗品)
