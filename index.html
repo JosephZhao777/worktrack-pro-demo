@@ -100,6 +100,11 @@
   .inv-status-filter-btn.active { background: var(--brand-blue); color: #fff; border-color: var(--brand-blue); }
   .inv-category-header-row td { background: rgba(123,38,53,.06); font-size: 13px; padding: 8px 12px; border-top: 1px solid var(--border-c); }
   .btn-block { width: 100%; }
+  .sync-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 9999; max-width: min(92vw, 480px); background: #3A1116; color: #FBF3EE; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.4; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.35); }
+  .sync-toast .sync-toast-msg { flex: 1; }
+  .sync-toast button { flex-shrink: 0; background: transparent; border: 1px solid rgba(255,255,255,.4); color: inherit; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  .sync-toast button:hover { background: rgba(255,255,255,.12); }
+  .sync-toast #syncIssueCloseBtn { border: none; padding: 4px 6px; font-size: 15px; line-height: 1; }
 
   /* ---------- FOOTER ---------- */
   footer { padding: 40px 24px 56px; text-align: center; }
@@ -1291,6 +1296,8 @@ const i18n = {
     companyRegisterInvalidEmail: "邮箱格式不正确",
     reauthRequiredNotice: "登录状态已失效,请重新登录后再试。",
     sessionExpiredNotice: "登录状态已过期(超过30天没有使用,或已在别处重新登录),请重新登录。",
+    syncIssueMessage: "部分数据未能从服务器同步(可能是网络问题),看到的内容可能不是最新的——点击刷新重试。",
+    syncIssueRefreshAction: "刷新页面",
     fieldEmployeeCode: "员工编号 / 手机号", fieldPassword: "密码", fieldFullName: "姓名", fieldPhone: "电话号码",
     fieldEmployeeId: "员工编号", fieldInviteCode: "公司邀请码", fieldEmail: "邮箱", fieldLogo: "公司 Logo",
     uploadLogo: "点击上传 Logo", fieldCompanyName: "公司名称", fieldSlogan: "公司口号", fieldCountry: "国家(可选)",
@@ -1602,6 +1609,8 @@ const i18n = {
     companyRegisterInvalidEmail: "That doesn't look like a valid email address",
     reauthRequiredNotice: "Your session has expired — please log in again.",
     sessionExpiredNotice: "Your login has expired (unused for 30+ days, or you logged in elsewhere) — please log in again.",
+    syncIssueMessage: "Some data couldn't be synced from the server (possibly a network issue) — what you see may be out of date. Click refresh to retry.",
+    syncIssueRefreshAction: "Refresh page",
     fieldEmployeeCode: "Employee ID / phone", fieldPassword: "Password", fieldFullName: "Full name", fieldPhone: "Phone number",
     fieldEmployeeId: "Employee ID", fieldInviteCode: "Company invitation code", fieldEmail: "Email", fieldLogo: "Company logo",
     uploadLogo: "Click to upload logo", fieldCompanyName: "Company name", fieldSlogan: "Company slogan", fieldCountry: "Country (optional)",
@@ -1945,16 +1954,40 @@ const API_BASE_URL = "https://api.worktrackai.com/api/v1";
     换一对新的 access/refresh token,换成功就用新 token 自动重试这次请求一次(用户
     完全无感知);如果 refreshToken 本身也失效了(比如超过 30 天没用、或者已经在
     另一台设备登出过),才清空登录状态、带回首页并提示重新登录。*/
+/** Bug 修复(用户反馈:客户换浏览器登录后 App 内容整个消失):很大一部分"同步失败"
+    其实不是后端真的坏了,而是一次性的网络抖动,或者 Railway 服务刚从休眠/冷启动状态
+    被唤醒、第一个请求要等它启动完成而超时——这种情况下等半秒到一两秒再试一次基本
+    就通了,完全没必要直接判定为失败、吓用户一跳。这里只对 GET 请求自动重试(GET
+    是只读的,重试多少次都不会产生副作用;POST/PATCH/DELETE 这类会改数据的请求
+    绝不自动重试,避免出现"点一次却提交了两次"这种更麻烦的问题)——最多重试 2 次,
+    重试间隔逐次拉长(500ms → 1500ms),三次都失败才真正算作网络错误,交给上层的
+    notifySyncIssue() 提示用户。 */
+async function fetchWithRetry(url, options, method) {
+  const maxAttempts = method === "GET" ? 3 : 1;
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fetch(url, options);
+    } catch (networkErr) {
+      lastErr = networkErr;
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, attempt === 1 ? 500 : 1500));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 async function apiRequest(path, { method = "GET", body, auth = false, _isRetryAfterRefresh = false } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (auth && accessToken) headers["Authorization"] = "Bearer " + accessToken;
   let response;
   try {
-    response = await fetch(API_BASE_URL + path, {
+    response = await fetchWithRetry(API_BASE_URL + path, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    }, method);
   } catch (networkErr) {
     const err = new Error("无法连接到后端服务,请确认已在本机通过 docker-compose 启动 WorkTrack AI 后端(http://localhost:3000)。");
     err.code = "NETWORK_ERROR";
@@ -1977,6 +2010,41 @@ async function apiRequest(path, { method = "GET", body, auth = false, _isRetryAf
     throw err;
   }
   return payload.data;
+}
+
+/** Bug 修复(用户反馈:换浏览器登录后 App 里所有内容都不见了):根本原因是背后一大批
+    "登录后自动从后端同步数据"的函数(员工列表/库存/考勤/工资/请假/公司资料等)以前
+    同步失败时只在浏览器控制台打一行 console.warn,界面上完全没有任何提示——之前那台
+    设备可能因为本地缓存(localStorage)兜底,看起来"一直有数据",换一台全新的浏览器/
+    设备、又刚好这次同步失败(比如后端服务临时没响应、网络问题),用户看到的就是一个
+    没有任何解释的空白 App,以为数据全丢了。
+    现在改成:任何一次后台同步失败,都会弹出这条不会挡住操作的小提示条,告诉用户"看到
+    的内容可能不是最新的",并给一个"刷新页面"按钮方便直接重试——同一时间可能有好几个
+    同步几乎同时失败(比如刚登录时并发拉取员工/库存/考勤好几个接口),这里做了去重:
+    不会叠出好几条一样的提示,只会重置同一条提示的自动隐藏计时器。 */
+let syncToastHideTimer = null;
+function notifySyncIssue() {
+  const dict = i18n[currentLang];
+  let el = document.getElementById("syncIssueToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "syncIssueToast";
+    el.className = "sync-toast";
+    el.innerHTML =
+      '<span class="sync-toast-msg"></span>' +
+      '<button type="button" id="syncIssueRefreshBtn"></button>' +
+      '<button type="button" id="syncIssueCloseBtn" aria-label="close">×</button>';
+    document.body.appendChild(el);
+    document.getElementById("syncIssueRefreshBtn").addEventListener("click", () => window.location.reload());
+    document.getElementById("syncIssueCloseBtn").addEventListener("click", () => {
+      if (syncToastHideTimer) clearTimeout(syncToastHideTimer);
+      el.remove();
+    });
+  }
+  el.querySelector(".sync-toast-msg").textContent = dict.syncIssueMessage;
+  document.getElementById("syncIssueRefreshBtn").textContent = dict.syncIssueRefreshAction;
+  if (syncToastHideTimer) clearTimeout(syncToastHideTimer);
+  syncToastHideTimer = setTimeout(() => { if (el && el.parentNode) el.remove(); syncToastHideTimer = null; }, 10000);
 }
 
 // 同一时间可能有好几个请求(比如 20 秒轮询里一次触发好几个 apiRequest)同时撞上
@@ -2089,6 +2157,7 @@ async function syncCompanyProfileFromBackend(companyId) {
     // 同步失败(比如后端没启动、或者这个 companyId 在本地还查不到)不阻断登录本身,
     // 继续用本地已有的公司名兜底,不让用户卡在登录这一步。
     console.warn("同步公司资料失败,继续使用本地缓存的公司名:", err);
+    notifySyncIssue();
   }
 }
 
@@ -2420,6 +2489,7 @@ async function refreshRealAttendanceData() {
     );
   } catch (err) {
     console.warn("同步真实考勤数据失败(暂时保留上一次同步结果,不阻断页面本身):", err);
+    notifySyncIssue();
     return;
   }
   realAttendanceSessions = sessions;
@@ -2514,6 +2584,7 @@ async function refreshMyManualWage() {
     myManualWage = await apiRequest("/companies/" + currentUserCompanyId + "/payroll/manual-wages/me", { auth: true });
   } catch (err) {
     console.warn("获取自己的手工工资失败(工资总额卡片暂时显示 —,不阻断页面本身):", err);
+    notifySyncIssue();
     myManualWage = null;
   }
   updateEmployeeSummaryCards();
@@ -2554,6 +2625,7 @@ async function refreshMyPayrollNotes() {
     });
   } catch (err) {
     console.warn("获取工资说明留言失败:", err);
+    notifySyncIssue();
     el.textContent = dict.employeePayrollNoteEmpty;
   }
 }
@@ -2637,6 +2709,7 @@ async function syncEmployeesFromBackend() {
   } catch (err) {
     // 同步失败(比如后端没启动)不阻断已经登录成功这件事,继续显示本地已有的数据。
     console.warn("同步员工列表失败:", err);
+    notifySyncIssue();
   }
 }
 
@@ -4001,6 +4074,7 @@ async function refreshLeaveTypes() {
     types.forEach(t => { realLeaveTypesByCategory[t.category] = t; realLeaveTypeIdToCategory[t.id] = t.category; });
   } catch (err) {
     console.warn("获取请假类型配置失败:", err);
+    notifySyncIssue();
   }
   syncSettingsAnnualQuotaInput();
 }
@@ -4016,6 +4090,7 @@ async function refreshMyLeaveBalances() {
     balances.forEach(b => { realLeaveBalancesByCategory[b.category] = b; });
   } catch (err) {
     console.warn("获取自己的请假余额失败:", err);
+    notifySyncIssue();
   }
   updateLeaveBalanceDisplays(currentEmployeeName());
 }
@@ -4050,6 +4125,7 @@ async function refreshMyLeaveRequests() {
     );
   } catch (err) {
     console.warn("获取自己的请假记录失败:", err);
+    notifySyncIssue();
   }
   renderLeaveHistory();
 }
@@ -4060,6 +4136,7 @@ async function refreshCompanyLeaveRequests() {
     realLeaveRequestsAdmin = await apiRequest("/companies/" + currentUserCompanyId + "/leave-requests", { auth: true });
   } catch (err) {
     console.warn("获取公司请假审批队列失败:", err);
+    notifySyncIssue();
   }
   renderLeaveRequests();
   renderCaDashboardMetrics();
@@ -5295,6 +5372,7 @@ async function syncInventoryFromBackend() {
     // 同步失败(比如后端暂时没响应)不阻断已经登录成功这件事,继续显示上一次成功同步的数据;
     // 用户切换页面、或者手动做一次库存相关操作时会自然再次触发重试。
     console.warn("同步库存数据失败:", err);
+    notifySyncIssue();
   } finally {
     inventorySyncInFlight = false;
   }
@@ -6251,6 +6329,7 @@ async function renderPayrollTable() {
     ]);
   } catch (err) {
     console.warn("获取工资数据失败:", err);
+    notifySyncIssue();
     container.innerHTML = '<div class="insight-empty">' + dict.noEmployeesYet + '</div>';
     return;
   }
@@ -6715,6 +6794,7 @@ async function renderWageTable(tableId) {
     report = await apiRequest("/companies/" + currentUserCompanyId + "/payroll/daily-cost?date=" + todayStr, { auth: true });
   } catch (err) {
     console.warn("获取今日工时与工资成本失败:", err);
+    notifySyncIssue();
     table.innerHTML = "";
     if (rangeCaptionEl) rangeCaptionEl.textContent = "";
     if (mtdCaptionEl) mtdCaptionEl.textContent = "";
