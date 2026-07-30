@@ -11,6 +11,11 @@
 <meta name="theme-color" content="#7B2635" />
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<!-- iPhone/iPad 的 Safari 不认 manifest.json 里的 display:standalone,"添加到主屏幕"
+     后要不要去掉浏览器地址栏/工具栏,得靠这几个苹果专属的 meta 标签才能生效。 -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="WorkTrack AI" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 <style>
   :root {
