@@ -4,6 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>WorkTrack AI</title>
+<!-- PWA 支持:加上这几行 + manifest.json + sw.js 之后,访客在 Chrome/Edge 地址栏
+     (电脑端)或者"添加到主屏幕"菜单(手机端)就能把 worktrackai.com 安装成一个有
+     独立图标、独立窗口的桌面/主屏幕 App,不用再从浏览器书签打开。 -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#7B2635" />
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 <style>
   :root {
@@ -1273,6 +1280,15 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
+// PWA:注册 Service Worker——只是为了满足浏览器"可安装 App"的前提条件(sw.js 本身
+// 不做任何离线缓存,详见该文件里的说明),注册失败(比如某些浏览器不支持)也不影响
+// 网页正常使用,所以只是安静地 catch 掉,不打扰用户。
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+
 const i18n = {
   zh: {
     brand: "WorkTrack AI",

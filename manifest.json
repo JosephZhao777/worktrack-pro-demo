@@ -1,0 +1,19 @@
+{
+  "name": "WorkTrack AI",
+  "short_name": "WorkTrack AI",
+  "description": "面向餐厅、外卖、咖啡店与配送团队的一站式考勤、GPS、工资与请假管理",
+  "id": "/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#3D2530",
+  "theme_color": "#7B2635",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
