@@ -354,12 +354,12 @@
           <div id="empPayrollNoteList" style="font-size:13px;opacity:.85;" data-i18n="employeePayrollNoteEmpty">暂无工资说明</div>
         </div>
 
-        <!-- 应用户明确要求("我划出来的这一块,主要显示本日工作时间"):这个板块专门
-             显示"今天"这一天的每一段打卡,每一段都写成完整一句"今日工作时间:从X月X日
-             X点X分到X点X分",不用再像以前那样切换"本周/本月"才看得到明细——本周/本月
-             各自的工时汇总仍然在上面的"本周工时/本月工时"卡片里,这里不重复。 -->
-        <div class="glass" style="padding:12px 14px;margin-top:10px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);">
-          <div style="font-weight:700;font-size:13px;margin-bottom:8px;" data-i18n="attendanceSummaryTitle">打卡明细</div>
+        <!-- 应用户明确要求("这个栏目里的周、月全部删除,只保留详细的今日工作时间...
+             画面要干净整洁"):彻底去掉"本周/本月"切换(本周/本月各自的工时汇总已经在
+             上面的"本周工时/本月工时"卡片里,这里不重复),只显示今天,大字先显示今天
+             总共工作了多少小时,下面每一段打卡简洁地写"从X点X分开始,到X点X分结束"。 -->
+        <div class="glass" style="padding:14px;margin-top:10px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);">
+          <div style="font-weight:700;font-size:13px;margin-bottom:10px;" data-i18n="attendanceSummaryTitle">今日工作时间</div>
           <div id="empAttendanceRangeList"></div>
         </div>
 
@@ -544,6 +544,93 @@
           <h2 class="section-title" data-i18n="navPayroll">工资管理</h2>
           <p class="section-sub" data-i18n="payrollSub">这里的每一笔工资都是你自己填的最终数字,系统不会用打卡记录自动计算。点"填写工资"给某位员工录入正常工资/加班工资/节假日工资/交通费/餐费;需要额外发放奖金或做扣款时,可以另外增加调整项;还可以给员工留一段工资说明,员工能在自己账号里看到。</p>
           <div id="payrollTable"></div>
+
+          <!-- 应用户明确要求(公式:"(周/月工作时间+加班费)X时薪+(餐费X工作日)+(交通费X工作日
+               或月票)+补贴=月或周工资。节假日时薪或日薪X(工作时间或加班时间)"):这是一个纯
+               算数辅助小工具,帮管理员自己把这几项加总算出来,不读任何打卡记录,数字全部是
+               管理员自己手动输入的——算完之后可以"一键填入"上面某位员工的工资表单,但不会
+               自动保存,管理员看到预填好的表单后自己确认/修改再点保存,依然是"管理员自己
+               决定最终数字",没有违背"绝对不能自动计算"这个大前提。 -->
+          <div class="glass" style="margin-top:16px;padding:16px;background:rgba(255,255,255,.5);">
+            <div style="font-weight:700;margin-bottom:4px;" data-i18n="wageCalcTitle">工资计算器</div>
+            <p class="section-sub" style="margin-bottom:14px;" data-i18n="wageCalcSub">帮你把工时工资、节假日工资、餐费、交通费加起来,算完可以一键填入某位员工的工资表单,你确认/改好之后自己点保存。"补贴"这一项不算进合计里,系统会提醒你用下面的"+ 增加调整项"手动加上。</p>
+
+            <div class="form-grid">
+              <div class="field full">
+                <label data-i18n="wageCalcEmployeeLabel">要填给哪位员工(一键填入用)</label>
+                <select id="wageCalcEmployee"></select>
+              </div>
+            </div>
+
+            <div class="form-grid" style="margin-top:8px;">
+              <div class="field"><label data-i18n="wageCalcRegularHoursLabel">正常工时</label>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <input type="number" min="0" id="wageCalcRegularHours" placeholder="0" style="flex:1;" /><span data-i18n="hoursUnit">小时</span>
+                  <input type="number" min="0" max="59" id="wageCalcRegularMinutes" placeholder="0" style="flex:1;" /><span data-i18n="minutesUnit">分钟</span>
+                </div>
+              </div>
+              <div class="field"><label data-i18n="wageCalcOvertimeHoursLabel">加班工时</label>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <input type="number" min="0" id="wageCalcOvertimeHours" placeholder="0" style="flex:1;" /><span data-i18n="hoursUnit">小时</span>
+                  <input type="number" min="0" max="59" id="wageCalcOvertimeMinutes" placeholder="0" style="flex:1;" /><span data-i18n="minutesUnit">分钟</span>
+                </div>
+              </div>
+              <div class="field"><label data-i18n="wageCalcHourlyRateLabel">时薪(欧元/小时)</label><input type="number" min="0" step="0.01" id="wageCalcHourlyRate" placeholder="0" /></div>
+              <div class="field"><label data-i18n="wageCalcOvertimeMultiplierLabel">加班倍率</label><input type="number" min="1" step="0.1" id="wageCalcOvertimeMultiplier" value="1.5" /></div>
+            </div>
+
+            <div class="form-grid" style="margin-top:8px;">
+              <div class="field"><label data-i18n="wageCalcHolidayModeLabel">节假日计价方式</label>
+                <select id="wageCalcHolidayMode">
+                  <option value="hourly" data-i18n="wageCalcHolidayModeHourly">按时薪</option>
+                  <option value="daily" data-i18n="wageCalcHolidayModeDaily">按日薪</option>
+                </select>
+              </div>
+              <div class="field"><label data-i18n="wageCalcHolidayRateLabel">节假日单价(欧元)</label><input type="number" min="0" step="0.01" id="wageCalcHolidayRate" placeholder="0" /></div>
+              <div class="field" id="wageCalcHolidayHoursField"><label data-i18n="wageCalcHolidayHoursLabel">节假日工时</label>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <input type="number" min="0" id="wageCalcHolidayHours" placeholder="0" style="flex:1;" /><span data-i18n="hoursUnit">小时</span>
+                  <input type="number" min="0" max="59" id="wageCalcHolidayMinutes" placeholder="0" style="flex:1;" /><span data-i18n="minutesUnit">分钟</span>
+                </div>
+              </div>
+              <div class="field hidden" id="wageCalcHolidayDaysField"><label data-i18n="wageCalcHolidayDaysLabel">节假日天数</label><input type="number" min="0" step="0.5" id="wageCalcHolidayDays" placeholder="0" /></div>
+            </div>
+
+            <div class="form-grid" style="margin-top:8px;">
+              <div class="field"><label data-i18n="wageCalcMealPerDayLabel">餐费(每日,欧元)</label><input type="number" min="0" step="0.01" id="wageCalcMealPerDay" placeholder="0" /></div>
+              <div class="field"><label data-i18n="wageCalcMealDaysLabel">出勤天数(餐费用)</label><input type="number" min="0" step="0.5" id="wageCalcMealDays" placeholder="0" /></div>
+            </div>
+
+            <div class="form-grid" style="margin-top:8px;">
+              <div class="field"><label data-i18n="wageCalcTransportModeLabel">交通费计价方式</label>
+                <select id="wageCalcTransportMode">
+                  <option value="perday" data-i18n="wageCalcTransportModePerDay">按天</option>
+                  <option value="pass" data-i18n="wageCalcTransportModePass">月票/固定金额</option>
+                </select>
+              </div>
+              <div class="field" id="wageCalcTransportPerDayField"><label data-i18n="wageCalcTransportPerDayLabel">交通费(每日,欧元)</label><input type="number" min="0" step="0.01" id="wageCalcTransportPerDay" placeholder="0" /></div>
+              <div class="field" id="wageCalcTransportDaysField"><label data-i18n="wageCalcTransportDaysLabel">出勤天数(交通用)</label><input type="number" min="0" step="0.5" id="wageCalcTransportDays" placeholder="0" /></div>
+              <div class="field hidden" id="wageCalcTransportPassField"><label data-i18n="wageCalcTransportPassLabel">月票/固定金额(欧元)</label><input type="number" min="0" step="0.01" id="wageCalcTransportPass" placeholder="0" /></div>
+            </div>
+
+            <div class="form-grid" style="margin-top:8px;">
+              <div class="field full"><label data-i18n="wageCalcSubsidyLabel">其他补贴(欧元,选填,不计入下面合计)</label><input type="number" min="0" step="0.01" id="wageCalcSubsidy" placeholder="0" /></div>
+            </div>
+
+            <div style="margin-top:14px;padding:12px 14px;border-radius:10px;background:rgba(123,38,53,.05);font-size:13px;line-height:1.9;">
+              <div style="display:flex;justify-content:space-between;"><span data-i18n="wageCalcResultRegularLabel">正常工资</span><strong id="wageCalcResultRegular">€0.00</strong></div>
+              <div style="display:flex;justify-content:space-between;"><span data-i18n="wageCalcResultOvertimeLabel">加班工资</span><strong id="wageCalcResultOvertime">€0.00</strong></div>
+              <div style="display:flex;justify-content:space-between;"><span data-i18n="wageCalcResultHolidayLabel">节假日工资</span><strong id="wageCalcResultHoliday">€0.00</strong></div>
+              <div style="display:flex;justify-content:space-between;"><span data-i18n="wageCalcResultMealLabel">餐费</span><strong id="wageCalcResultMeal">€0.00</strong></div>
+              <div style="display:flex;justify-content:space-between;"><span data-i18n="wageCalcResultTransportLabel">交通费</span><strong id="wageCalcResultTransport">€0.00</strong></div>
+              <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(123,38,53,.15);margin-top:6px;padding-top:6px;font-size:15px;">
+                <span data-i18n="wageCalcResultTotalLabel">合计(不含补贴)</span><strong id="wageCalcResultTotal">€0.00</strong>
+              </div>
+              <div id="wageCalcSubsidyNote" class="hidden" style="margin-top:8px;color:var(--warning);"></div>
+            </div>
+
+            <button type="button" class="btn btn-primary btn-block" style="margin-top:12px;" id="btnWageCalcFill" data-i18n="wageCalcFillBtn">一键填入所选员工的工资表单</button>
+          </div>
         </div>
         <div class="glass ca-section" id="ca-leave" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navLeave">请假审批</h2>
@@ -963,6 +1050,9 @@
         <div class="field"><label data-i18n="fieldTransportAllowance">交通费(欧元)</label><input type="number" min="0" step="0.01" id="manualWageTransportAllowance" placeholder="0" /></div>
         <div class="field"><label data-i18n="fieldMealAllowance">餐费(欧元)</label><input type="number" min="0" step="0.01" id="manualWageMealAllowance" placeholder="0" /></div>
       </div>
+      <!-- 工资计算器"一键填入"用的提示条,和下面的报错条(manualWageError)分开,
+           避免共用同一个元素导致颜色/文案互相覆盖。 -->
+      <div class="field-hint hidden" id="manualWageFillNotice" style="color:var(--text-2);"></div>
       <div class="field-hint hidden" id="manualWageError" style="color:var(--danger);"></div>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="saveManualWage">保存</button>
     </form>
@@ -1153,10 +1243,11 @@ const i18n = {
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "欢迎回来", clockIn: "上班打卡", clockOut: "下班打卡",
     todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "工资总额", attendanceRate: "出勤率",
     todayAttendanceTitle: "今日打卡记录", inProgressLabel: "进行中", noAttendanceToday: "今天还没有打卡记录",
-    attendanceSummaryTitle: "打卡明细", dailyTotalLabel: "当日合计",
-    // 应用户明确要求("我划出来的这一块,主要显示本日工作时间"):"打卡明细"板块不再切换
-    // 本周/本月,只显示今天,每一段打卡都拼成完整一句"今日工作时间:从X月X日 X点X分 到 X点X分"。
-    todayWorkTimeRange: function (dateLabel, from, to) { return "今日工作时间:从" + dateLabel + " " + from + " 到 " + to; },
+    attendanceSummaryTitle: "今日工作时间", dailyTotalLabel: "今日总共",
+    // 应用户明确要求("这个栏目里的周、月全部删除...画面要干净整洁"):不再显示日期
+    // (反正一定是今天),每一段打卡就写"从X点X分开始,到X点X分结束"这一句,足够简洁。
+    todayWorkTimeRange: function (from, to) { return "从" + from + " 开始,到 " + to + " 结束"; },
+    todayWorkTimeInProgress: function (from) { return "从" + from + " 开始,进行中"; },
     // Bug 修复(用户反馈:"11:27→16:13 显示 4.77h,这一定是计算上出现了 Bug"):数字本身没算错
     // (4 小时 46 分钟 = 4.766...,四舍五入就是 4.77),但"小数点后两位的小时数"这种写法很容易被
     // 误读成"4 小时 77 分钟",不是每个人都习惯把 0.77 小时心算成 46 分钟。这里把所有"工时"类的
@@ -1302,6 +1393,28 @@ const i18n = {
     fieldPayrollNote: "新增说明", submitPayrollNote: "发布说明", payrollNoteListEmpty: "还没有写过任何说明",
     confirmDeletePayrollNote: "确定要删除这条说明吗?",
     employeePayrollNoteTitle: "工资说明", employeePayrollNoteEmpty: "暂无工资说明",
+    // 应用户要求(公式:"(周/月工作时间+加班费)X时薪+(餐费X工作日)+(交通费X工作日或月票)+
+    // 补贴=月或周工资。节假日时薪或日薪X(工作时间或加班时间)"):纯算数辅助工具,不读打卡
+    // 记录,全部由管理员自己输入,算完可以"一键填入"上面的工资表单,不自动保存。
+    wageCalcTitle: "工资计算器",
+    wageCalcSub: "帮你把工时工资、节假日工资、餐费、交通费加起来,算完可以一键填入某位员工的工资表单,你确认/改好之后自己点保存。\"补贴\"这一项不算进合计里,系统会提醒你用下面的\"+ 增加调整项\"手动加上。",
+    wageCalcEmployeeLabel: "要填给哪位员工(一键填入用)",
+    wageCalcRegularHoursLabel: "正常工时", wageCalcOvertimeHoursLabel: "加班工时",
+    hoursUnit: "小时", minutesUnit: "分钟",
+    wageCalcHourlyRateLabel: "时薪(欧元/小时)", wageCalcOvertimeMultiplierLabel: "加班倍率",
+    wageCalcHolidayModeLabel: "节假日计价方式", wageCalcHolidayModeHourly: "按时薪", wageCalcHolidayModeDaily: "按日薪",
+    wageCalcHolidayRateLabel: "节假日单价(欧元)", wageCalcHolidayHoursLabel: "节假日工时", wageCalcHolidayDaysLabel: "节假日天数",
+    wageCalcMealPerDayLabel: "餐费(每日,欧元)", wageCalcMealDaysLabel: "出勤天数(餐费用)",
+    wageCalcTransportModeLabel: "交通费计价方式", wageCalcTransportModePerDay: "按天", wageCalcTransportModePass: "月票/固定金额",
+    wageCalcTransportPerDayLabel: "交通费(每日,欧元)", wageCalcTransportDaysLabel: "出勤天数(交通用)",
+    wageCalcTransportPassLabel: "月票/固定金额(欧元)",
+    wageCalcSubsidyLabel: "其他补贴(欧元,选填,不计入下面合计)",
+    wageCalcResultRegularLabel: "正常工资", wageCalcResultOvertimeLabel: "加班工资", wageCalcResultHolidayLabel: "节假日工资",
+    wageCalcResultMealLabel: "餐费", wageCalcResultTransportLabel: "交通费", wageCalcResultTotalLabel: "合计(不含补贴)",
+    wageCalcFillBtn: "一键填入所选员工的工资表单",
+    wageCalcSelectEmployeeFirst: "请先选一位员工,再点一键填入",
+    wageCalcSubsidyNote: function (amount) { return "另有补贴 €" + amount + ",请到上面这名员工那一行点\"+ 增加调整项\"手动加上(不会自动加进合计或表单)。"; },
+    wageCalcFilledNotice: "已经把计算结果填进下面的表单,请检查无误后自己点\"保存\"。",
     noLeaveRequestsYet: "暂无请假记录",
     navInventory: "智能库存",
     inventorySub: "系统按近 14 天的消耗速率自动预测断货天数与建议采购量,近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过\"记录流水\"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。",
@@ -1443,8 +1556,9 @@ const i18n = {
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "Welcome back", clockIn: "Clock in", clockOut: "Clock out",
     todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "Total pay", attendanceRate: "Attendance rate",
     todayAttendanceTitle: "Today's clock-ins", inProgressLabel: "In progress", noAttendanceToday: "No clock-ins yet today",
-    attendanceSummaryTitle: "Clock-in details", dailyTotalLabel: "Daily total",
-    todayWorkTimeRange: function (dateLabel, from, to) { return "Today's work time: " + dateLabel + " " + from + " to " + to; },
+    attendanceSummaryTitle: "Today's work time", dailyTotalLabel: "Total today",
+    todayWorkTimeRange: function (from, to) { return "From " + from + " to " + to; },
+    todayWorkTimeInProgress: function (from) { return "From " + from + ", in progress"; },
     hoursMinutesFormat: function (h, m) { return h > 0 ? (h + "h " + m + "m") : (m + "m"); },
     gpsForegroundNoticeTitle: "WorkTrack AI · Tracking your shift", gpsForegroundNoticeText: "Your location is recorded while clocked in — tap clock-out to stop",
     leaveBalance: "Leave balance", annual: "Annual", sick: "Sick", personal: "Personal", days: "days",
@@ -1579,6 +1693,25 @@ const i18n = {
     fieldPayrollNote: "New note", submitPayrollNote: "Post note", payrollNoteListEmpty: "No notes yet",
     confirmDeletePayrollNote: "Delete this note?",
     employeePayrollNoteTitle: "Pay notes", employeePayrollNoteEmpty: "No pay notes yet",
+    wageCalcTitle: "Wage calculator",
+    wageCalcSub: "Adds up work-hours pay, holiday pay, meal allowance and transport allowance for you. Once calculated, you can fill it straight into an employee's pay form, then review/adjust and save it yourself. \"Other subsidy\" isn't included in the total below — you'll be reminded to add it via \"+ Add adjustment\".",
+    wageCalcEmployeeLabel: "Which employee (for one-click fill)",
+    wageCalcRegularHoursLabel: "Regular hours", wageCalcOvertimeHoursLabel: "Overtime hours",
+    hoursUnit: "hr", minutesUnit: "min",
+    wageCalcHourlyRateLabel: "Hourly rate (EUR/hr)", wageCalcOvertimeMultiplierLabel: "Overtime multiplier",
+    wageCalcHolidayModeLabel: "Holiday pay basis", wageCalcHolidayModeHourly: "By hourly rate", wageCalcHolidayModeDaily: "By daily rate",
+    wageCalcHolidayRateLabel: "Holiday rate (EUR)", wageCalcHolidayHoursLabel: "Holiday hours", wageCalcHolidayDaysLabel: "Holiday days",
+    wageCalcMealPerDayLabel: "Meal allowance (per day, EUR)", wageCalcMealDaysLabel: "Days worked (for meal allowance)",
+    wageCalcTransportModeLabel: "Transport pricing", wageCalcTransportModePerDay: "Per day", wageCalcTransportModePass: "Monthly pass / fixed amount",
+    wageCalcTransportPerDayLabel: "Transport (per day, EUR)", wageCalcTransportDaysLabel: "Days worked (for transport)",
+    wageCalcTransportPassLabel: "Monthly pass / fixed amount (EUR)",
+    wageCalcSubsidyLabel: "Other subsidy (EUR, optional, not included in the total below)",
+    wageCalcResultRegularLabel: "Regular pay", wageCalcResultOvertimeLabel: "Overtime pay", wageCalcResultHolidayLabel: "Holiday pay",
+    wageCalcResultMealLabel: "Meal allowance", wageCalcResultTransportLabel: "Transport allowance", wageCalcResultTotalLabel: "Total (excl. subsidy)",
+    wageCalcFillBtn: "Fill into selected employee's pay form",
+    wageCalcSelectEmployeeFirst: "Please select an employee before filling in",
+    wageCalcSubsidyNote: function (amount) { return "There's also a subsidy of €" + amount + " — add it via \"+ Add adjustment\" on this employee's row (it will not be added to the total or form automatically)."; },
+    wageCalcFilledNotice: "The calculated amounts have been filled into the form below — please check them and click \"Save\" yourself.",
     fieldAdjustmentLabel: "Description", fieldAdjustmentAmount: "Amount (EUR, use negative for a deduction)", submitAddAdjustment: "Add adjustment",
     noLeaveRequestsYet: "No leave requests yet",
     navInventory: "Smart Inventory",
@@ -3255,18 +3388,11 @@ function startOfMonth(d) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
-/** "7月29日"这种简短的月/日显示(不带年份),给"打卡明细"板块每一段打卡拼句子用,
-    和请假模块的 formatLeaveDateShort() 是同一种简写风格,这里直接接收 Date 对象。 */
-function formatMonthDay(d) {
-  const opts = currentLang === "zh" ? { month: "long", day: "numeric" } : { month: "short", day: "numeric" };
-  return d.toLocaleDateString(currentLang === "zh" ? "zh-CN" : "en-GB", opts);
-}
-
 /**
- * "打卡明细"板块(应用户明确要求:"我划出来的这一块,主要显示本日工作时间"):只显示
- * "今天"这一天的每一段打卡,每一段都拼成完整一句"今日工作时间:从X月X日 X点X分 到
- * X点X分",不再需要在"本周/本月"之间切换——本周/本月各自的工时汇总已经在上面的
- * "本周工时/本月工时"两张卡片里,这里不重复。
+ * "今日工作时间"板块(应用户明确要求:"这个栏目里的周、月全部删除,只保留详细的今日
+ * 工作时间...画面要干净整洁"):彻底不再有"本周/本月"切换,只显示今天——本周/本月各自
+ * 的工时汇总已经在上面的"本周工时/本月工时"两张卡片里,这里不重复。视觉上先用大字号
+ * 显示今天总共工作了多少小时,下面每一段打卡只简洁地写"从X点X分开始,到X点X分结束"。
  *
  * Bug 修复(用户明确要求:"员工工时管理...要支持其它设备登录使用"):以前这里读的是
  * 浏览器本地 attendanceRecords,换一台设备/清空浏览器数据就是空的。现在改成从
@@ -3290,27 +3416,34 @@ function renderAttendanceRangeList() {
     return clockInAt >= todayStart && clockInAt < todayEnd;
   });
 
-  if (!todaySessions.length) { container.innerHTML = '<div class="insight-empty">' + dict.noAttendanceToday + '</div>'; return; }
+  if (!todaySessions.length) {
+    container.innerHTML =
+      '<div style="font-size:26px;font-weight:700;text-align:center;margin-bottom:2px;">' + formatHoursAsHm(0) + '</div>' +
+      '<div style="font-size:12px;opacity:.6;text-align:center;margin-bottom:10px;">' + dict.dailyTotalLabel + '</div>' +
+      '<div class="insight-empty">' + dict.noAttendanceToday + '</div>';
+    return;
+  }
 
   const nowMs = Date.now();
   let dayTotalHours = 0;
   const sessionRows = todaySessions.map(s => {
     const clockInAt = new Date(s.clockInAt);
-    const dateLabel = formatMonthDay(clockInAt);
     if (s.status === "OPEN" || typeof s.totalSeconds !== "number") {
       dayTotalHours += Math.max(0, (nowMs - clockInAt.getTime()) / 1000) / 3600;
-      return '<div class="list-item"><span>' + dict.todayWorkTimeRange(dateLabel, formatHhMm(clockInAt), dict.inProgressLabel) + '</span></div>';
+      return '<div class="list-item" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);">' +
+        '<span>' + dict.todayWorkTimeInProgress(formatHhMm(clockInAt)) + '</span></div>';
     }
     const clockOutAt = new Date(s.clockOutAt);
     const hoursText = formatHoursAsHm(s.totalSeconds / 3600);
     dayTotalHours += s.totalSeconds / 3600;
-    return '<div class="list-item"><span>' + dict.todayWorkTimeRange(dateLabel, formatHhMm(clockInAt), formatHhMm(clockOutAt)) + '</span>' +
+    return '<div class="list-item" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);">' +
+      '<span>' + dict.todayWorkTimeRange(formatHhMm(clockInAt), formatHhMm(clockOutAt)) + '</span>' +
       '<span style="margin-left:auto;opacity:.7;">' + hoursText + '</span></div>';
   }).join("");
 
   container.innerHTML =
-    '<div style="display:flex;justify-content:space-between;font-weight:600;font-size:12.5px;padding:4px 0;">' +
-    '<span>' + dict.dailyTotalLabel + '</span><span>' + formatHoursAsHm(dayTotalHours) + '</span></div>' +
+    '<div style="font-size:26px;font-weight:700;text-align:center;margin-bottom:2px;">' + formatHoursAsHm(dayTotalHours) + '</div>' +
+    '<div style="font-size:12px;opacity:.6;text-align:center;margin-bottom:10px;">' + dict.dailyTotalLabel + '</div>' +
     sessionRows;
 }
 
@@ -5936,6 +6069,7 @@ async function renderPayrollTable() {
   const container = document.getElementById("payrollTable");
   if (!container) return;
   const dict = i18n[currentLang];
+  populateEmployeeSelect("wageCalcEmployee"); // 工资计算器"一键填入"用的员工下拉框,跟着员工名单一起刷新
   const joinedEmployees = employees.filter(e => e.joined && e.backendId);
   if (!joinedEmployees.length) {
     container.innerHTML = '<div class="insight-empty">' + dict.noEmployeesYet + '</div>';
@@ -6047,6 +6181,126 @@ async function renderPayrollTable() {
 }
 
 /**
+ * 工资计算器(应用户要求,公式:"(周/月工作时间+加班费)X时薪+(餐费X工作日)+(交通费X
+ * 工作日或月票)+补贴=月或周工资。节假日时薪或日薪X(工作时间或加班时间)"):纯前端
+ * 算数辅助工具,不读任何打卡记录,五项工时/费用全部由管理员自己输入,算完可以
+ * "一键填入"上面某位员工的工资表单——不会自动保存,管理员看到预填好的表单后自己
+ * 确认/修改再点保存,依然是"管理员自己决定最终数字"。"补贴"这一项刻意不计入合计,
+ * 提醒改用现成的"+ 增加调整项"功能,避免系统里出现两条互相打架的补贴数字。
+ *
+ * 工时输入特意拆成"小时"+"分钟"两个框,而不是一个小数框——这名用户曾经把
+ * "2小时48分钟"错误地当成"2.48"输入(正确换算是 2.8),这里直接输小时+分钟,
+ * 由代码换算成小数,不需要管理员自己心算分钟转小数这一步,从源头上避免同样的错误。
+ */
+function getWageCalcNumberValue(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  const n = Number(el.value);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function updateWageCalcFieldVisibility() {
+  const holidayModeEl = document.getElementById("wageCalcHolidayMode");
+  const transportModeEl = document.getElementById("wageCalcTransportMode");
+  if (!holidayModeEl || !transportModeEl) return;
+  const holidayMode = holidayModeEl.value;
+  document.getElementById("wageCalcHolidayHoursField").classList.toggle("hidden", holidayMode !== "hourly");
+  document.getElementById("wageCalcHolidayDaysField").classList.toggle("hidden", holidayMode !== "daily");
+
+  const transportMode = transportModeEl.value;
+  document.getElementById("wageCalcTransportPerDayField").classList.toggle("hidden", transportMode !== "perday");
+  document.getElementById("wageCalcTransportDaysField").classList.toggle("hidden", transportMode !== "perday");
+  document.getElementById("wageCalcTransportPassField").classList.toggle("hidden", transportMode !== "pass");
+}
+
+let wageCalcLastResult = { regularCents: 0, overtimeCents: 0, holidayCents: 0, mealCents: 0, transportCents: 0 };
+
+function computeWageCalculator() {
+  const dict = i18n[currentLang];
+  const resultTotalEl = document.getElementById("wageCalcResultTotal");
+  if (!resultTotalEl) return;
+
+  const regularHours = getWageCalcNumberValue("wageCalcRegularHours") + getWageCalcNumberValue("wageCalcRegularMinutes") / 60;
+  const overtimeHours = getWageCalcNumberValue("wageCalcOvertimeHours") + getWageCalcNumberValue("wageCalcOvertimeMinutes") / 60;
+  const hourlyRate = getWageCalcNumberValue("wageCalcHourlyRate");
+  const overtimeMultiplier = getWageCalcNumberValue("wageCalcOvertimeMultiplier") || 1;
+  const regularCents = Math.round(regularHours * hourlyRate * 100);
+  const overtimeCents = Math.round(overtimeHours * hourlyRate * overtimeMultiplier * 100);
+
+  const holidayMode = document.getElementById("wageCalcHolidayMode").value;
+  const holidayRate = getWageCalcNumberValue("wageCalcHolidayRate");
+  let holidayCents = 0;
+  if (holidayMode === "hourly") {
+    const holidayHours = getWageCalcNumberValue("wageCalcHolidayHours") + getWageCalcNumberValue("wageCalcHolidayMinutes") / 60;
+    holidayCents = Math.round(holidayHours * holidayRate * 100);
+  } else {
+    holidayCents = Math.round(getWageCalcNumberValue("wageCalcHolidayDays") * holidayRate * 100);
+  }
+
+  const mealCents = Math.round(getWageCalcNumberValue("wageCalcMealPerDay") * getWageCalcNumberValue("wageCalcMealDays") * 100);
+
+  const transportMode = document.getElementById("wageCalcTransportMode").value;
+  const transportCents = transportMode === "perday"
+    ? Math.round(getWageCalcNumberValue("wageCalcTransportPerDay") * getWageCalcNumberValue("wageCalcTransportDays") * 100)
+    : Math.round(getWageCalcNumberValue("wageCalcTransportPass") * 100);
+
+  const totalCents = regularCents + overtimeCents + holidayCents + mealCents + transportCents;
+
+  document.getElementById("wageCalcResultRegular").textContent = "€" + (regularCents / 100).toFixed(2);
+  document.getElementById("wageCalcResultOvertime").textContent = "€" + (overtimeCents / 100).toFixed(2);
+  document.getElementById("wageCalcResultHoliday").textContent = "€" + (holidayCents / 100).toFixed(2);
+  document.getElementById("wageCalcResultMeal").textContent = "€" + (mealCents / 100).toFixed(2);
+  document.getElementById("wageCalcResultTransport").textContent = "€" + (transportCents / 100).toFixed(2);
+  resultTotalEl.textContent = "€" + (totalCents / 100).toFixed(2);
+
+  const subsidy = getWageCalcNumberValue("wageCalcSubsidy");
+  const subsidyNoteEl = document.getElementById("wageCalcSubsidyNote");
+  if (subsidy > 0) {
+    subsidyNoteEl.textContent = dict.wageCalcSubsidyNote(subsidy.toFixed(2));
+    subsidyNoteEl.classList.remove("hidden");
+  } else {
+    subsidyNoteEl.classList.add("hidden");
+  }
+
+  wageCalcLastResult = { regularCents, overtimeCents, holidayCents, mealCents, transportCents };
+}
+
+[
+  "wageCalcRegularHours", "wageCalcRegularMinutes", "wageCalcOvertimeHours", "wageCalcOvertimeMinutes",
+  "wageCalcHourlyRate", "wageCalcOvertimeMultiplier", "wageCalcHolidayRate", "wageCalcHolidayHours",
+  "wageCalcHolidayMinutes", "wageCalcHolidayDays", "wageCalcMealPerDay", "wageCalcMealDays",
+  "wageCalcTransportPerDay", "wageCalcTransportDays", "wageCalcTransportPass", "wageCalcSubsidy",
+].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("input", computeWageCalculator);
+});
+
+const wageCalcHolidayModeEl = document.getElementById("wageCalcHolidayMode");
+if (wageCalcHolidayModeEl) wageCalcHolidayModeEl.addEventListener("change", () => { updateWageCalcFieldVisibility(); computeWageCalculator(); });
+const wageCalcTransportModeEl = document.getElementById("wageCalcTransportMode");
+if (wageCalcTransportModeEl) wageCalcTransportModeEl.addEventListener("change", () => { updateWageCalcFieldVisibility(); computeWageCalculator(); });
+
+updateWageCalcFieldVisibility();
+
+const btnWageCalcFill = document.getElementById("btnWageCalcFill");
+if (btnWageCalcFill) {
+  btnWageCalcFill.addEventListener("click", () => {
+    const dict = i18n[currentLang];
+    const employeeId = document.getElementById("wageCalcEmployee").value;
+    if (!employeeId) { window.alert(dict.wageCalcSelectEmployeeFirst); return; }
+    openManualWageModal(employeeId);
+    document.getElementById("manualWageRegularPay").value = (wageCalcLastResult.regularCents / 100).toFixed(2);
+    document.getElementById("manualWageOvertimePay").value = (wageCalcLastResult.overtimeCents / 100).toFixed(2);
+    document.getElementById("manualWageHolidayPay").value = (wageCalcLastResult.holidayCents / 100).toFixed(2);
+    document.getElementById("manualWageTransportAllowance").value = (wageCalcLastResult.transportCents / 100).toFixed(2);
+    document.getElementById("manualWageMealAllowance").value = (wageCalcLastResult.mealCents / 100).toFixed(2);
+    const fillNoticeEl = document.getElementById("manualWageFillNotice");
+    fillNoticeEl.textContent = dict.wageCalcFilledNotice;
+    fillNoticeEl.classList.remove("hidden");
+  });
+}
+
+/**
  * 填写工资弹窗——用户明确要求:"管理员一对一给工人计算工时与小时工资",这里就是
  * 那个"一对一"的入口。回填 manualWageRecordsCache 里的当前值(没填过就都是 0),
  * 保存时用 PATCH 语义的 upsert 接口(POST manual-wages/:employeeId),传了的字段
@@ -6063,6 +6317,7 @@ function openManualWageModal(employeeId) {
   document.getElementById("manualWageTransportAllowance").value = (w.transportAllowanceCents / 100).toFixed(2);
   document.getElementById("manualWageMealAllowance").value = (w.mealAllowanceCents / 100).toFixed(2);
   document.getElementById("manualWageError").classList.add("hidden");
+  document.getElementById("manualWageFillNotice").classList.add("hidden");
   const title = document.getElementById("manualWageModalTitle");
   const emp = employees.find(e => e.backendId === employeeId);
   if (title) title.textContent = i18n[currentLang].manualWageModalTitle + (emp ? "  ·  " + emp.name : "");
@@ -6075,6 +6330,7 @@ document.getElementById("form-manual-wage").addEventListener("submit", async e =
   const employeeId = document.getElementById("manualWageEmployeeId").value;
   const errorEl = document.getElementById("manualWageError");
   errorEl.classList.add("hidden");
+  document.getElementById("manualWageFillNotice").classList.add("hidden");
   const toCents = id => {
     const raw = document.getElementById(id).value.trim();
     if (raw === "") return 0;
