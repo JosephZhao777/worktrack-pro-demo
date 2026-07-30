@@ -354,19 +354,12 @@
           <div id="empPayrollNoteList" style="font-size:13px;opacity:.85;" data-i18n="employeePayrollNoteEmpty">暂无工资说明</div>
         </div>
 
-        <!-- Bug 修复(用户明确要求):员工登录后之前只看得到"今日"一天的打卡记录,
-             想知道这周/这个月每天几点上班几点下班、当天合计多少小时,完全没有地方看——
-             只能靠上面两张卡片里两个孤零零的总数,看不到明细是怎么来的。这里按真实的
-             自然周(周一到周日)/自然月边界,把每天的打卡明细列出来,可以在"本周"和
-             "本月"之间切换查看。 -->
+        <!-- 应用户明确要求("我划出来的这一块,主要显示本日工作时间"):这个板块专门
+             显示"今天"这一天的每一段打卡,每一段都写成完整一句"今日工作时间:从X月X日
+             X点X分到X点X分",不用再像以前那样切换"本周/本月"才看得到明细——本周/本月
+             各自的工时汇总仍然在上面的"本周工时/本月工时"卡片里,这里不重复。 -->
         <div class="glass" style="padding:12px 14px;margin-top:10px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
-            <div style="font-weight:700;font-size:13px;" data-i18n="attendanceSummaryTitle">打卡明细</div>
-            <div class="tab-switch" style="width:140px;margin-bottom:0;">
-              <button type="button" class="attendance-range-tab active" data-range="week" data-i18n="tabThisWeek">本周</button>
-              <button type="button" class="attendance-range-tab" data-range="month" data-i18n="tabThisMonth">本月</button>
-            </div>
-          </div>
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;" data-i18n="attendanceSummaryTitle">打卡明细</div>
           <div id="empAttendanceRangeList"></div>
         </div>
 
@@ -1160,8 +1153,10 @@ const i18n = {
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "欢迎回来", clockIn: "上班打卡", clockOut: "下班打卡",
     todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "工资总额", attendanceRate: "出勤率",
     todayAttendanceTitle: "今日打卡记录", inProgressLabel: "进行中", noAttendanceToday: "今天还没有打卡记录",
-    attendanceSummaryTitle: "打卡明细", tabThisWeek: "本周", tabThisMonth: "本月",
-    noAttendanceInRange: "这段时间还没有打卡记录", dailyTotalLabel: "当日合计",
+    attendanceSummaryTitle: "打卡明细", dailyTotalLabel: "当日合计",
+    // 应用户明确要求("我划出来的这一块,主要显示本日工作时间"):"打卡明细"板块不再切换
+    // 本周/本月,只显示今天,每一段打卡都拼成完整一句"今日工作时间:从X月X日 X点X分 到 X点X分"。
+    todayWorkTimeRange: function (dateLabel, from, to) { return "今日工作时间:从" + dateLabel + " " + from + " 到 " + to; },
     // Bug 修复(用户反馈:"11:27→16:13 显示 4.77h,这一定是计算上出现了 Bug"):数字本身没算错
     // (4 小时 46 分钟 = 4.766...,四舍五入就是 4.77),但"小数点后两位的小时数"这种写法很容易被
     // 误读成"4 小时 77 分钟",不是每个人都习惯把 0.77 小时心算成 46 分钟。这里把所有"工时"类的
@@ -1448,8 +1443,8 @@ const i18n = {
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "Welcome back", clockIn: "Clock in", clockOut: "Clock out",
     todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "Total pay", attendanceRate: "Attendance rate",
     todayAttendanceTitle: "Today's clock-ins", inProgressLabel: "In progress", noAttendanceToday: "No clock-ins yet today",
-    attendanceSummaryTitle: "Clock-in details", tabThisWeek: "This week", tabThisMonth: "This month",
-    noAttendanceInRange: "No clock-ins in this period yet", dailyTotalLabel: "Daily total",
+    attendanceSummaryTitle: "Clock-in details", dailyTotalLabel: "Daily total",
+    todayWorkTimeRange: function (dateLabel, from, to) { return "Today's work time: " + dateLabel + " " + from + " to " + to; },
     hoursMinutesFormat: function (h, m) { return h > 0 ? (h + "h " + m + "m") : (m + "m"); },
     gpsForegroundNoticeTitle: "WorkTrack AI · Tracking your shift", gpsForegroundNoticeText: "Your location is recorded while clocked in — tap clock-out to stop",
     leaveBalance: "Leave balance", annual: "Annual", sick: "Sick", personal: "Personal", days: "days",
@@ -3260,11 +3255,18 @@ function startOfMonth(d) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
-let attendanceRangeTab = "week"; // "week" | "month" —— 打卡明细面板当前展示的是本周还是本月
+/** "7月29日"这种简短的月/日显示(不带年份),给"打卡明细"板块每一段打卡拼句子用,
+    和请假模块的 formatLeaveDateShort() 是同一种简写风格,这里直接接收 Date 对象。 */
+function formatMonthDay(d) {
+  const opts = currentLang === "zh" ? { month: "long", day: "numeric" } : { month: "short", day: "numeric" };
+  return d.toLocaleDateString(currentLang === "zh" ? "zh-CN" : "en-GB", opts);
+}
 
 /**
- * 把某个日期范围内(本周/本月)的打卡记录按日期分组,每天一张小卡片:日期 + 当天每一次
- * 上班-下班(或"进行中")+ 当天合计工时,按日期从近到远排序,方便一眼看到最近的记录。
+ * "打卡明细"板块(应用户明确要求:"我划出来的这一块,主要显示本日工作时间"):只显示
+ * "今天"这一天的每一段打卡,每一段都拼成完整一句"今日工作时间:从X月X日 X点X分 到
+ * X点X分",不再需要在"本周/本月"之间切换——本周/本月各自的工时汇总已经在上面的
+ * "本周工时/本月工时"两张卡片里,这里不重复。
  *
  * Bug 修复(用户明确要求:"员工工时管理...要支持其它设备登录使用"):以前这里读的是
  * 浏览器本地 attendanceRecords,换一台设备/清空浏览器数据就是空的。现在改成从
@@ -3278,56 +3280,39 @@ function renderAttendanceRangeList() {
   const employeeName = currentEmployeeName();
   if (!employeeName || !currentUserId) { container.innerHTML = ""; return; }
 
-  const today = new Date();
-  const rangeStart = attendanceRangeTab === "week" ? startOfWeek(today) : startOfMonth(today);
-  const rangeEnd = attendanceRangeTab === "week"
-    ? new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + 7)
-    : new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 1);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayEnd = new Date(todayStart.getFullYear(), todayStart.getMonth(), todayStart.getDate() + 1);
 
-  const byDate = {};
-  realAttendanceSessions.forEach(s => {
-    if (s.employeeId !== currentUserId || s.voidedAt) return;
+  const todaySessions = realAttendanceSessions.filter(s => {
+    if (s.employeeId !== currentUserId || s.voidedAt) return false;
     const clockInAt = new Date(s.clockInAt);
-    if (clockInAt < rangeStart || clockInAt >= rangeEnd) return;
-    const dateStr = clockInAt.toISOString().slice(0, 10);
-    if (!byDate[dateStr]) byDate[dateStr] = [];
-    byDate[dateStr].push(s);
+    return clockInAt >= todayStart && clockInAt < todayEnd;
   });
 
-  const dateKeys = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
-  if (!dateKeys.length) { container.innerHTML = '<div class="insight-empty">' + dict.noAttendanceInRange + '</div>'; return; }
+  if (!todaySessions.length) { container.innerHTML = '<div class="insight-empty">' + dict.noAttendanceToday + '</div>'; return; }
 
   const nowMs = Date.now();
-  container.innerHTML = dateKeys.map(dateStr => {
-    const sessions = byDate[dateStr];
-    let dayTotalHours = 0;
-    const sessionRows = sessions.map(s => {
-      const clockInAt = new Date(s.clockInAt);
-      if (s.status === "OPEN" || typeof s.totalSeconds !== "number") {
-        dayTotalHours += Math.max(0, (nowMs - clockInAt.getTime()) / 1000) / 3600;
-        return '<div class="list-item" style="padding-left:10px;"><span>' + formatHhMm(clockInAt) + ' → ' + dict.inProgressLabel + '</span></div>';
-      }
-      const clockOutAt = new Date(s.clockOutAt);
-      const hoursText = formatHoursAsHm(s.totalSeconds / 3600);
-      dayTotalHours += s.totalSeconds / 3600;
-      return '<div class="list-item" style="padding-left:10px;"><span>' + formatHhMm(clockInAt) + ' → ' + formatHhMm(clockOutAt) + '</span>' +
-        '<span style="margin-left:auto;opacity:.7;">' + hoursText + '</span></div>';
-    }).join("");
-    return '<div style="margin-bottom:8px;">' +
-      '<div style="display:flex;justify-content:space-between;font-weight:600;font-size:12.5px;padding:4px 0;">' +
-      '<span>' + dateStr + '</span><span>' + dict.dailyTotalLabel + ': ' + formatHoursAsHm(dayTotalHours) + '</span></div>' +
-      sessionRows + '</div>';
+  let dayTotalHours = 0;
+  const sessionRows = todaySessions.map(s => {
+    const clockInAt = new Date(s.clockInAt);
+    const dateLabel = formatMonthDay(clockInAt);
+    if (s.status === "OPEN" || typeof s.totalSeconds !== "number") {
+      dayTotalHours += Math.max(0, (nowMs - clockInAt.getTime()) / 1000) / 3600;
+      return '<div class="list-item"><span>' + dict.todayWorkTimeRange(dateLabel, formatHhMm(clockInAt), dict.inProgressLabel) + '</span></div>';
+    }
+    const clockOutAt = new Date(s.clockOutAt);
+    const hoursText = formatHoursAsHm(s.totalSeconds / 3600);
+    dayTotalHours += s.totalSeconds / 3600;
+    return '<div class="list-item"><span>' + dict.todayWorkTimeRange(dateLabel, formatHhMm(clockInAt), formatHhMm(clockOutAt)) + '</span>' +
+      '<span style="margin-left:auto;opacity:.7;">' + hoursText + '</span></div>';
   }).join("");
-}
 
-document.querySelectorAll(".attendance-range-tab").forEach(tabBtn => {
-  tabBtn.addEventListener("click", () => {
-    document.querySelectorAll(".attendance-range-tab").forEach(b => b.classList.remove("active"));
-    tabBtn.classList.add("active");
-    attendanceRangeTab = tabBtn.dataset.range;
-    renderAttendanceRangeList();
-  });
-});
+  container.innerHTML =
+    '<div style="display:flex;justify-content:space-between;font-weight:600;font-size:12.5px;padding:4px 0;">' +
+    '<span>' + dict.dailyTotalLabel + '</span><span>' + formatHoursAsHm(dayTotalHours) + '</span></div>' +
+    sessionRows;
+}
 
 // Bug 修复:之前这个按钮只管理一个纯前端的计时器显示,从来没有真正调用过后端
 // AttendanceModule——员工打卡本该是考勤数据最主要的来源,结果考勤记录、工资表、
