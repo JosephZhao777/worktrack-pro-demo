@@ -1136,9 +1136,11 @@
       <div class="form-grid">
         <div class="field full">
           <label data-i18n="fieldItemName">商品名称</label>
-          <input type="text" id="invFieldName" list="invItemNameOptions" autocomplete="off" required />
-          <datalist id="invItemNameOptions"></datalist>
-          <div class="field-hint" data-i18n="invItemNameSyncHint">选择分类后,这里会自动提示该分类下已有的商品名称,方便对照,避免重复新建;也可以直接输入全新的商品名称。</div>
+          <select id="invFieldNameSelect" style="margin-bottom:8px;">
+            <option value="__new__" data-i18n="invItemNameNewOption">+ 新建商品(手动输入名称)</option>
+          </select>
+          <input type="text" id="invFieldName" required />
+          <div class="field-hint" data-i18n="invItemNameSyncHint">选好分类后,上面的下拉菜单会自动列出该分类下已有的商品,直接选择就能带出名称并自动带出对应分类,避免重复新建或分类选错;选"+ 新建商品"可以手动输入全新的商品名称。</div>
         </div>
         <div class="field full" id="invCurrentQtyDisplayWrap">
           <label data-i18n="fieldCurrentQtyDisplay">当前库存总量</label>
@@ -1475,7 +1477,8 @@ const i18n = {
     inventorySub: "系统按近 14 天的消耗速率自动预测断货天数与建议采购量,近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过\"记录流水\"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。",
     addInventoryItem: "+ 新增库存商品", editItem: "编辑商品资料", submitAddItem: "保存",
     fieldSku: "SKU 编号", fieldItemName: "商品名称", fieldCategory: "分类(可选)", fieldUnit: "单位",
-    invItemNameSyncHint: "选择分类后,这里会自动提示该分类下已有的商品名称,方便对照,避免重复新建;也可以直接输入全新的商品名称。",
+    invItemNameSyncHint: "选好分类后,上面的下拉菜单会自动列出该分类下已有的商品,直接选择就能带出名称并自动带出对应分类,避免重复新建或分类选错;选\"+ 新建商品\"可以手动输入全新的商品名称。",
+    invItemNameNewOption: "+ 新建商品(手动输入名称)",
     fieldReorderThreshold: "进货阈值(可选)", fieldReorderQuantity: "建议采购量(可选)", fieldLeadTimeDays: "采购提前期(天)",
     fieldCurrentQtyDisplay: "当前库存总量", sectionPackaging: "规格(可选)", newItemStartsAtZero: "新建商品,库存从 0 开始",
     fieldInitialQuantity: "当前库存(可选)",
@@ -1769,7 +1772,8 @@ const i18n = {
     inventorySub: "Low-stock alerts are based only on the reorder threshold you set (no more auto-estimated days-until-stockout), and waste is flagged separately when it exceeds 10% of consumption over the last 30 days. Stock quantity only changes via \"Record transaction\" (receipt/consumption/waste/adjustment) — there's no way to edit the number directly, so every change stays traceable.",
     addInventoryItem: "+ Add inventory item", editItem: "Edit item", submitAddItem: "Save",
     fieldSku: "SKU", fieldItemName: "Item name", fieldCategory: "Category (optional)", fieldUnit: "Unit",
-    invItemNameSyncHint: "Once you pick a category, this suggests existing item names in that category so you can check for duplicates at a glance; you can still type a brand-new item name.",
+    invItemNameSyncHint: "Once you pick a category, the dropdown above lists existing items in that category — pick one to fill in the name and auto-select its category, avoiding duplicates or the wrong category; choose \"+ New item\" to type a brand-new name.",
+    invItemNameNewOption: "+ New item (type a new name)",
     fieldReorderThreshold: "Reorder threshold (optional)", fieldReorderQuantity: "Suggested reorder (optional)", fieldLeadTimeDays: "Lead time (days)",
     fieldCurrentQtyDisplay: "Current total stock", sectionPackaging: "Spec (optional)", newItemStartsAtZero: "New item — stock starts at 0",
     fieldInitialQuantity: "Current stock (optional)",
@@ -5364,17 +5368,19 @@ function populateInventoryCategorySelect(selectEl, currentCategoryId) {
   selectEl.innerHTML = html;
 }
 
-// "商品名称"输入框的自动完成建议列表——跟"分类"下拉框同步:选了某个分类,
-// 这里就只提示这个分类下已经存在的商品名称,方便一眼看出是否已有同名/同类商品,
-// 避免重复新建;没有选分类(或分类是"不选择分类")时,提示全部商品的名称。
-// 用的是 <datalist>,不是限制性下拉——依然可以输入一个全新的商品名称(这是新增表单,
-// 不能只允许选已有名字)。
-function populateInvItemNameOptions(categoryId) {
-  const datalist = document.getElementById("invItemNameOptions");
-  if (!datalist) return;
+// "商品名称"上方的真正下拉菜单——跟"分类"下拉框联动:选了某个分类,这里就只列出
+// 这个分类下已经存在的商品;没选分类(或"不选择分类")时,列出全部商品,按名称排序。
+// 第一项永远是"+ 新建商品",选它表示要手动在下面文本框里打一个全新的名字——
+// 这是新增表单,不能强制只能选已有名字。
+function populateInvItemNameSelect(categoryId) {
+  const dict = i18n[currentLang];
+  const select = document.getElementById("invFieldNameSelect");
+  if (!select) return;
   const source = categoryId ? inventoryItems.filter(function (it) { return it.categoryId === categoryId; }) : inventoryItems;
   const uniqueNames = Array.from(new Set(source.map(function (it) { return it.name; }))).sort(function (a, b) { return a.localeCompare(b, "zh"); });
-  datalist.innerHTML = uniqueNames.map(function (name) { return '<option value="' + name + '"></option>'; }).join("");
+  select.innerHTML = '<option value="__new__">' + dict.invItemNameNewOption + "</option>" +
+    uniqueNames.map(function (name) { return '<option value="' + name + '">' + name + "</option>"; }).join("");
+  select.value = "__new__";
 }
 
 function openInventoryItemModal(item) {
@@ -5384,7 +5390,7 @@ function openInventoryItemModal(item) {
   document.getElementById("inventoryItemId").value = item ? String(item.id) : "";
   document.getElementById("invFieldName").value = item ? item.name : "";
   populateInventoryCategorySelect(document.getElementById("invFieldCategoryId"), item ? item.categoryId : null);
-  populateInvItemNameOptions(item ? item.categoryId : null);
+  populateInvItemNameSelect(item ? item.categoryId : null);
   document.getElementById("invFieldUnit").value = item ? item.unit : "kg";
   document.getElementById("invFieldReorderThreshold").value = (item && item.reorderThreshold !== null && item.reorderThreshold !== undefined) ? item.reorderThreshold : "";
   document.getElementById("invFieldReorderQuantity").value = (item && item.reorderQuantity !== null && item.reorderQuantity !== undefined) ? item.reorderQuantity : "";
@@ -5701,10 +5707,30 @@ function generateAutoSku() {
   return "ITEM-" + timePart + randomPart;
 }
 
-// 分类下拉框一变化,"商品名称"的自动完成建议就跟着重新同步——选了分类之后,
-// 输入框里弹出的建议只限这个分类下已有的商品名,不用等提交表单才发现选错了/重复了。
+// 分类下拉框一变化,"商品名称"下拉菜单就跟着重新同步——选了分类之后,
+// 名称下拉菜单里只列这个分类下已有的商品,不用等提交表单才发现选错了/重复了。
 document.getElementById("invFieldCategoryId").addEventListener("change", e => {
-  populateInvItemNameOptions(e.target.value || null);
+  populateInvItemNameSelect(e.target.value || null);
+});
+
+// "商品名称"下拉菜单跟分类是双向联动的:选了一个已有商品名,自动把它的名称填进
+// 下面的文本框,同时把分类下拉框也一起带出来(如果当时还没选分类)——避免分类
+// 选错。选"+ 新建商品"表示要打一个全新名字:清空文本框并把焦点给它,方便直接输入。
+document.getElementById("invFieldNameSelect").addEventListener("change", e => {
+  const nameInput = document.getElementById("invFieldName");
+  if (e.target.value === "__new__") {
+    nameInput.value = "";
+    nameInput.focus();
+    return;
+  }
+  nameInput.value = e.target.value;
+  const categorySelect = document.getElementById("invFieldCategoryId");
+  if (!categorySelect.value) {
+    const matched = inventoryItems.find(it => it.name === e.target.value);
+    if (matched && matched.categoryId) {
+      categorySelect.value = matched.categoryId;
+    }
+  }
 });
 
 document.getElementById("form-inventory-item").addEventListener("submit", async e => {
