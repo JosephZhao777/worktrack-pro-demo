@@ -98,6 +98,7 @@
   .btn-outline { background: transparent; border-color: var(--border-c); color: var(--text-1); }
   .btn-outline:hover { background: rgba(123,38,53,.08); }
   .inv-status-filter-btn.active { background: var(--brand-blue); color: #fff; border-color: var(--brand-blue); }
+  .inv-category-header-row td { background: rgba(123,38,53,.06); font-size: 13px; padding: 8px 12px; border-top: 1px solid var(--border-c); }
   .btn-block { width: 100%; }
 
   /* ---------- FOOTER ---------- */
@@ -549,7 +550,10 @@
           <div id="inventoryInsights"></div>
 
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0;">
-            <input type="text" id="invSearchInput" data-i18n-placeholder="invSearchPlaceholder" placeholder="按商品名称/分类搜索" style="flex:1;min-width:180px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;" />
+            <div style="position:relative;flex:1;min-width:180px;">
+              <span aria-hidden="true" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:14px;opacity:.7;">🔍</span>
+              <input type="text" id="invSearchInput" data-i18n-placeholder="invSearchPlaceholder" placeholder="按商品名称/分类搜索" style="width:100%;box-sizing:border-box;height:36px;padding:0 12px 0 34px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;" />
+            </div>
             <select id="invCategoryFilter" style="height:36px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;padding:0 8px;">
               <option value="" data-i18n="invFilterAllCategories">全部分类</option>
             </select>
@@ -5321,6 +5325,33 @@ function buildInventorySpecLabel(item, dict) {
   return item.unit;
 }
 
+/** 把当前页要展示的商品按分类分组:每个分类一个标题行(按"分类管理"里的顺序排列),
+    组内保持原有的"库存不足优先"排序;没有挂分类的商品统一归到"未分类"分组,排在最后,
+    这样列表不再是所有商品混在一起,一眼就能看出每个分类下有哪些商品。 */
+function renderGroupedInventoryRows(items, dict) {
+  const orderedLabels = flattenCategoryOptions(inventoryCategoryTree, { activeOnly: false }).map(opt => opt.label);
+  const groups = new Map();
+  items.forEach(item => {
+    const label = categoryDisplayLabel(item) || dict.noCategorySelected;
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(item);
+  });
+  const sortedLabels = Array.from(groups.keys()).sort((a, b) => {
+    const ia = orderedLabels.indexOf(a);
+    const ib = orderedLabels.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+  return sortedLabels.map(label => {
+    const groupItems = groups.get(label);
+    const headerRow = '<tr class="inv-category-header-row"><td colspan="6"><strong>' + label + '</strong>' +
+      '<span style="font-weight:400;color:var(--text-2);"> · ' + groupItems.length + '</span></td></tr>';
+    return headerRow + groupItems.map(item => buildInventoryRowHtml(item)).join("");
+  }).join("");
+}
+
 function buildInventoryRowHtml(item) {
   const dict = i18n[currentLang];
   const view = computeInventoryView(item);
@@ -5606,7 +5637,7 @@ function renderInventoryTable() {
 
   const emptyMessage = allActiveItems.length === 0 ? dict.empInventoryNoItems : dict.noResultsFound;
   const rowsHtml = pageItems.length
-    ? pageItems.map(item => buildInventoryRowHtml(item)).join("")
+    ? renderGroupedInventoryRows(pageItems, dict)
     : '<tr><td colspan="6" style="text-align:center;color:var(--text-2);">' + emptyMessage + "</td></tr>";
 
   container.innerHTML =
