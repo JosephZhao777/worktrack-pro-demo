@@ -342,8 +342,16 @@
         <div class="metric-grid">
           <div class="metric-card"><div class="metric-label" data-i18n="weekHours">本周工时</div><div class="metric-value" id="empWeekHoursValue">—</div></div>
           <div class="metric-card"><div class="metric-label" data-i18n="monthHours">本月工时</div><div class="metric-value" id="empMonthHoursValue">—</div></div>
-          <div class="metric-card"><div class="metric-label" data-i18n="salary">工资摘要</div><div class="metric-value" id="empSalaryValue">—</div></div>
+          <div class="metric-card"><div class="metric-label" data-i18n="salary">工资总额</div><div class="metric-value" id="empSalaryValue">—</div></div>
           <div class="metric-card"><div class="metric-label" data-i18n="attendanceRate">出勤率</div><div class="metric-value" id="empAttendanceRateValue">—</div></div>
+        </div>
+
+        <!-- 应用户明确要求("工资说明留言板员工是可以看到的"):管理员在"工资管理"页面
+             一对一填写这名员工的工资(正常/加班/节假日工资、交通餐费),并写留言说明,
+             这里只读展示给员工自己看,不能回复。 -->
+        <div class="glass" style="padding:14px;margin-top:0;margin-bottom:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);">
+          <div style="font-weight:600;margin-bottom:6px;" data-i18n="employeePayrollNoteTitle">工资说明</div>
+          <div id="empPayrollNoteList" style="font-size:13px;opacity:.85;" data-i18n="employeePayrollNoteEmpty">暂无工资说明</div>
         </div>
 
         <!-- Bug 修复(用户明确要求):员工登录后之前只看得到"今日"一天的打卡记录,
@@ -541,9 +549,7 @@
         </div>
         <div class="glass ca-section" id="ca-payroll" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navPayroll">工资管理</h2>
-          <p class="section-sub" data-i18n="payrollSub">工资按"员工名单 + 考勤记录(未作废部分)+ 每位员工设置的时薪"自动计算,和每日经营报告用的是同一套算法;需要额外发放奖金或做扣款时,可以给单个员工手动增加调整项。</p>
-          <p class="section-sub" style="margin:0 0 4px;font-weight:600;" id="payrollRangeCaption"></p>
-          <p class="section-sub" style="margin:0 0 12px;font-size:12px;" data-i18n="overtimeRuleCaption">规则:每人每天工作超过 8 小时的部分算加班,加班时薪 = 正常时薪 × 1.5倍(例如时薪 €15,加班时薪就是 €22.50)。工资成本 = 正常工时×时薪 + 加班工时×加班时薪。</p>
+          <p class="section-sub" data-i18n="payrollSub">这里的每一笔工资都是你自己填的最终数字,系统不会用打卡记录自动计算。点"填写工资"给某位员工录入正常工资/加班工资/节假日工资/交通费/餐费;需要额外发放奖金或做扣款时,可以另外增加调整项;还可以给员工留一段工资说明,员工能在自己账号里看到。</p>
           <div id="payrollTable"></div>
         </div>
         <div class="glass ca-section" id="ca-leave" style="display:none;margin-top:20px;">
@@ -950,6 +956,40 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="modal-manual-wage">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" id="manualWageModalTitle" data-i18n="manualWageModalTitle">填写工资</h3>
+    <p class="modal-sub" data-i18n="manualWageModalSub">下面每一项都是你自己填的最终金额,系统不会用打卡记录自动计算,留空 = 这一项是 0。</p>
+    <form id="form-manual-wage">
+      <input type="hidden" id="manualWageEmployeeId" />
+      <div class="form-grid">
+        <div class="field"><label data-i18n="fieldRegularPay">正常工资(欧元)</label><input type="number" min="0" step="0.01" id="manualWageRegularPay" placeholder="0" /></div>
+        <div class="field"><label data-i18n="fieldOvertimePay">加班工资(欧元)</label><input type="number" min="0" step="0.01" id="manualWageOvertimePay" placeholder="0" /></div>
+        <div class="field"><label data-i18n="fieldHolidayPay">节假日工资(欧元)</label><input type="number" min="0" step="0.01" id="manualWageHolidayPay" placeholder="0" /></div>
+        <div class="field"><label data-i18n="fieldTransportAllowance">交通费(欧元)</label><input type="number" min="0" step="0.01" id="manualWageTransportAllowance" placeholder="0" /></div>
+        <div class="field"><label data-i18n="fieldMealAllowance">餐费(欧元)</label><input type="number" min="0" step="0.01" id="manualWageMealAllowance" placeholder="0" /></div>
+      </div>
+      <div class="field-hint hidden" id="manualWageError" style="color:var(--danger);"></div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="saveManualWage">保存</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-payroll-notes">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" id="payrollNotesModalTitle" data-i18n="payrollNotesModalTitle">工资说明留言</h3>
+    <p class="modal-sub" data-i18n="payrollNotesModalSub">这名员工能在自己的账号里看到下面这些说明(只读,不能回复)。</p>
+    <input type="hidden" id="payrollNoteEmployeeId" />
+    <div id="payrollNotesList" style="margin-bottom:12px;"></div>
+    <form id="form-payroll-note">
+      <div class="field full"><label data-i18n="fieldPayrollNote">新增说明</label><textarea id="payrollNoteInput" placeholder="例如:7月加班比较多,加班工资按2.8小时算的。"></textarea></div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="submitPayrollNote">发布说明</button>
+    </form>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="modal-inventory-item">
   <div class="modal-box">
     <button class="modal-close" data-close-modal>✕</button>
@@ -1118,7 +1158,7 @@ const i18n = {
     submitRegister: "提交注册", submitRegisterCompany: "提交注册,开始 30 天免费试用",
     footerText: "© 2026 WorkTrack AI",
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "欢迎回来", clockIn: "上班打卡", clockOut: "下班打卡",
-    todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "本月工资(估算)", attendanceRate: "出勤率",
+    todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "工资总额", attendanceRate: "出勤率",
     todayAttendanceTitle: "今日打卡记录", inProgressLabel: "进行中", noAttendanceToday: "今天还没有打卡记录",
     attendanceSummaryTitle: "打卡明细", tabThisWeek: "本周", tabThisMonth: "本月",
     noAttendanceInRange: "这段时间还没有打卡记录", dailyTotalLabel: "当日合计",
@@ -1243,13 +1283,30 @@ const i18n = {
     editHourlyRate: "调整时薪", editHourlyRatePrompt: "请输入这名员工的新时薪(欧元/小时):",
     editHourlyRateEffectiveFromPrompt: "这个新时薪从哪天开始生效?(格式 年-月-日,例如 2026-07-01)\n\n留空 = 交给系统自动判断:如果这名员工是第一次设置时薪,会自动覆盖 ta 入职以来的全部历史打卡;如果是涨薪/调薪,默认从今天开始生效。\n\n如果你发现这名员工之前打过卡、但工资管理里一直显示 0 工时/€0(说明当时设置晚了),可以在这里手动填一个更早的日期(比如 ta 入职第一天),把之前的工时也一起补算进去。",
     fieldHourlyRate: "时薪(欧元/小时)", hourlyRateHint: "用于自动计算这名员工的工资,之后可以在员工列表里随时修改",
-    payrollSub: "工资按「员工名单 + 考勤记录(未作废部分)+ 每位员工设置的时薪」自动计算,和每日经营报告用的是同一套算法;需要额外发放奖金或做扣款时,可以给单个员工手动增加调整项。",
-    payrollRangeCaption: function (start, end) { return "统计范围:本月 " + start + " – " + end + "(和「每日经营报告」里的「今日」是两个不同的统计范围,本月总额会比单独一天的数字大,这是正常的,不是bug)"; },
+    // Bug 修复(用户明确要求:"绝对不能这样自动计算"、"管理员一对一给工人计算工时与小时
+    // 工资"):"工资管理"页面不再从打卡记录里自动算工时/工资,改成管理员手工填写。
+    // "每日经营报告"页面继续使用原来那套自动算法,不受影响。
+    payrollSub: "这里的每一笔工资都是你自己填的最终数字,系统不会用打卡记录自动计算。点「填写工资」给某位员工录入正常工资/加班工资/节假日工资/交通费/餐费;需要额外发放奖金或做扣款时,可以另外增加调整项;还可以给员工留一段工资说明,员工能在自己账号里看到。",
     overtimeRuleCaption: "规则:每人每天工作超过 8 小时的部分算加班,加班时薪 = 正常时薪 × 1.5倍(例如时薪 €15,加班时薪就是 €22.50)。工资成本 = 正常工时×时薪 + 加班工时×加班时薪。",
+    // Bug 修复(用户质疑:"1小时15欧,工作8小时,加班2.8小时,怎么算出这个数的?"):光给一个
+    // 汇总金额,管理员没法自己核对,这里把"正常多少钱 + 加班多少钱"直接摆在总额下面,不需要
+    // 管理员自己心算或者信任我们的计算。(这个 key 现在只服务"每日经营报告"页面的自动计算表格)
+    wageCostBreakdown: function (regularAmount, overtimeAmount) { return "(正常€" + regularAmount + " + 加班€" + overtimeAmount + ")"; },
     colBasePay: "基础工资", colAdjustments: "调整项", deleteAction: "删除", noAdjustmentsYet: "暂无调整项",
     addPayrollAdjustment: "+ 增加调整项", confirmDeleteAdjustment: "确定要删除这条调整项吗?",
     payrollAdjustmentSub: "比如奖金、补贴填正数;扣款、更正多发填负数,会累加进这名员工的应发合计。",
     fieldAdjustmentLabel: "说明", fieldAdjustmentAmount: "金额(欧元,扣款请填负数)", submitAddAdjustment: "添加调整项",
+    colRegularPay: "正常工资", colOvertimePay: "加班工资", colHolidayPay: "节假日工资", colAllowances: "交通/餐费",
+    allowanceBreakdown: function (transport, meal) { return "(交通€" + transport + " + 餐费€" + meal + ")"; },
+    editManualWage: "填写工资", managePayrollNotes: "工资说明",
+    manualWageModalTitle: "填写工资", manualWageModalSub: "下面每一项都是你自己填的最终金额,系统不会用打卡记录自动计算,留空 = 这一项是 0。",
+    fieldRegularPay: "正常工资(欧元)", fieldOvertimePay: "加班工资(欧元)", fieldHolidayPay: "节假日工资(欧元)",
+    fieldTransportAllowance: "交通费(欧元)", fieldMealAllowance: "餐费(欧元)", saveManualWage: "保存",
+    manualWageSaved: "已保存", invalidNumberError: "请填写有效的非负数字",
+    payrollNotesModalTitle: "工资说明留言", payrollNotesModalSub: "这名员工能在自己的账号里看到下面这些说明(只读,不能回复)。",
+    fieldPayrollNote: "新增说明", submitPayrollNote: "发布说明", payrollNoteListEmpty: "还没有写过任何说明",
+    confirmDeletePayrollNote: "确定要删除这条说明吗?",
+    employeePayrollNoteTitle: "工资说明", employeePayrollNoteEmpty: "暂无工资说明",
     noLeaveRequestsYet: "暂无请假记录",
     navInventory: "智能库存",
     inventorySub: "系统按近 14 天的消耗速率自动预测断货天数与建议采购量,近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过\"记录流水\"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。",
@@ -1389,7 +1446,7 @@ const i18n = {
     submitRegister: "Submit registration", submitRegisterCompany: "Submit and start your 30-day free trial",
     footerText: "© 2026 WorkTrack AI",
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "Welcome back", clockIn: "Clock in", clockOut: "Clock out",
-    todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "This month's pay (est.)", attendanceRate: "Attendance rate",
+    todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "Total pay", attendanceRate: "Attendance rate",
     todayAttendanceTitle: "Today's clock-ins", inProgressLabel: "In progress", noAttendanceToday: "No clock-ins yet today",
     attendanceSummaryTitle: "Clock-in details", tabThisWeek: "This week", tabThisMonth: "This month",
     noAttendanceInRange: "No clock-ins in this period yet", dailyTotalLabel: "Daily total",
@@ -1510,12 +1567,23 @@ const i18n = {
     editHourlyRate: "Edit hourly rate", editHourlyRatePrompt: "Enter this employee's new hourly rate (EUR/hour):",
     editHourlyRateEffectiveFromPrompt: "What date should this new rate take effect from? (YYYY-MM-DD, e.g. 2026-07-01)\n\nLeave blank = let the system decide automatically: if this is the employee's first-ever rate, it will automatically cover all of their attendance since joining; if this is a raise/adjustment, it defaults to today.\n\nIf this employee already clocked in before but Payroll has been showing 0 hours/€0 for them (because the rate was set too late), you can enter an earlier date here (e.g. their first day) to retroactively include those hours.",
     fieldHourlyRate: "Hourly rate (EUR/hour)", hourlyRateHint: "Used to auto-calculate this employee's pay; can be changed anytime from the employee list",
-    payrollSub: "Pay is calculated automatically from the employee list + attendance records (excluding voided ones) + each employee's hourly rate — the same logic used in the daily report. You can add a manual adjustment for a specific employee for bonuses or deductions.",
-    payrollRangeCaption: function (start, end) { return "Range: this month, " + start + " – " + end + " (a different range from \"Today\" in the daily report — the monthly total being larger than a single day's number is expected, not a bug)"; },
+    payrollSub: "Every figure here is a final number you type in yourself — nothing is auto-calculated from clock-in records. Click \"Edit pay\" to enter an employee's regular pay / overtime pay / holiday pay / transport allowance / meal allowance; use adjustments for one-off bonuses or deductions; you can also leave a pay note the employee will see on their own account.",
     overtimeRuleCaption: "Rule: any time worked beyond 8 hours in a single day counts as overtime, paid at 1.5× the regular rate (e.g. €15/h regular → €22.50/h overtime). Wage cost = regular hours × rate + overtime hours × overtime rate.",
+    wageCostBreakdown: function (regularAmount, overtimeAmount) { return "(regular €" + regularAmount + " + overtime €" + overtimeAmount + ")"; },
     colBasePay: "Base pay", colAdjustments: "Adjustments", deleteAction: "Delete", noAdjustmentsYet: "No adjustments yet",
     addPayrollAdjustment: "+ Add adjustment", confirmDeleteAdjustment: "Delete this adjustment?",
     payrollAdjustmentSub: "Use a positive amount for bonuses/allowances, a negative amount for deductions/corrections — it's added to this employee's total pay.",
+    colRegularPay: "Regular pay", colOvertimePay: "Overtime pay", colHolidayPay: "Holiday pay", colAllowances: "Transport/meal",
+    allowanceBreakdown: function (transport, meal) { return "(transport €" + transport + " + meal €" + meal + ")"; },
+    editManualWage: "Edit pay", managePayrollNotes: "Pay notes",
+    manualWageModalTitle: "Edit pay", manualWageModalSub: "Every field below is a final amount you enter yourself — nothing is auto-calculated. Leave blank = 0.",
+    fieldRegularPay: "Regular pay (EUR)", fieldOvertimePay: "Overtime pay (EUR)", fieldHolidayPay: "Holiday pay (EUR)",
+    fieldTransportAllowance: "Transport allowance (EUR)", fieldMealAllowance: "Meal allowance (EUR)", saveManualWage: "Save",
+    manualWageSaved: "Saved", invalidNumberError: "Please enter a valid, non-negative number",
+    payrollNotesModalTitle: "Pay notes", payrollNotesModalSub: "This employee can see the notes below on their own account (read-only, they can't reply).",
+    fieldPayrollNote: "New note", submitPayrollNote: "Post note", payrollNoteListEmpty: "No notes yet",
+    confirmDeletePayrollNote: "Delete this note?",
+    employeePayrollNoteTitle: "Pay notes", employeePayrollNoteEmpty: "No pay notes yet",
     fieldAdjustmentLabel: "Description", fieldAdjustmentAmount: "Amount (EUR, use negative for a deduction)", submitAddAdjustment: "Add adjustment",
     noLeaveRequestsYet: "No leave requests yet",
     navInventory: "Smart Inventory",
@@ -1938,23 +2006,22 @@ function currentEmployeeName() {
 }
 
 /**
- * 员工仪表盘顶部"本周工时/本月工时/工资摘要/出勤率"四张卡片。
+ * 员工仪表盘顶部"本周工时/本月工时/工资总额/出勤率"四张卡片。
  *
  * Bug 修复(用户明确要求:"员工工资管理,员工工时管理都要支持其它设备登录使用,
  * 你再看看还有什么问题?都一起解决"):这四张卡片之前全部读浏览器本地的
  * attendanceRecords 数组——换一台设备/清空浏览器数据,要么是空的要么是错的,和
  * "员工管理"列表本周/本月工时列以前那个 bug 是同一类问题。现在统一改成基于
- * realAttendanceSessions(真实后端考勤数据,见 refreshRealAttendanceData())+
- * myWageConfig(真实后端时薪,见 refreshMyWageConfig())计算,并且用真实的
- * currentUserId(登录时后端返回的真实用户 id)去过滤"我自己"的记录,不再依赖
- * "本地 employees 数组里有没有记住这个人的 backendId"这种脆弱的匹配方式。
+ * realAttendanceSessions(真实后端考勤数据,见 refreshRealAttendanceData())计算
+ * 工时,并且用真实的 currentUserId(登录时后端返回的真实用户 id)去过滤"我自己"
+ * 的记录,不再依赖"本地 employees 数组里有没有记住这个人的 backendId"这种脆弱的
+ * 匹配方式。
  *
- * "工资摘要"按自然日分桶算正常/加班工时(每日 8 小时封顶算加班),和公司后台
- * PayrollService.getPeriodWageCost() 用的是同一套规则,只是这里用的是"当前生效"
- * 这一份时薪——如果这个月中途调过薪,这里会用当前这份近似代表整个月(公司后台
- * "工资管理"页面走的是真正按天查历史费率的后端接口,是精确的;员工自己看的这张
- * 摘要卡片属于"够用的近似值",和旧版本的简化程度一致,这次的重点是把数据来源从
- * 本地浏览器换成真实数据库,不属于这次请求范围内的额外增强)。
+ * "工资总额"改动(应用户明确要求:"绝对不能这样自动计算"、"管理员一对一地给员工
+ * 最后的价格说明"):不再按打卡记录 + 时薪自动折算,而是直接取管理员在"工资管理"
+ * 页面给这名员工手工填写的正常工资+加班工资+节假日工资+交通费+餐费五项之和
+ * (myManualWage,见 refreshMyManualWage()),管理员填的就是员工看到的,不存在
+ * 任何"近似值"或"预估"。
  */
 function updateEmployeeSummaryCards() {
   const dict = i18n[currentLang];
@@ -1976,29 +2043,12 @@ function updateEmployeeSummaryCards() {
   setText("empWeekHoursValue", formatHoursAsHm(sumRealHoursForEmployee(currentUserId, weekStart, weekEnd)));
   setText("empMonthHoursValue", formatHoursAsHm(sumRealHoursForEmployee(currentUserId, monthStart, monthEnd)));
 
-  if (myWageConfig && typeof myWageConfig.hourlyRateCents === "number") {
-    const secondsByDay = {};
-    realAttendanceSessions.forEach(s => {
-      if (s.employeeId !== currentUserId || s.voidedAt) return;
-      const clockInAt = new Date(s.clockInAt);
-      if (clockInAt < monthStart || clockInAt >= monthEnd) return;
-      const dayKey = clockInAt.toISOString().slice(0, 10);
-      let seconds = 0;
-      if (typeof s.totalSeconds === "number") seconds = s.totalSeconds;
-      else if (s.status === "OPEN") seconds = Math.max(0, (Date.now() - clockInAt.getTime()) / 1000);
-      secondsByDay[dayKey] = (secondsByDay[dayKey] || 0) + seconds;
-    });
-    let costCents = 0;
-    Object.keys(secondsByDay).forEach(dayKey => {
-      const dayHours = secondsByDay[dayKey] / 3600;
-      const regularHours = Math.min(dayHours, 8);
-      const overtimeHours = Math.max(dayHours - 8, 0);
-      costCents += Math.round(regularHours * myWageConfig.hourlyRateCents)
-        + Math.round(overtimeHours * myWageConfig.hourlyRateCents * (myWageConfig.overtimeMultiplier || 1.5));
-    });
-    setText("empSalaryValue", "€" + (costCents / 100).toFixed(2));
+  if (myManualWage) {
+    const totalCents = myManualWage.regularPayCents + myManualWage.overtimePayCents + myManualWage.holidayPayCents
+      + myManualWage.transportAllowanceCents + myManualWage.mealAllowanceCents;
+    setText("empSalaryValue", "€" + (totalCents / 100).toFixed(2));
   } else {
-    setText("empSalaryValue", "—"); // 还没有人给这名员工设置过时薪,不假装成 €0.00
+    setText("empSalaryValue", "—"); // 管理员还没有给这名员工填写过工资,不假装成 €0.00
   }
 
   const monthSessions = realAttendanceSessions.filter(s => {
@@ -2219,6 +2269,8 @@ function startAttendanceLiveRefresh() {
       refreshMyLeaveBalances();
       refreshMyLeaveRequests(); // 员工自己在别的设备提交/被审批的请假记录,也要能在 20 秒内自动同步过来,不需要手动刷新页面
       refreshLatestAnnouncement(); // 管理员刚发布/删除的公告,也在 20 秒内自动同步过来
+      refreshMyManualWage(); // 管理员刚改的手工工资,20 秒内自动同步到"工资总额"卡片
+      refreshMyPayrollNotes(); // 管理员刚发布/删除的工资说明留言,也一样自动同步
     }
   }, 20000);
 }
@@ -2228,23 +2280,62 @@ function stopAttendanceLiveRefresh() {
 }
 
 /**
- * 员工自己的"工资摘要"卡片需要知道自己当前的真实时薪——但不能直接用管理员那份
- * "工资管理"用的区间成本汇总接口(那个接口会把公司全体员工的工时/费用都汇总出来,
- * 员工本人不应该看到同事的费率和工资,那是公司管理员才有权限看的敏感信息)。这里
- * 用专门只返回"我自己"当前生效时薪的接口(GET .../payroll/wage-configs/me),
- * 每位员工只能查到自己的一份。
+ * 员工自己的"工资总额"卡片需要知道管理员给自己填的手工工资——但不能直接用管理员
+ * 那份"工资管理"用的全公司手工工资列表接口(那个接口会把公司全体员工的工资都
+ * 返回出来,员工本人不应该看到同事的工资,那是公司管理员才有权限看的敏感信息)。
+ * 这里用专门只返回"我自己"这一条手工工资记录的接口(GET .../payroll/manual-wages/me),
+ * 每位员工只能查到自己的一份;还没有人给这名员工填过工资时返回 null,卡片显示"—"。
  */
-let myWageConfig = null; // { hourlyRateCents, overtimeMultiplier, currency } 或 null(还没有人给这名员工设置过时薪)
+let myManualWage = null; // { regularPayCents, overtimePayCents, holidayPayCents, transportAllowanceCents, mealAllowanceCents } 或 null
 
-async function refreshMyWageConfig() {
-  if (!accessToken || !currentUserCompanyId) { myWageConfig = null; return; }
+async function refreshMyManualWage() {
+  if (!accessToken || !currentUserCompanyId) { myManualWage = null; return; }
   try {
-    myWageConfig = await apiRequest("/companies/" + currentUserCompanyId + "/payroll/wage-configs/me", { auth: true });
+    myManualWage = await apiRequest("/companies/" + currentUserCompanyId + "/payroll/manual-wages/me", { auth: true });
   } catch (err) {
-    console.warn("获取当前时薪失败(工资摘要卡片暂时显示 —,不阻断页面本身):", err);
-    myWageConfig = null;
+    console.warn("获取自己的手工工资失败(工资总额卡片暂时显示 —,不阻断页面本身):", err);
+    myManualWage = null;
   }
   updateEmployeeSummaryCards();
+}
+
+/**
+ * 员工首页"工资说明"卡片(应用户明确要求:"工资说明留言板员工是可以看到的"):
+ * 只读展示管理员在"工资管理"页面给自己写的说明留言,按时间倒序,不需要传
+ * employeeId——后端 GET .../payroll/notes 对非管理员角色会自动只返回调用者
+ * 自己的留言,即使被同事的浏览器篡改请求也看不到别人的说明。
+ */
+async function refreshMyPayrollNotes() {
+  const el = document.getElementById("empPayrollNoteList");
+  if (!el) return;
+  const dict = i18n[currentLang];
+  if (!accessToken || !currentUserCompanyId) { el.textContent = dict.employeePayrollNoteEmpty; return; }
+  try {
+    const notes = await apiRequest("/companies/" + currentUserCompanyId + "/payroll/notes", { auth: true });
+    el.innerHTML = "";
+    if (!notes || !notes.length) {
+      el.textContent = dict.employeePayrollNoteEmpty;
+      return;
+    }
+    notes.forEach(note => {
+      const item = document.createElement("div");
+      item.style.marginBottom = "8px";
+      item.style.paddingBottom = "8px";
+      item.style.borderBottom = "1px solid rgba(255,255,255,.12)";
+      const dateLine = document.createElement("div");
+      dateLine.style.fontSize = "11px";
+      dateLine.style.opacity = ".65";
+      dateLine.textContent = new Date(note.createdAt).toLocaleString(currentLang === "zh" ? "zh-CN" : "en-US");
+      const bodyLine = document.createElement("div");
+      bodyLine.textContent = note.note;
+      item.appendChild(dateLine);
+      item.appendChild(bodyLine);
+      el.appendChild(item);
+    });
+  } catch (err) {
+    console.warn("获取工资说明留言失败:", err);
+    el.textContent = dict.employeePayrollNoteEmpty;
+  }
 }
 
 /** 公司概览页"在职员工"/"待审批请假"两张卡片,和员工管理/请假审批用的是同一份数据,
@@ -2658,7 +2749,8 @@ document.getElementById("form-employee-login").addEventListener("submit", async 
       syncCompanyProfileFromBackend(currentUserCompanyId);
       syncInventoryFromBackend(); // 员工仪表盘的"仓库补货"卡片需要真实库存数据
       refreshRealAttendanceData(); // 登录成功后拉一次真实考勤数据,"打卡明细"/仪表盘卡片不再是空的
-      refreshMyWageConfig(); // 拉一次自己真实的时薪,"工资摘要"卡片不再假装是 €0.00
+      refreshMyManualWage(); // 拉一次管理员给自己填的手工工资,"工资总额"卡片不再假装是 €0.00
+      refreshMyPayrollNotes(); // 拉一次管理员给自己写的工资说明留言
       refreshLeaveTypes(); // 请假类型(年假/病假/事假/培训/出差)+ 我自己的余额/请假记录,全部改成真实数据
       refreshMyLeaveBalances();
       refreshMyLeaveRequests();
@@ -2729,7 +2821,8 @@ document.getElementById("form-employee-register").addEventListener("submit", asy
       syncCompanyProfileFromBackend(currentUserCompanyId);
       syncInventoryFromBackend();
       refreshRealAttendanceData(); // 刚注册成功的新员工也一样,一开始就用真实数据源
-      refreshMyWageConfig();
+      refreshMyManualWage();
+      refreshMyPayrollNotes();
       refreshLeaveTypes();
       refreshMyLeaveBalances();
       refreshMyLeaveRequests();
@@ -5822,28 +5915,31 @@ async function renderGpsAnomalyReport(containerId) {
 }
 
 /* ---------- 工资管理(公司后台) ----------
- * 工资 = 未作废考勤记录按员工汇总的正常/加班工时 * 该员工时薪(自动计算,不可手动改动
- * 底层工时和费率本身,和库存流水"只能通过记录变动"是同一个设计思路),再加上管理员
- * 手动增加的调整项(奖金/扣款/更正等,金额可正可负)。调整项本身支持增加与删除。
+ * Bug 修复(用户明确要求,原话:"我希望工资管理上,有一个管理员可以自己设置的计算
+ * 公式,不要自动计算。特别是加班费的计算,一定是管理员自己填写工时与加班工资。平时
+ * 都工资也要管理员自己设置,那个人工资都不一样...绝对不能这样自动计算"):这个页面
+ * 之前是从打卡记录按"正常工时×时薪 + 加班工时×加班时薪"自动算出来的(见旧版注释),
+ * 用户明确否决了这一整套自动计算逻辑,改成管理员一对一手工填写五项金额:
+ *   正常工资 / 加班工资 / 节假日工资 / 交通费 / 餐费
+ * 全部是最终数字,不是任何公式算出来的(后端 ManualWageService.upsertManualWage,
+ * 表 manual_wage_records)。用户明确选择"随时可改的草稿"模式,不按月锁定。
+ * 原有的"调整项"(奖金/扣款,bonuses/penalties)功能保留不变,和手工工资并存,
+ * 应发合计 = 手工工资五项之和 + 调整项之和。
+ * 另外新增"工资说明留言"(payroll_notes),管理员写,员工在自己账号里能只读查看
+ * (用户明确要求:"工资说明留言板员工是可以看到的")。
  *
- * Bug 修复(用户明确要求:"把员工工资管理...修改了,都能够支持其它设备登录使用,
- * 我觉得你是一个非常优秀的编程工程师和架构师,我希望你能过比我聪明,提早把该完善
- * 的都改变了。为啥总是走一步出一步问题?你再看看还有什么问题?都一起解决"):
- * 这一整块(工时/费率计算 + 调整项)以前完全是本地计算——hourlyRateCentsFor() 读
- * 本地 employees[].hourlyRateCents(换设备就是 0,见"员工管理"那一批 bug 修复)、
- * computeDailyWageCost()/computeEmployeeWageSummary() 读本地 attendanceRecords、
- * payrollAdjustments 是纯前端数组,刷新浏览器就清空。现在整个改成调用真实后端:
- * - GET .../payroll/cost?from=&to=:本月的真实区间工资成本(PayrollService.
- *   getPeriodWageCost(),按自然日分桶算正常/加班工时,套用每天真实生效的历史费率)。
- * - GET/POST/DELETE .../payroll/adjustments:真实持久化的奖金/扣款(bonuses/
- *   penalties 两张表,建库起就存在,这次才第一次接上业务代码,见交付说明)。
- * 不管管理员在哪台设备登录,看到的都是数据库里真实的数字,不再需要
- * hourlyRateCentsFor/liveInProgressHoursFor/computeDailyWageCost/
- * computeEmployeeWageSummary 这几个本地计算函数,一并移除。
+ * "每日经营报告"页面的自动计算(PayrollService.getDailyWageCost/getPeriodWageCost)
+ * 完全不受这次改动影响,继续用原来那套打卡记录自动算法——这次请求明确只针对"工资
+ * 管理"这一个页面。
  */
 
-/** 工资管理页面统计口径固定为"本自然月"(和员工仪表盘"工资摘要"卡片、每日经营报告
-    用的都是同一套自然月/自然日边界,口径一致)。 */
+/** 员工 backendId -> 手工工资记录 / 工资说明留言 的本地缓存,供编辑弹窗回填当前值、
+    避免每次点"填写工资"都要重新发一次请求。renderPayrollTable() 每次渲染时刷新。 */
+let manualWageRecordsCache = {};
+
+/** 工资管理页面统计口径固定为"本自然月"——这个函数只服务于"每日经营报告"页面
+    的"本月至今累计工资成本"这一行字,和"工资管理"页面本身(已经改成手工填写,
+    不再有月份/区间的概念)无关。 */
 function payrollPeriodRange() {
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -5862,30 +5958,26 @@ async function renderPayrollTable() {
   }
   if (!currentUserCompanyId || !accessToken) { container.innerHTML = ""; return; }
 
-  const { from, to } = payrollPeriodRange();
-  // 明确标出这里统计的是"本自然月"、具体是哪几号到哪几号——应用户反馈:"每日经营报告"
-  // 的"今日工时与工资成本"和这张"工资管理"表数字对不上,感觉应该同步。其实两边统计的
-  // 时间范围本来就不一样(今天 vs 本月),数据没有错,只是页面上从来没写清楚统计范围,
-  // 才会让人误以为是bug。这里把范围明明白白写出来,避免同样的困惑反复出现。
-  const rangeCaptionEl = document.getElementById("payrollRangeCaption");
-  if (rangeCaptionEl) {
-    const monthLastDay = new Date(to.getTime() - 86400000);
-    rangeCaptionEl.textContent = dict.payrollRangeCaption(formatLeaveSummaryDate(from.toISOString().slice(0, 10)), formatLeaveSummaryDate(monthLastDay.toISOString().slice(0, 10)));
-  }
-  let report, adjustments;
+  // 调整项(奖金/扣款)不再按"本自然月"筛选——手工工资本身就没有月份概念(用户明确
+  // 选择"随时可改的草稿",不是按月锁定的正式单据),这里拉全部历史调整项,和手工
+  // 工资一起构成"应发合计"。用一个足够宽的时间区间,复用原有按区间查询的接口。
+  const adjustmentsWideFrom = new Date("2000-01-01T00:00:00Z");
+  const adjustmentsWideTo = new Date(Date.now() + 10 * 365 * 86400000);
+
+  let manualWages, adjustments;
   try {
-    [report, adjustments] = await Promise.all([
-      apiRequest("/companies/" + currentUserCompanyId + "/payroll/cost?from=" + from.toISOString() + "&to=" + to.toISOString(), { auth: true }),
-      apiRequest("/companies/" + currentUserCompanyId + "/payroll/adjustments?from=" + from.toISOString() + "&to=" + to.toISOString(), { auth: true }),
+    [manualWages, adjustments] = await Promise.all([
+      apiRequest("/companies/" + currentUserCompanyId + "/payroll/manual-wages", { auth: true }),
+      apiRequest("/companies/" + currentUserCompanyId + "/payroll/adjustments?from=" + adjustmentsWideFrom.toISOString() + "&to=" + adjustmentsWideTo.toISOString(), { auth: true }),
     ]);
   } catch (err) {
-    console.warn("获取真实工资成本失败:", err);
+    console.warn("获取工资数据失败:", err);
     container.innerHTML = '<div class="insight-empty">' + dict.noEmployeesYet + '</div>';
     return;
   }
 
-  const byEmployeeId = {};
-  (report.breakdown || []).forEach(r => { byEmployeeId[r.employeeId] = r; });
+  manualWageRecordsCache = {};
+  (manualWages || []).forEach(w => { manualWageRecordsCache[w.employeeId] = w; });
   const adjustmentsByEmployeeId = {};
   (adjustments || []).forEach(a => {
     if (!adjustmentsByEmployeeId[a.employeeId]) adjustmentsByEmployeeId[a.employeeId] = [];
@@ -5893,13 +5985,19 @@ async function renderPayrollTable() {
   });
 
   let totalCents = 0;
-  let html = '<table class="data-table"><tr><th>' + dict.colName + '</th><th>' + dict.colRegular + '</th><th>' +
-    dict.colOvertime + '</th><th>' + dict.colBasePay + '</th><th>' + dict.colAdjustments + '</th><th>' +
-    dict.colTotal + '</th><th>' + dict.colActions + '</th></tr>';
+  let html = '<table class="data-table"><tr><th>' + dict.colName + '</th><th>' + dict.colRegularPay + '</th><th>' +
+    dict.colOvertimePay + '</th><th>' + dict.colHolidayPay + '</th><th>' + dict.colAllowances + '</th><th>' +
+    dict.colAdjustments + '</th><th>' + dict.colTotal + '</th><th>' + dict.colActions + '</th></tr>';
   joinedEmployees.forEach(emp => {
-    const row = byEmployeeId[emp.backendId] || { regularHours: 0, overtimeHours: 0, baseCostCents: 0, totalCostCents: 0 };
+    const w = manualWageRecordsCache[emp.backendId] || {
+      regularPayCents: 0, overtimePayCents: 0, holidayPayCents: 0, transportAllowanceCents: 0, mealAllowanceCents: 0,
+    };
     const empAdjustments = adjustmentsByEmployeeId[emp.backendId] || [];
-    totalCents += row.totalCostCents;
+    const adjustmentTotalCents = empAdjustments.reduce((sum, a) => sum + a.amountCents, 0);
+    const allowancesCents = w.transportAllowanceCents + w.mealAllowanceCents;
+    const rowTotalCents = w.regularPayCents + w.overtimePayCents + w.holidayPayCents + allowancesCents + adjustmentTotalCents;
+    totalCents += rowTotalCents;
+
     const adjustmentsHtml = empAdjustments.length
       ? empAdjustments.map(a =>
           '<div style="display:flex;align-items:center;gap:6px;">' +
@@ -5908,24 +6006,36 @@ async function renderPayrollTable() {
           '</div>'
         ).join("")
       : '<span style="color:var(--text-2);font-size:12px;">' + dict.noAdjustmentsYet + '</span>';
+
     html += '<tr>' +
       '<td>' + emp.name + '</td>' +
-      '<td>' + formatHoursAsHm(row.regularHours) + '</td>' +
-      '<td>' + formatHoursAsHm(row.overtimeHours) + '</td>' +
-      '<td>€' + (row.baseCostCents / 100).toFixed(2) + '</td>' +
+      '<td>€' + (w.regularPayCents / 100).toFixed(2) + '</td>' +
+      '<td>€' + (w.overtimePayCents / 100).toFixed(2) + '</td>' +
+      '<td>€' + (w.holidayPayCents / 100).toFixed(2) + '</td>' +
+      '<td>€' + (allowancesCents / 100).toFixed(2) +
+        '<div style="font-size:11px;color:var(--text-2);font-weight:400;">' +
+          dict.allowanceBreakdown((w.transportAllowanceCents / 100).toFixed(2), (w.mealAllowanceCents / 100).toFixed(2)) +
+        '</div>' +
+      '</td>' +
       '<td>' + adjustmentsHtml + '</td>' +
-      '<td><strong>€' + (row.totalCostCents / 100).toFixed(2) + '</strong></td>' +
-      '<td><button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-add-adjustment="' + emp.backendId + '">' + dict.addPayrollAdjustment + '</button></td>' +
+      '<td><strong>€' + (rowTotalCents / 100).toFixed(2) + '</strong></td>' +
+      '<td>' +
+        '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:11.5px;margin-bottom:4px;display:block;" data-edit-manual-wage="' + emp.backendId + '">' + dict.editManualWage + '</button>' +
+        '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:11.5px;margin-bottom:4px;display:block;" data-add-adjustment="' + emp.backendId + '">' + dict.addPayrollAdjustment + '</button>' +
+        '<button class="btn btn-outline" style="height:28px;padding:0 10px;font-size:11.5px;display:block;" data-manage-notes="' + emp.backendId + '">' + dict.managePayrollNotes + '</button>' +
+      '</td>' +
     '</tr>';
   });
-  html += '<tr><td><strong>' + dict.totalRow + '</strong></td><td></td><td></td><td></td><td></td><td><strong>€' + (totalCents / 100).toFixed(2) + '</strong></td><td></td></tr>';
-  if ((report.missingWageConfigEmployeeIds || []).length) {
-    const names = report.missingWageConfigEmployeeIds.map(employeeNameByBackendId).join("、");
-    html += '<tr><td colspan="7" style="color:var(--warning);font-size:12.5px;">' + dict.missingWageConfigNotice(names) + '</td></tr>';
-  }
+  html += '<tr><td><strong>' + dict.totalRow + '</strong></td><td></td><td></td><td></td><td></td><td></td><td><strong>€' + (totalCents / 100).toFixed(2) + '</strong></td><td></td></tr>';
   html += '</table>';
   container.innerHTML = html;
 
+  container.querySelectorAll("[data-edit-manual-wage]").forEach(btn => {
+    btn.addEventListener("click", () => openManualWageModal(btn.dataset.editManualWage));
+  });
+  container.querySelectorAll("[data-manage-notes]").forEach(btn => {
+    btn.addEventListener("click", () => openPayrollNotesModal(btn.dataset.manageNotes));
+  });
   container.querySelectorAll("[data-add-adjustment]").forEach(btn => {
     btn.addEventListener("click", () => {
       document.getElementById("form-payroll-adjustment").reset();
@@ -5950,6 +6060,148 @@ async function renderPayrollTable() {
     });
   });
 }
+
+/**
+ * 填写工资弹窗——用户明确要求:"管理员一对一给工人计算工时与小时工资",这里就是
+ * 那个"一对一"的入口。回填 manualWageRecordsCache 里的当前值(没填过就都是 0),
+ * 保存时用 PATCH 语义的 upsert 接口(POST manual-wages/:employeeId),传了的字段
+ * 才会更新,后端 Service 层会保留没传字段的原值。
+ */
+function openManualWageModal(employeeId) {
+  const w = manualWageRecordsCache[employeeId] || {
+    regularPayCents: 0, overtimePayCents: 0, holidayPayCents: 0, transportAllowanceCents: 0, mealAllowanceCents: 0,
+  };
+  document.getElementById("manualWageEmployeeId").value = employeeId;
+  document.getElementById("manualWageRegularPay").value = (w.regularPayCents / 100).toFixed(2);
+  document.getElementById("manualWageOvertimePay").value = (w.overtimePayCents / 100).toFixed(2);
+  document.getElementById("manualWageHolidayPay").value = (w.holidayPayCents / 100).toFixed(2);
+  document.getElementById("manualWageTransportAllowance").value = (w.transportAllowanceCents / 100).toFixed(2);
+  document.getElementById("manualWageMealAllowance").value = (w.mealAllowanceCents / 100).toFixed(2);
+  document.getElementById("manualWageError").classList.add("hidden");
+  const title = document.getElementById("manualWageModalTitle");
+  const emp = employees.find(e => e.backendId === employeeId);
+  if (title) title.textContent = i18n[currentLang].manualWageModalTitle + (emp ? "  ·  " + emp.name : "");
+  openModal("modal-manual-wage");
+}
+
+document.getElementById("form-manual-wage").addEventListener("submit", async e => {
+  e.preventDefault();
+  const dict = i18n[currentLang];
+  const employeeId = document.getElementById("manualWageEmployeeId").value;
+  const errorEl = document.getElementById("manualWageError");
+  errorEl.classList.add("hidden");
+  const toCents = id => {
+    const raw = document.getElementById(id).value.trim();
+    if (raw === "") return 0;
+    const n = Number(raw);
+    return Number.isNaN(n) ? null : Math.round(n * 100);
+  };
+  const regularPayCents = toCents("manualWageRegularPay");
+  const overtimePayCents = toCents("manualWageOvertimePay");
+  const holidayPayCents = toCents("manualWageHolidayPay");
+  const transportAllowanceCents = toCents("manualWageTransportAllowance");
+  const mealAllowanceCents = toCents("manualWageMealAllowance");
+  if ([regularPayCents, overtimePayCents, holidayPayCents, transportAllowanceCents, mealAllowanceCents].some(v => v === null || v < 0)) {
+    errorEl.textContent = dict.invalidNumberError || "请填写有效的非负数字";
+    errorEl.classList.remove("hidden");
+    return;
+  }
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/payroll/manual-wages/" + encodeURIComponent(employeeId), {
+      method: "POST", auth: true,
+      body: { regularPayCents, overtimePayCents, holidayPayCents, transportAllowanceCents, mealAllowanceCents },
+    });
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove("hidden");
+    if (submitBtn) submitBtn.disabled = false;
+    return;
+  }
+  if (submitBtn) submitBtn.disabled = false;
+  closeModal(document.getElementById("modal-manual-wage"));
+  renderPayrollTable();
+});
+
+/**
+ * 工资说明留言弹窗(应用户要求:"每个月都有一个留言板上的工资说明"、"工资说明留言板
+ * 员工是可以看到的")——管理员在这里查看/发布/删除某位员工的工资说明历史,员工端
+ * 只读展示同一份数据(见 refreshMyPayrollNote())。
+ */
+async function openPayrollNotesModal(employeeId) {
+  document.getElementById("payrollNoteEmployeeId").value = employeeId;
+  const emp = employees.find(e => e.backendId === employeeId);
+  const title = document.getElementById("payrollNotesModalTitle");
+  if (title) title.textContent = i18n[currentLang].payrollNotesModalTitle + (emp ? "  ·  " + emp.name : "");
+  document.getElementById("payrollNoteInput").value = "";
+  openModal("modal-payroll-notes");
+  await refreshPayrollNotesListForAdmin(employeeId);
+}
+
+async function refreshPayrollNotesListForAdmin(employeeId) {
+  const dict = i18n[currentLang];
+  const wrap = document.getElementById("payrollNotesList");
+  if (!wrap) return;
+  let notes;
+  try {
+    notes = await apiRequest("/companies/" + currentUserCompanyId + "/payroll/notes?employeeId=" + encodeURIComponent(employeeId), { auth: true });
+  } catch (err) {
+    wrap.innerHTML = '<div class="insight-empty">' + dict.payrollNoteListEmpty + '</div>';
+    return;
+  }
+  if (!notes || !notes.length) {
+    wrap.innerHTML = '<div class="insight-empty">' + dict.payrollNoteListEmpty + '</div>';
+    return;
+  }
+  wrap.innerHTML = notes.map(n =>
+    '<div class="list-item" style="align-items:flex-start;">' +
+      '<div>' +
+        '<div style="font-size:11px;color:var(--text-2);">' + formatLeaveSummaryDate(String(n.createdAt).slice(0, 10)) + '</div>' +
+        '<div style="font-size:13.5px;white-space:pre-wrap;">' + n.note + '</div>' +
+      '</div>' +
+      '<button class="btn btn-outline" style="height:26px;padding:0 10px;font-size:11px;margin-left:auto;" data-delete-payroll-note="' + n.id + '">' + dict.deleteAction + '</button>' +
+    '</div>'
+  ).join("");
+  wrap.querySelectorAll("[data-delete-payroll-note]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const dict2 = i18n[currentLang];
+      if (!window.confirm(dict2.confirmDeletePayrollNote)) return;
+      try {
+        await apiRequest("/companies/" + currentUserCompanyId + "/payroll/notes/" + encodeURIComponent(btn.dataset.deletePayrollNote), {
+          method: "DELETE", auth: true,
+        });
+      } catch (err) {
+        window.alert(err.message);
+        return;
+      }
+      refreshPayrollNotesListForAdmin(document.getElementById("payrollNoteEmployeeId").value);
+    });
+  });
+}
+
+document.getElementById("form-payroll-note").addEventListener("submit", async e => {
+  e.preventDefault();
+  const employeeId = document.getElementById("payrollNoteEmployeeId").value;
+  const noteInput = document.getElementById("payrollNoteInput");
+  const note = noteInput.value.trim();
+  if (!employeeId || !note) return;
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    await apiRequest("/companies/" + currentUserCompanyId + "/payroll/notes", {
+      method: "POST", auth: true,
+      body: { employeeId, note },
+    });
+  } catch (err) {
+    window.alert(err.message);
+    if (submitBtn) submitBtn.disabled = false;
+    return;
+  }
+  if (submitBtn) submitBtn.disabled = false;
+  noteInput.value = "";
+  refreshPayrollNotesListForAdmin(employeeId);
+});
 
 document.getElementById("form-payroll-adjustment").addEventListener("submit", async e => {
   e.preventDefault();
@@ -6022,7 +6274,11 @@ async function renderWageTable(tableId) {
   let html = "<tr><th>" + dict.colName + "</th><th>" + dict.colRegular + "</th><th>" + dict.colOvertime + "</th><th>" + dict.colWageCost + "</th></tr>";
   (report.breakdown || []).forEach(r => {
     const name = employeeNameByBackendId(r.employeeId);
-    html += "<tr><td>" + name + "</td><td>" + formatHoursAsHm(r.regularHours) + "</td><td>" + formatHoursAsHm(r.overtimeHours) + "</td><td>€" + (r.costCents / 100).toFixed(2) + "</td></tr>";
+    html += "<tr><td>" + name + "</td><td>" + formatHoursAsHm(r.regularHours) + "</td><td>" + formatHoursAsHm(r.overtimeHours) + "</td><td>€" + (r.costCents / 100).toFixed(2) +
+      '<div style="font-size:11px;color:var(--text-2);font-weight:400;">' +
+        dict.wageCostBreakdown((r.regularCostCents / 100).toFixed(2), (r.overtimeCostCents / 100).toFixed(2)) +
+      '</div>' +
+    "</td></tr>";
   });
   html += "<tr><td><strong>" + dict.totalRow + "</strong></td><td></td><td></td><td><strong>€" + (report.totalCostCents / 100).toFixed(2) + "</strong></td></tr>";
   if ((report.missingWageConfigEmployeeIds || []).length) {
@@ -6371,7 +6627,8 @@ if (accessToken && currentUserCompanyId) {
     refreshAnnouncementListForAdmin(); // 刷新页面恢复登录状态后,设置页的公司公告列表也要重新拉一次真实数据
   } else if (currentUserRole === "EMPLOYEE") {
     refreshRealAttendanceData();
-    refreshMyWageConfig();
+    refreshMyManualWage();
+    refreshMyPayrollNotes();
     refreshLeaveTypes();
     refreshMyLeaveBalances();
     refreshMyLeaveRequests();
