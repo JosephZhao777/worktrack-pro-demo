@@ -1249,6 +1249,10 @@
     <button class="modal-close" data-close-modal>✕</button>
     <h3 class="modal-title" data-i18n="empInventoryTitle">仓库补货</h3>
     <p class="modal-sub" data-i18n="empInventoryModalSub">从仓库取货到操作间时,在对应商品后面填写数量并点"补货",库存会立刻同步给公司后台,不需要另外通知管理员</p>
+    <div style="position:relative;margin:12px 0;">
+      <span aria-hidden="true" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:14px;opacity:.7;">🔍</span>
+      <input type="text" id="empInvWithdrawSearchInput" data-i18n-placeholder="invSearchPlaceholder" placeholder="按商品名称/分类搜索" style="width:100%;box-sizing:border-box;height:36px;padding:0 12px 0 34px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;" />
+    </div>
     <div id="empInventoryWithdrawList"></div>
   </div>
 </div>
@@ -6190,17 +6194,39 @@ function buildEmpInventoryWithdrawRowHtml(item) {
   "</div>";
 }
 
+/** Bug 修复(用户明确要求:"员工很忙的时候几乎不会多做任何动作,直接拿货,很可能有
+    遗忘,安插一个搜索器是最基本的要求"):补货清单以前是把所有商品一股脑列出来,商品
+    一多、员工又赶时间,很容易找不到自己要拿的那一件、干脆漏记。现在加一个和公司后台
+    "智能库存"页面同款的搜索框,按商品名称/分类实时过滤,员工可以直接搜自己手上拿的
+    那件货叫什么,不用在长列表里一个个找。 */
+let empWithdrawSearchQuery = "";
+
 function renderEmpInventoryWithdrawList() {
   const container = document.getElementById("empInventoryWithdrawList");
   if (!container) return;
   const dict = i18n[currentLang];
-  const items = activeInventoryItems(); // 已归档的商品不再出现在员工补货清单里(后端 listItems() 本身就不返回它们)
+  const allItems = activeInventoryItems(); // 已归档的商品不再出现在员工补货清单里(后端 listItems() 本身就不返回它们)
+  const query = empWithdrawSearchQuery.trim().toLowerCase();
+  const items = query
+    ? allItems.filter(item => {
+        const categoryLabel = categoryDisplayLabel(item).toLowerCase();
+        return item.name.toLowerCase().includes(query) || categoryLabel.includes(query);
+      })
+    : allItems;
   container.innerHTML = items.length
     ? items.map(item => buildEmpInventoryWithdrawRowHtml(item)).join("")
-    : '<div style="color:var(--text-2);">' + dict.empInventoryNoItems + "</div>";
+    : '<div style="color:var(--text-2);">' + (allItems.length ? dict.noResultsFound : dict.empInventoryNoItems) + "</div>";
 
   container.querySelectorAll("[data-emp-withdraw-btn]").forEach(btn => {
     btn.addEventListener("click", () => handleEmpInventoryWithdraw(btn.dataset.empWithdrawBtn));
+  });
+}
+
+const empInvWithdrawSearchInputEl = document.getElementById("empInvWithdrawSearchInput");
+if (empInvWithdrawSearchInputEl) {
+  empInvWithdrawSearchInputEl.addEventListener("input", e => {
+    empWithdrawSearchQuery = e.target.value;
+    renderEmpInventoryWithdrawList();
   });
 }
 
