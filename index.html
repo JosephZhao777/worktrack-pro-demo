@@ -149,7 +149,7 @@
   .inv-spec-row.inv-spec-total .inv-spec-label,
   .inv-spec-row.inv-spec-total .inv-spec-value { font-weight: 700; color: var(--brand-blue); }
   .inv-card-actions { display: flex; gap: 8px; align-items: center; }
-  .inv-card-actions .btn-primary { flex: 1; height: 34px; padding: 0 10px; font-size: 12.5px; }
+  .inv-card-actions .btn-primary, .inv-card-actions .btn-outline { flex: 1; height: 34px; padding: 0 10px; font-size: 12.5px; }
   .inv-card-more-wrap { position: relative; flex-shrink: 0; }
   .inv-card-more-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-c); background: transparent; color: var(--text-1); cursor: pointer; font-size: 16px; line-height: 1; }
   .inv-card-more-btn:hover { background: rgba(123,38,53,.08); }
@@ -498,8 +498,8 @@
 
         <div class="glass" style="padding:14px;margin-top:14px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);cursor:pointer;" id="btnOpenInventoryWithdraw">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div style="font-weight:600;" data-i18n="empInventoryTitle">仓库补货</div>
-            <span style="font-size:12px;opacity:.7;" data-i18n="empInventoryOpen">补货清单 →</span>
+            <div style="font-weight:600;" data-i18n="empInventoryTitle">仓库出库</div>
+            <span style="font-size:12px;opacity:.7;" data-i18n="empInventoryOpen">出库清单 →</span>
           </div>
           <div style="font-size:13px;opacity:.85;" id="empInventoryLowStockNote" data-i18n="empInventoryNote">从仓库取货到操作间时点这里记一笔,库存会实时同步给公司后台</div>
         </div>
@@ -1363,7 +1363,7 @@
         </div>
         <div class="field-hint full" data-i18n="unitPriceLocalOnlyHint">单价和自动算出的总价目前只保存在这台设备/这个浏览器上(后端暂不支持这个字段),换一台设备登录可能需要重新填一次。</div>
       </div>
-      <div class="field-hint" id="inventoryItemQuantityHint" data-i18n="inventoryItemHint">库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过"记录流水"入库(员工每次从仓库补货到操作间,这里的总量也会相应减少)。</div>
+      <div class="field-hint" id="inventoryItemQuantityHint" data-i18n="inventoryItemHint">库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过"记录流水"入库(员工每次从仓库出库到操作间,这里的总量也会相应减少)。</div>
       <div class="field-hint" data-i18n="reorderThresholdHint">当前库存总量低于"进货阈值"时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。</div>
       <div class="field-hint" data-i18n="packSizeHint">不是每个商品都按箱管理:填了"每箱数量",库存和采购建议会顺带换算成箱数;留空就只按上面的单位显示。</div>
       <button type="submit" class="btn btn-primary btn-block" id="btnSubmitInventoryItem" data-i18n="submitAddItem">保存</button>
@@ -1414,8 +1414,8 @@
 <div class="modal-overlay hidden" id="modal-inventory-withdraw">
   <div class="modal-box wide">
     <button class="modal-close" data-close-modal>✕</button>
-    <h3 class="modal-title" data-i18n="empInventoryTitle">仓库补货</h3>
-    <p class="modal-sub" data-i18n="empInventoryModalSub">从仓库取货到操作间时,在对应商品后面填写数量并点"补货",库存会立刻同步给公司后台,不需要另外通知管理员</p>
+    <h3 class="modal-title" data-i18n="empInventoryTitle">仓库出库</h3>
+    <p class="modal-sub" data-i18n="empInventoryModalSub">从仓库取货到操作间时,在对应商品后面填写数量并点"出库",库存会立刻同步给公司后台,不需要另外通知管理员</p>
     <div id="empRecentWithdrawsPanel" class="hidden" style="margin:12px 0;padding:10px 12px;border-radius:10px;background:rgba(184,134,60,.10);border:1px solid rgba(184,134,60,.30);">
       <div style="font-weight:700;font-size:12.5px;margin-bottom:6px;" data-i18n="empRecentWithdrawsTitle">刚刚的操作(手误点重复了可以直接撤销)</div>
       <div id="empRecentWithdrawsList"></div>
@@ -1711,7 +1711,7 @@ const i18n = {
     fieldInitialQuantity: "当前库存(可选)",
     initialQuantityHint: "如果这个商品现在仓库里已经有货(比如把线下已有的库存搬进系统),可以直接在这里填一次现有总量——系统会自动生成一笔\"期初库存\"入库流水,不会破坏\"库存只能通过流水变动\"这条规则;留空表示这是全新的 0 库存,以后再用\"记录流水\"入库。",
     reorderThresholdHint: "当前库存总量低于“进货阈值”时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。",
-    inventoryItemHint: "库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过\"记录流水\"入库(员工每次从仓库补货到操作间,这里的总量也会相应减少)。",
+    inventoryItemHint: "库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过\"记录流水\"入库(员工每次从仓库出库到操作间,这里的总量也会相应减少)。",
     inventoryItemEditHint: function (qty, unit) { return "当前库存原本是 " + qty + " " + unit + "——上面可以直接改成盘点后的实际数字,保存时会自动算出差值、生成一笔盘点调整流水,不会出现来路不明的数字变动。"; },
     unitPiece: "件", unitBox: "箱", unitPack: "包", unitStrip: "条",
     recordTransaction: "记录流水", fieldTransactionType: "流水类型",
@@ -1754,7 +1754,7 @@ const i18n = {
     reversedHistoryToggleHide: "收起已冲正的记录",
     reversedBadgeLabel: "已冲正",
     noInsights: "暂无需要关注的库存提醒,一切正常。",
-    insightLowStockThresholdOnly: function (name, qty, unit) { return name + "库存(" + qty + " " + unit + ")已低于设定的补货阈值,建议尽快采购。"; },
+    insightLowStockThresholdOnly: function (name, qty, unit) { return name + "库存(" + qty + " " + unit + ")已低于设定的进货阈值,建议尽快采购。"; },
     insightWaste: function (name, ratioPct) { return name + "最近 30 天的浪费占消耗量的 " + ratioPct + "%,建议排查储存或采购批量是否合理。"; },
     fieldPackSize: "每箱/包数量(可选)", fieldPackUnitLabel: "箱/包单位标签",
     packSizeHint: "不是每个商品都按箱管理:填了“每箱数量”,库存和采购建议会顺带换算成箱数;留空就只按上面的单位显示。",
@@ -1762,19 +1762,19 @@ const i18n = {
     packCountSuffix: function (packs, packUnitLabel) { return "(约 " + packs + " " + packUnitLabel + ")"; },
     inventoryHistoryModalTitle: function (name) { return name + " · 流水记录"; },
     closeAction: "关闭",
-    empInventoryTitle: "仓库补货", empInventoryOpen: "补货清单 →",
+    empInventoryTitle: "仓库出库", empInventoryOpen: "出库清单 →",
     empInventoryNote: "从仓库取货到操作间时点这里记一笔,库存会实时同步给公司后台",
     empInventoryLowStockCount: function (n) { return n + " 项库存偏低,记得去仓库看看,别等到断货才补"; },
-    empInventoryModalSub: "从仓库取货到操作间时,在对应商品后面填写数量并点“补货”,库存会立刻同步给公司后台,不需要另外通知管理员",
-    empInventoryWithdrawBtn: "补货", empInventoryNoItems: "暂无库存商品。",
-    empInventoryInsufficientStock: "库存不足,补不了这么多,请再确认一下数量。",
-    empInventoryQtyRequired: "请先填写本次补货数量。",
+    empInventoryModalSub: "从仓库取货到操作间时,在对应商品后面填写数量并点“出库”,库存会立刻同步给公司后台,不需要另外通知管理员",
+    empInventoryWithdrawBtn: "出库", empInventoryNoItems: "暂无库存商品。",
+    empInventoryInsufficientStock: "库存不足,出不了这么多,请再确认一下数量。",
+    empInventoryQtyRequired: "请先填写本次出库数量。",
     empRecentWithdrawsTitle: "刚刚的操作(手误点重复了可以直接撤销)",
     empUndoWithdrawBtn: "撤销", empUndoWithdrawDone: "已撤销", empUndoWithdrawing: "撤销中…",
     empUndoWithdrawFailed: "撤销失败,请稍后重试或联系管理员",
     empUndoWithdrawNote: function (itemName) { return "员工撤销误操作(原扣减:" + itemName + ")"; },
     empRecentWithdrawEntry: function (time, itemName, qty, unit) { return time + " · " + itemName + " -" + qty + " " + unit; },
-    empInventoryLastAction: function (qty, unit, time) { return "上次补货:" + time + " · " + qty + " " + unit; },
+    empInventoryLastAction: function (qty, unit, time) { return "上次出库:" + time + " · " + qty + " " + unit; },
     invSearchPlaceholder: "按商品名称/分类搜索", invFilterAllCategories: "全部分类", invFilterAll: "全部",
     moreActions: "更多",
     viewArchivedItems: "查看已归档商品",
@@ -2038,7 +2038,7 @@ const i18n = {
     fieldInitialQuantity: "Current stock (optional)",
     initialQuantityHint: "If this item already has stock sitting in your warehouse right now (e.g. moving your existing offline inventory into the system), you can enter the current total here — the system will automatically record it as an \"opening stock\" receipt transaction, so it still follows the \"stock only changes via transactions\" rule. Leave it blank if this is a brand-new item starting at 0, and add stock later via \"Record transaction\".",
     reorderThresholdHint: "When current stock drops below the \"reorder threshold\", the system automatically works out a suggested reorder quantity and surfaces it in the inventory alerts — no manual math needed.",
-    inventoryItemHint: "Stock quantity can't be set here directly — a new item always starts at 0, then goes up via \"Record transaction\" (each time an employee restocks from the warehouse to the prep area, this total goes down accordingly).",
+    inventoryItemHint: "Stock quantity can't be set here directly — a new item always starts at 0, then goes up via \"Record transaction\" (each time an employee moves stock out of the warehouse to the prep area, this total goes down accordingly).",
     inventoryItemEditHint: function (qty, unit) { return "Current stock was " + qty + " " + unit + " — change it to the real count above and save; the system works out the difference and logs an adjustment transaction automatically, so there's never an untraceable change to the number."; },
     unitPiece: "piece", unitBox: "box", unitPack: "pack", unitStrip: "strip",
     recordTransaction: "Record transaction", fieldTransactionType: "Transaction type",
@@ -2089,11 +2089,11 @@ const i18n = {
     packCountSuffix: function (packs, packUnitLabel) { return "(~ " + packs + " " + packUnitLabel + ")"; },
     inventoryHistoryModalTitle: function (name) { return name + " · Transaction history"; },
     closeAction: "Close",
-    empInventoryTitle: "Warehouse restock", empInventoryOpen: "Restock list →",
+    empInventoryTitle: "Warehouse stock-out", empInventoryOpen: "Stock-out list →",
     empInventoryNote: "Tap here each time you move stock from the warehouse to the prep area — it syncs to the company backend in real time",
     empInventoryLowStockCount: function (n) { return n + " item(s) running low — worth a warehouse trip before they run out"; },
-    empInventoryModalSub: "When you move stock from the warehouse to the prep area, enter the quantity next to that item and tap \"Restock\" — it updates the company backend instantly, no need to notify a manager separately",
-    empInventoryWithdrawBtn: "Restock", empInventoryNoItems: "No inventory items yet.",
+    empInventoryModalSub: "When you move stock from the warehouse to the prep area, enter the quantity next to that item and tap \"Stock out\" — it updates the company backend instantly, no need to notify a manager separately",
+    empInventoryWithdrawBtn: "Stock out", empInventoryNoItems: "No inventory items yet.",
     empInventoryInsufficientStock: "Not enough stock for that amount — please double-check the quantity.",
     empInventoryQtyRequired: "Please enter a quantity first.",
     empRecentWithdrawsTitle: "Just now (tap Undo if you accidentally tapped twice)",
@@ -2101,7 +2101,7 @@ const i18n = {
     empUndoWithdrawFailed: "Undo failed — please try again shortly or contact your admin",
     empUndoWithdrawNote: function (itemName) { return "Employee undo of a mistaken withdrawal (" + itemName + ")"; },
     empRecentWithdrawEntry: function (time, itemName, qty, unit) { return time + " · " + itemName + " -" + qty + " " + unit; },
-    empInventoryLastAction: function (qty, unit, time) { return "Last restock: " + time + " · " + qty + " " + unit; },
+    empInventoryLastAction: function (qty, unit, time) { return "Last stock-out: " + time + " · " + qty + " " + unit; },
     invSearchPlaceholder: "Search by name / category", invFilterAllCategories: "All categories", invFilterAll: "All",
     moreActions: "More",
     viewArchivedItems: "View archived items",
@@ -2826,6 +2826,15 @@ function startAttendanceLiveRefresh() {
   if (!accessToken || !currentUserCompanyId) return;
   attendanceLiveRefreshHandle = setInterval(() => {
     refreshRealAttendanceData();
+    // Bug 修复(用户明确要求:"出库和全部库存一定要链接在一起,不要不联动。智能库存
+    // 报告缺货消息的信息,一旦入库商品达到了安全使用值,这条信息就自动消除"):以前
+    // 库存数据只在"管理员点进智能库存页面"或者"员工点开出库清单"这几个动作发生时才
+    // 重新拉取——如果管理员开着智能库存页面不动,员工在另一台设备上出库消耗库存,
+    // 管理员这边的库存总量和缺货提醒会一直停在旧快照上,看起来像两边没有联动、缺货
+    // 提醒也不会在重新进货之后自动消失。现在跟考勤/工资/请假一样,每 20 秒自动重新
+    // 拉一次真实库存数据(管理员和员工两边都需要,员工的出库清单也要跟着实时更新),
+    // 库存总量和"库存不足"提醒会在 20 秒内自动跟真实数据对齐、自动消失,不需要手动刷新。
+    syncInventoryFromBackend();
     if (currentUserRole === "COMPANY_ADMIN") {
       renderPayrollTable();
       refreshCompanyLeaveRequests(); // Bug 修复(用户反馈:"其他手机用户使用请假功能,在公司管理后台根本看不见"):请假审批队列也要跟考勤/工资一样每 20 秒自动跨设备同步一次
@@ -5896,10 +5905,15 @@ function buildInventoryCardHtml(item) {
     '</div>' +
     '<div class="inv-card-actions">' +
       '<button class="btn btn-primary" data-record-transaction="' + item.id + '">' + dict.recordTransaction + '</button>' +
+      // Bug 修复(用户明确要求:"我无法添加已经有的商品...请直接设立编辑入口,直接编辑
+      // 里面所有的内容。不要在用记录流水来改变了"):以前"编辑资料"藏在"⋯"菜单里,不
+      // 容易发现,只有"记录流水"这一个显眼按钮,让人以为改库存/改资料只能靠记录一笔
+      // 流水。现在把"编辑资料"变成和"记录流水"并排的常驻按钮——里面所有字段(包括
+      // 当前库存总量)都能直接改,不需要先搞懂"记录流水"是干什么的。
+      '<button class="btn btn-outline" data-edit-inventory-item="' + item.id + '">' + dict.editItem + '</button>' +
       '<div class="inv-card-more-wrap">' +
         '<button class="inv-card-more-btn" type="button" data-toggle-card-menu="' + item.id + '" aria-haspopup="true" aria-expanded="false">⋯</button>' +
         '<div class="inv-card-menu hidden" data-card-menu="' + item.id + '">' +
-          '<button data-edit-inventory-item="' + item.id + '">' + dict.editItem + '</button>' +
           '<button data-view-inventory-history="' + item.id + '">' + dict.viewTransactionHistory + '</button>' +
           '<button style="color:var(--danger);" data-archive-inventory-item="' + item.id + '">' + dict.archiveAction + '</button>' +
         '</div>' +
@@ -6937,7 +6951,7 @@ async function handleEmpInventoryWithdraw(itemId, btnEl) {
   try {
     await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + itemId + "/transactions", {
       method: "POST", auth: true,
-      body: { type: "CONSUMPTION", quantity: rawQuantity, note: currentLang === "zh" ? "员工仓库补货" : "Employee warehouse restock" },
+      body: { type: "CONSUMPTION", quantity: rawQuantity, note: currentLang === "zh" ? "员工仓库出库" : "Employee warehouse stock-out" },
     });
     // Bug 修复(用户明确要求:"在员工操作端有一个发现错误撤回或删除的按钮"):每次成功
     // 取货后,记一笔到本地"刚刚的操作"面板(只在这次登录/这个会话里有效,不持久化),
