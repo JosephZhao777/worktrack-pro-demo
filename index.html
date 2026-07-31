@@ -137,10 +137,17 @@
   .inv-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   .inv-card-name { font-size: 14.5px; font-weight: 700; }
   .inv-card-category { font-size: 12px; color: var(--text-2); margin-top: 2px; }
-  .inv-card-stats { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 0; }
-  .inv-stat { min-width: 88px; }
-  .inv-stat-label { font-size: 11px; color: var(--text-2); margin-bottom: 2px; }
-  .inv-stat-value { font-size: 13.5px; font-weight: 600; }
+  /* Bug 修复(用户反馈:"在手机里显示的项目太凌乱...界面干净,简洁,看起来不凌乱"):
+     以前用 flex-wrap 横向平铺几个小标签,商品一多、字段一多(规格/库存/阈值/建议进货/
+     提前期/单价/总价一共 7 项)在窄屏手机上很容易挤成好几行、对不齐,看起来乱。
+     现在改成"规格单"那样一行一项、左边标签右边数值、上下对齐的清单式布局,不管屏幕
+     多窄都不会挤在一起,格式统一、一眼能看清每一项。 */
+  .inv-spec-list { margin: 10px 0; border-top: 1px solid var(--border-c); }
+  .inv-spec-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border-c); }
+  .inv-spec-row .inv-spec-label { font-size: 12.5px; color: var(--text-2); flex-shrink: 0; }
+  .inv-spec-row .inv-spec-value { font-size: 13.5px; font-weight: 600; text-align: right; }
+  .inv-spec-row.inv-spec-total .inv-spec-label,
+  .inv-spec-row.inv-spec-total .inv-spec-value { font-weight: 700; color: var(--brand-blue); }
   .inv-card-actions { display: flex; gap: 8px; align-items: center; }
   .inv-card-actions .btn-primary { flex: 1; height: 34px; padding: 0 10px; font-size: 12.5px; }
   .inv-card-more-wrap { position: relative; flex-shrink: 0; }
@@ -1349,6 +1356,12 @@
         <div class="field full" style="font-weight:600;margin-top:2px;" data-i18n="sectionPackaging">分包装数量</div>
         <div class="field"><label data-i18n="fieldPackSize">每箱/包数量(可选)</label><input type="number" min="0" step="0.01" id="invFieldPackSize" placeholder="例如 24" /></div>
         <div class="field"><label data-i18n="fieldPackUnitLabel">箱/包单位标签</label><input type="text" id="invFieldPackUnitLabel" placeholder="箱" /></div>
+        <div class="field full" style="font-weight:600;margin-top:2px;" data-i18n="sectionPricing">价格</div>
+        <div class="field">
+          <label data-i18n="fieldUnitPrice">单价(欧元,可选)</label>
+          <input type="number" min="0" step="0.01" id="invFieldUnitPrice" placeholder="例如 3.50" />
+        </div>
+        <div class="field-hint full" data-i18n="unitPriceLocalOnlyHint">单价和自动算出的总价目前只保存在这台设备/这个浏览器上(后端暂不支持这个字段),换一台设备登录可能需要重新填一次。</div>
       </div>
       <div class="field-hint" id="inventoryItemQuantityHint" data-i18n="inventoryItemHint">库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过"记录流水"入库(员工每次从仓库补货到操作间,这里的总量也会相应减少)。</div>
       <div class="field-hint" data-i18n="reorderThresholdHint">当前库存总量低于"进货阈值"时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。</div>
@@ -1686,6 +1699,12 @@ const i18n = {
     invItemNameSyncHint: "选好分类后,上面的下拉菜单会自动列出该分类下已有的商品,直接选择就能带出名称并自动带出对应分类,避免重复新建或分类选错;选\"+ 新建商品\"可以手动输入全新的商品名称。",
     invItemNameNewOption: "+ 新建商品(手动输入名称)",
     fieldReorderThreshold: "进货阈值(可选)", fieldReorderQuantity: "建议采购量(可选)", fieldLeadTimeDays: "采购提前期(天)",
+    colReorderThreshold: "进货阈值", colLeadTimeDays: "采购提前期",
+    leadTimeDaysValue: function (n) { return n + " 天"; },
+    reorderThresholdNotSet: "未设置",
+    sectionPricing: "价格", fieldUnitPrice: "单价(欧元,可选)",
+    unitPriceLocalOnlyHint: "单价和自动算出的总价目前只保存在这台设备/这个浏览器上(后端暂不支持这个字段),换一台设备登录可能需要重新填一次。",
+    colUnitPrice: "单价", colTotalValue: "总价", unitPriceNotSet: "未设置",
     fieldCurrentQtyDisplay: "当前库存总量", sectionPackaging: "规格(可选)", newItemStartsAtZero: "新建商品,库存从 0 开始",
     currentQtyEditHint: "直接改这个数字并保存,系统会在后台自动生成一笔\"盘点调整\"流水记录下这次改动(时间、改动前后的数字都会留痕),不是凭空覆盖。",
     quickQtyEditNote: function (before, after, unit) { return "在商品资料页直接调整库存总量:" + before + " " + unit + " → " + after + " " + unit; },
@@ -2007,6 +2026,12 @@ const i18n = {
     invItemNameSyncHint: "Once you pick a category, the dropdown above lists existing items in that category — pick one to fill in the name and auto-select its category, avoiding duplicates or the wrong category; choose \"+ New item\" to type a brand-new name.",
     invItemNameNewOption: "+ New item (type a new name)",
     fieldReorderThreshold: "Reorder threshold (optional)", fieldReorderQuantity: "Suggested reorder (optional)", fieldLeadTimeDays: "Lead time (days)",
+    colReorderThreshold: "Reorder threshold", colLeadTimeDays: "Lead time",
+    leadTimeDaysValue: function (n) { return n + (n === 1 ? " day" : " days"); },
+    reorderThresholdNotSet: "Not set",
+    sectionPricing: "Pricing", fieldUnitPrice: "Unit price (EUR, optional)",
+    unitPriceLocalOnlyHint: "Unit price and the auto-calculated total value are currently only saved on this device/browser (the backend doesn't support this field yet) — logging in on another device may require re-entering it.",
+    colUnitPrice: "Unit price", colTotalValue: "Total value", unitPriceNotSet: "Not set",
     fieldCurrentQtyDisplay: "Current total stock", sectionPackaging: "Spec (optional)", newItemStartsAtZero: "New item — stock starts at 0",
     currentQtyEditHint: "Change this number and save — the system automatically logs an \"inventory adjustment\" transaction for it (timestamped, with the before/after values), so it's never a silent overwrite.",
     quickQtyEditNote: function (before, after, unit) { return "Quantity adjusted directly from the item detail screen: " + before + " " + unit + " → " + after + " " + unit; },
@@ -2436,6 +2461,9 @@ function saveState() {
       // 时间重新接上秒表,而不是简单地清零或者假装还是 0 秒。
       clockedIn, currentClockInAtIso: currentClockInAt ? currentClockInAt.toISOString() : null,
       currentAttendanceSessionId,
+      // 用户明确要求加的"单价/总价"——后端没有这个字段,只能靠本地这份价目表撑住,
+      // 见上面 inventoryUnitPriceCentsById 声明处的详细说明。
+      inventoryUnitPriceCentsById,
     };
     window.localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(state));
   } catch (err) {
@@ -2468,6 +2496,11 @@ function loadState() {
   // 库存商品、分类清单、流水记录全部改为真实连接后端(InventoryModule/InventoryCategoryEntity),
   // 每次进入库存相关页面都会用 syncInventoryFromBackend() 从数据库重新拉取最新数据,
   // 不再需要浏览器本地缓存一份可能过期的库存快照。
+  // 单价/总价是例外(见 inventoryUnitPriceCentsById 声明处的说明):后端没有这个字段,
+  // 只能靠这份本地价目表撑住,所以要单独持久化,不能跟着上面那条"库存不再缓存"的规则走。
+  if (saved.inventoryUnitPriceCentsById && typeof saved.inventoryUnitPriceCentsById === "object") {
+    inventoryUnitPriceCentsById = saved.inventoryUnitPriceCentsById;
+  }
   if (typeof saved.platformAdminEmail === "string") platformAdminEmail = saved.platformAdminEmail;
   if (typeof saved.platformAdminPassword === "string") platformAdminPassword = saved.platformAdminPassword;
   if (typeof saved.employeeDemoPassword === "string") employeeDemoPassword = saved.employeeDemoPassword;
@@ -5639,6 +5672,22 @@ let inventoryCategoryTree = []; // GET .../inventory/categories?includeInactive=
 let inventoryInsightsData = { lowStockAlerts: [], wasteAlerts: [], qualityAlerts: [] };
 let inventorySyncInFlight = false; // 避免短时间内重复点击导致同时发出好几个相同的同步请求
 
+// Bug 修复(用户明确要求:"商品价格要添加进去。总价,单价都要显示进去"):后端的库存商品
+// 目前完全没有"单价"这个字段(也没有对应的数据库列),而库存商品列表每次都会整份从
+// 后端重新拉取(syncInventoryFromBackend 不再像以前那样把 inventoryItems 缓存进
+// localStorage),如果直接把单价塞进发给后端的保存请求,极可能被后端的字段校验直接
+// 拒绝、连累"新增/编辑商品"这个本来正常工作的功能一起保存失败;就算侥幸没被拒绝,
+// 后端不认得这个字段,下次重新拉取时这个值也会凭空消失。为了不破坏现有功能、也不让
+// 用户看到"填了却突然不见了"的诡异体验,这里改成单独一份只存在这台设备上的价目表
+// (itemId → 单价欧分),存进 localStorage,每次库存列表刷新之后重新合并进去——
+// 换一台设备/浏览器价格会需要重新填一次,这一点已经在"编辑商品资料"弹窗里如实标注。
+let inventoryUnitPriceCentsById = {};
+
+function getInventoryUnitPriceCents(itemId) {
+  const v = inventoryUnitPriceCentsById[itemId];
+  return (typeof v === "number" && !Number.isNaN(v)) ? v : null;
+}
+
 /** 后端已经把状态/建议采购量都算好了,这里只是保留同一个函数名字方便调用方不用大改。
     应用户要求,库存状态不再基于历史消耗速率自动估算断货天数,只依据管理员手动填写的
     进货阈值(reorderThreshold)判断,所以这里不再有 daysUntilStockout/avgDailyConsumption
@@ -5790,9 +5839,13 @@ function renderGroupedInventoryRows(items, dict) {
   }).join("");
 }
 
-/** 精简版商品卡片:名称/分类放最上面,库存/规格/建议采购量做成小标签并排展示(而不是表格的一排列),
-    操作只保留"记录流水"这一个最常用的主按钮,其余(编辑资料/查看流水/归档)收进右侧"⋯"菜单里,
-    避免每一行都摆 4 个按钮造成拥挤感。 */
+/** Bug 修复(用户反馈:"在手机里显示的项目太凌乱...产品名称,产品规格...产品库存,
+    需进货阙值,建议进货数量,提前几天预告...商品价格要添加进去。总价,单价都要显示
+    进去"):以前是横向平铺几个小标签,手机上字段一多就挤成一团、对不齐,看起来乱。
+    现在改成"规格单"式的一行一项清单——名称/分类在最上面,下面依次是规格、当前库存、
+    进货阈值、建议进货数量、采购提前期、单价、总价,每一项都是"左边标签、右边数值"
+    对齐展示,不管商品叫什么名字、屏幕多窄都不会挤在一起。操作按钮保持精简:只留
+    "记录流水"这一个最常用的主按钮,其余(编辑资料/查看流水/归档)收进右侧"⋯"菜单。 */
 function buildInventoryCardHtml(item) {
   const dict = i18n[currentLang];
   const view = computeInventoryView(item);
@@ -5809,7 +5862,20 @@ function buildInventoryCardHtml(item) {
     suggestedLabel += " " + dict.packCountSuffix(view.suggestedReorderPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
   }
 
+  const reorderThresholdLabel = (item.reorderThreshold !== null && item.reorderThreshold !== undefined)
+    ? (item.reorderThreshold + " " + item.unit)
+    : dict.reorderThresholdNotSet;
+  const leadTimeLabel = dict.leadTimeDaysValue(item.leadTimeDays || 0);
+
+  // 单价/总价:后端没有这个字段,只能从本地这份价目表里读(见 inventoryUnitPriceCentsById
+  // 声明处的说明),没填过就显示"未设置",不假装有一个真实数字。
+  const unitPriceCents = getInventoryUnitPriceCents(item.id);
+  const unitPriceLabel = unitPriceCents !== null ? ("€" + (unitPriceCents / 100).toFixed(2)) : dict.unitPriceNotSet;
+  const totalValueLabel = unitPriceCents !== null ? ("€" + ((unitPriceCents * item.currentQuantity) / 100).toFixed(2)) : "—";
+
   const categoryLabel = categoryDisplayLabel(item);
+
+  const specRow = (label, value, extraClass) => '<div class="inv-spec-row' + (extraClass ? " " + extraClass : "") + '"><span class="inv-spec-label">' + label + '</span><span class="inv-spec-value">' + value + '</span></div>';
 
   return '<div class="inv-card" data-inventory-row="' + item.id + '">' +
     '<div class="inv-card-head">' +
@@ -5819,10 +5885,14 @@ function buildInventoryCardHtml(item) {
       '</div>' +
       '<span class="badge ' + statusBadgeClass + '">' + statusLabel + '</span>' +
     '</div>' +
-    '<div class="inv-card-stats">' +
-      '<div class="inv-stat"><div class="inv-stat-label">' + dict.colCurrentQty + '</div><div class="inv-stat-value">' + currentQtyLabel + '</div></div>' +
-      '<div class="inv-stat"><div class="inv-stat-label">' + dict.colSpec + '</div><div class="inv-stat-value">' + buildInventorySpecLabel(item, dict) + '</div></div>' +
-      '<div class="inv-stat"><div class="inv-stat-label">' + dict.colSuggestedReorder + '</div><div class="inv-stat-value">' + suggestedLabel + '</div></div>' +
+    '<div class="inv-spec-list">' +
+      specRow(dict.colSpec, buildInventorySpecLabel(item, dict)) +
+      specRow(dict.colCurrentQty, currentQtyLabel) +
+      specRow(dict.colReorderThreshold, reorderThresholdLabel) +
+      specRow(dict.colSuggestedReorder, suggestedLabel) +
+      specRow(dict.colLeadTimeDays, leadTimeLabel) +
+      specRow(dict.colUnitPrice, unitPriceLabel) +
+      specRow(dict.colTotalValue, totalValueLabel, "inv-spec-total") +
     '</div>' +
     '<div class="inv-card-actions">' +
       '<button class="btn btn-primary" data-record-transaction="' + item.id + '">' + dict.recordTransaction + '</button>' +
@@ -5881,6 +5951,9 @@ function openInventoryItemModal(item) {
   document.getElementById("invFieldLeadTimeDays").value = item ? item.leadTimeDays : 2;
   document.getElementById("invFieldPackSize").value = (item && item.packSize !== null && item.packSize !== undefined) ? item.packSize : "";
   document.getElementById("invFieldPackUnitLabel").value = item ? (item.packUnitLabel || "") : "";
+  // 用户明确要求加的单价(本地价目表,后端没有这个字段——见 inventoryUnitPriceCentsById 声明处的说明)。
+  const existingUnitPriceCents = item ? getInventoryUnitPriceCents(item.id) : null;
+  document.getElementById("invFieldUnitPrice").value = existingUnitPriceCents !== null ? (existingUnitPriceCents / 100).toFixed(2) : "";
 
   // Bug 修复(用户明确要求:"我还是需要能够简单操作,在库存总量上更改数值,太繁琐的
   // 操作对用户不友好"):这里改成可以直接编辑的数字输入框,填完直接保存,不用再单独
@@ -6449,6 +6522,7 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
   const leadTimeDays = Number(document.getElementById("invFieldLeadTimeDays").value) || 0;
   const packSizeRaw = document.getElementById("invFieldPackSize").value;
   const packUnitLabelRaw = document.getElementById("invFieldPackUnitLabel").value.trim();
+  const unitPriceRaw = document.getElementById("invFieldUnitPrice").value;
   // 只在"新增商品"时才读取和使用这个值——编辑已有商品时这个输入框是隐藏的,不应该被
   // 拿来当成"要把库存改成这个数字",库存的变动永远只能走"记录流水"。
   const initialQuantityRaw = idVal ? "" : document.getElementById("invFieldInitialQuantity").value;
@@ -6480,6 +6554,7 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
 
   const submitBtn = document.getElementById("btnSubmitInventoryItem");
   submitBtn.disabled = true;
+  let savedItemId = idVal || null;
   try {
     if (idVal) {
       await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + idVal, { method: "PATCH", auth: true, body });
@@ -6517,6 +6592,18 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
           body: { type: "RECEIPT", quantity: initialQuantity, note: currentLang === "zh" ? "期初库存" : "Opening stock" },
         });
       }
+      savedItemId = created.id;
+    }
+    // 用户明确要求加的单价(总价由单价 × 当前库存算出来,不需要单独存)——后端没有这个
+    // 字段,只存进本地这份价目表(见 inventoryUnitPriceCentsById 声明处的说明),不放进
+    // 上面发给后端的 body,避免后端字段校验把整个保存请求拒掉。
+    if (savedItemId) {
+      if (unitPriceRaw !== "") {
+        inventoryUnitPriceCentsById[savedItemId] = Math.round(Number(unitPriceRaw) * 100);
+      } else {
+        delete inventoryUnitPriceCentsById[savedItemId];
+      }
+      saveState();
     }
     await syncInventoryFromBackend();
     closeModal(document.getElementById("modal-inventory-item"));
