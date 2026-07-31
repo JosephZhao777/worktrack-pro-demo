@@ -110,8 +110,47 @@
   .btn-outline { background: transparent; border-color: var(--border-c); color: var(--text-1); }
   .btn-outline:hover { background: rgba(123,38,53,.08); }
   .inv-status-filter-btn.active { background: var(--brand-blue); color: #fff; border-color: var(--brand-blue); }
-  .inv-category-header-row td { background: rgba(123,38,53,.06); font-size: 13px; padding: 8px 12px; border-top: 1px solid var(--border-c); }
   .btn-block { width: 100%; }
+
+  /* ---- 智能库存:精简版工具栏 + 卡片列表 ---- */
+  .inv-toolbar { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; }
+  .inv-search-wrap { position: relative; width: 100%; }
+  .inv-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 14px; opacity: .7; }
+  .inv-search-input { width: 100%; box-sizing: border-box; height: 40px; padding: 0 12px 0 36px; border-radius: 10px; border: 1px solid var(--border-c); background: rgba(120,130,160,.06); color: inherit; font-size: 13.5px; }
+  .inv-toolbar-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .inv-category-select { height: 36px; border-radius: 8px; border: 1px solid var(--border-c); background: rgba(120,130,160,.06); color: inherit; padding: 0 8px; font-size: 13px; }
+  .inv-status-filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .inv-status-filter-group .inv-status-filter-btn { height: 36px; padding: 0 12px; font-size: 12px; }
+  .inv-actions-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 0 16px; }
+  .inv-more-menu-wrap { position: relative; }
+  .inv-more-menu-btn { height: 36px; padding: 0 14px; font-size: 12.5px; }
+  .inv-more-menu-dropdown { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; background: var(--surface, #fff); border: 1px solid var(--border-c); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.14); min-width: 180px; overflow: hidden; }
+  .inv-more-menu-dropdown.hidden { display: none; }
+  .inv-more-menu-item { display: block; width: 100%; text-align: left; background: none; border: none; padding: 10px 14px; font-size: 13px; color: var(--text-1); cursor: pointer; font-family: inherit; }
+  .inv-more-menu-item:hover { background: rgba(123,38,53,.08); }
+
+  .inv-category-group { margin-bottom: 18px; }
+  .inv-category-group-title { display: flex; align-items: baseline; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text-2); padding: 4px 2px 8px; }
+  .inv-category-group-title .inv-category-count { font-weight: 400; color: var(--text-2); opacity: .75; }
+  .inv-card-list { display: flex; flex-direction: column; gap: 10px; }
+  .inv-card { border: 1px solid var(--border-c); border-radius: 12px; padding: 12px 14px; background: rgba(120,130,160,.03); }
+  .inv-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .inv-card-name { font-size: 14.5px; font-weight: 700; }
+  .inv-card-category { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+  .inv-card-stats { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 0; }
+  .inv-stat { min-width: 88px; }
+  .inv-stat-label { font-size: 11px; color: var(--text-2); margin-bottom: 2px; }
+  .inv-stat-value { font-size: 13.5px; font-weight: 600; }
+  .inv-card-actions { display: flex; gap: 8px; align-items: center; }
+  .inv-card-actions .btn-primary { flex: 1; height: 34px; padding: 0 10px; font-size: 12.5px; }
+  .inv-card-more-wrap { position: relative; flex-shrink: 0; }
+  .inv-card-more-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-c); background: transparent; color: var(--text-1); cursor: pointer; font-size: 16px; line-height: 1; }
+  .inv-card-more-btn:hover { background: rgba(123,38,53,.08); }
+  .inv-card-menu { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 15; background: var(--surface, #fff); border: 1px solid var(--border-c); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.14); min-width: 160px; overflow: hidden; }
+  .inv-card-menu.hidden { display: none; }
+  .inv-card-menu button { display: block; width: 100%; text-align: left; background: none; border: none; padding: 10px 14px; font-size: 13px; color: var(--text-1); cursor: pointer; font-family: inherit; }
+  .inv-card-menu button:hover { background: rgba(123,38,53,.08); }
+  .inv-empty-state { text-align: center; color: var(--text-2); padding: 28px 10px; font-size: 13px; }
   .sync-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 9999; max-width: min(92vw, 480px); background: #3A1116; color: #FBF3EE; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.4; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.35); }
   .sync-toast .sync-toast-msg { flex: 1; }
   .sync-toast button { flex-shrink: 0; background: transparent; border: 1px solid rgba(255,255,255,.4); color: inherit; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
@@ -286,8 +325,19 @@
   .msg-input-row input { flex: 1; height: 36px; border-radius: 999px; border: 1px solid var(--border-c); background: rgba(120,130,160,.06); padding: 0 14px; font-size: 12.5px; color: var(--text-1); }
   .msg-toggle { background: none; border: none; color: var(--brand-blue); font-size: 12px; cursor: pointer; padding: 0; font-family: inherit; }
   .leave-card.voided { opacity: .6; background: rgba(178,58,78,.04); }
-  .edit-history-item { font-size: 12px; color: var(--text-2); padding: 6px 0; border-bottom: 1px solid var(--border-c); }
+  .edit-history-item { font-size: 12.5px; color: var(--text-2); padding: 10px 0; border-bottom: 1px solid var(--border-c); }
   .edit-history-item:last-child { border-bottom: none; }
+  .edit-history-item-text { line-height: 1.5; }
+  /* 按钮放到单独一行、右对齐布局,方便手机上找到。配色改成浅灰(用户反馈:酒红色实心
+     底太重、按钮太大,手机上看着不舒服),做成一个低调的次要操作,不抢主列表文字的
+     视觉重点,尺寸也调小一些。 */
+  .edit-history-item-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+  .btn-reverse-tx {
+    background: rgba(42,32,26,.06); color: var(--text-2); border: 1px solid var(--border-c); border-radius: 999px;
+    height: 24px; padding: 0 10px; font-size: 11px; font-weight: 500; cursor: pointer;
+  }
+  .btn-reverse-tx:hover { background: rgba(42,32,26,.11); color: var(--text-1); }
+  .btn-reverse-tx:disabled { opacity: .6; cursor: default; }
   .corrected-value { text-decoration: line-through; opacity: .55; margin-right: 6px; }
   .insight-card { border-radius: var(--radius-md); border: 1px solid var(--border-c); border-left: 4px solid var(--success); padding: 10px 14px; margin-bottom: 8px; font-size: 13px; background: rgba(76,122,90,.06); }
   .insight-card.low-stock { border-left-color: var(--danger); background: rgba(178,58,78,.06); }
@@ -295,6 +345,21 @@
   .insight-card.waste { border-left-color: var(--brand-amber); background: rgba(198,138,61,.07); }
   .insight-card.quality { border-left-color: var(--danger); background: rgba(178,58,78,.05); }
   .insight-empty { font-size: 12.5px; color: var(--text-2); }
+
+  /* ---------- "每日经营报告"模块卡片(应用户要求:"把这几个不同区域模块化,用不同
+     颜色更加清晰地表现出来...感觉很专业,像一种手机界面那样") ----------
+     四个模块按"关注程度"分配底色,而不是随便配色:GPS 异常停留平时大多是"一切正常",
+     用最不打眼的浅灰;工资成本是中性财务数据,用比浅灰略深一点、带一点品牌色的浅色;
+     人员排班提醒需要管理员"提前安排",用浅琥珀提醒但不算警告;库存提醒是真正的"库存
+     不足需要采购"预警,用浅红/深红对比最强的配色,一眼就能从最不需要处理排到最需要
+     处理。 */
+  .report-module { border-radius: var(--radius-md); padding: 14px 16px 16px; margin: 12px 0 22px; }
+  .report-module-title { font-weight: 700; font-size: 15px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+  .report-module-icon { font-size: 16px; line-height: 1; }
+  .report-module--neutral { background: rgba(42,32,26,.035); border: 1px solid var(--border-c); }
+  .report-module--info { background: rgba(61,37,48,.06); border: 1px solid rgba(61,37,48,.18); }
+  .report-module--warning { background: rgba(184,134,60,.10); border: 1px solid rgba(184,134,60,.30); }
+  .report-module--danger { background: rgba(178,58,78,.08); border: 1px solid rgba(178,58,78,.26); }
   table.data-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
   table.data-table th { text-align: left; padding: 10px 8px; color: var(--text-2); font-weight: 600; font-size: 12px; }
   table.data-table td { padding: 10px 8px; border-top: 1px solid var(--border-c); }
@@ -310,6 +375,9 @@
     .entrance-actions { width: 100%; }
     .entrance-actions .btn { flex: 1; }
     .form-grid { grid-template-columns: 1fr; }
+    /* 手机上弹窗内边距紧一点,布局更贴合手机操作习惯;"冲正"按钮保持小巧、右对齐,
+       不需要撑满整行(用户反馈:太大、太抢眼,浅灰小按钮看着更舒服)。 */
+    .modal-box { padding: 20px; }
   }
 </style>
 </head>
@@ -475,22 +543,31 @@
           <h2 class="section-title" data-i18n="navDailyReport">每日经营报告</h2>
           <p class="section-sub" data-i18n="dailyReportSub">整合当天的 GPS 异常停留、员工工时与工资成本、库存预警,老板打开 App 30 秒内就能看到今天需要关注什么。以下算法与后端 ReportsModule/GpsModule/PayrollModule 完全一致,只是用的是演示假数据。</p>
 
-          <div style="font-weight:700;margin:18px 0 8px;" data-i18n="dailyReportGpsTitle">GPS 异常停留</div>
-          <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportGpsSub">连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)</p>
-          <div id="dailyReportGpsList"></div>
+          <div class="report-module report-module--neutral">
+            <div class="report-module-title"><span class="report-module-icon">📍</span><span data-i18n="dailyReportGpsTitle">GPS 异常停留</span></div>
+            <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportGpsSub">连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)</p>
+            <div id="dailyReportGpsList"></div>
+          </div>
 
-          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportWageTitle">今日工时与工资成本</div>
-          <p class="section-sub" style="margin:0 0 4px;font-size:12px;" id="dailyReportWageRangeCaption"></p>
-          <p class="section-sub" style="margin:0 0 8px;font-size:12px;" data-i18n="overtimeRuleCaption">规则:每人每天工作超过 8 小时的部分算加班,加班时薪 = 正常时薪 × 1.5倍(例如时薪 €15,加班时薪就是 €22.50)。工资成本 = 正常工时×时薪 + 加班工时×加班时薪。</p>
-          <table class="data-table" id="dailyReportWageTable"></table>
-          <p class="section-sub" style="margin:8px 0 0;font-size:12px;" id="dailyReportWageMonthToDateCaption"></p>
+          <div class="report-module report-module--info">
+            <div class="report-module-title"><span class="report-module-icon">💰</span><span data-i18n="dailyReportWageTitle">今日工时与工资成本</span></div>
+            <p class="section-sub" style="margin:0 0 4px;font-size:12px;" id="dailyReportWageRangeCaption"></p>
+            <p class="section-sub" style="margin:0 0 8px;font-size:12px;" data-i18n="overtimeRuleCaption">规则:每人每天工作超过 8 小时的部分算加班,加班时薪 = 正常时薪 × 1.5倍(例如时薪 €15,加班时薪就是 €22.50)。工资成本 = 正常工时×时薪 + 加班工时×加班时薪。</p>
+            <table class="data-table" id="dailyReportWageTable"></table>
+            <p class="section-sub" style="margin:8px 0 0;font-size:12px;" id="dailyReportWageMonthToDateCaption"></p>
+          </div>
 
-          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportLeaveTitle">人员排班提醒</div>
-          <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportLeaveSub">今天正在请假、以及未来 7 天内即将请假的员工,提前安排替补人手上班,避免临时缺人。</p>
-          <div id="dailyReportLeaveList"></div>
+          <div class="report-module report-module--warning">
+            <div class="report-module-title"><span class="report-module-icon">🗓️</span><span data-i18n="dailyReportLeaveTitle">人员排班提醒</span></div>
+            <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportLeaveSub">今天正在请假、以及未来 7 天内即将请假的员工,提前安排替补人手上班,避免临时缺人。</p>
+            <div id="dailyReportLeaveList"></div>
+          </div>
 
-          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportInventoryTitle">库存提醒</div>
-          <div id="dailyReportInventoryList"></div>
+          <div class="report-module report-module--danger">
+            <div class="report-module-title"><span class="report-module-icon">📦</span><span data-i18n="dailyReportInventoryTitle">库存提醒</span></div>
+            <div id="dailyReportInventoryList"></div>
+            <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:10px;" id="dailyReportInventoryPagination"></div>
+          </div>
         </div>
         <div class="glass ca-section" id="ca-employees" style="display:none;margin-top:20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -565,26 +642,32 @@
           <p class="section-sub" data-i18n="inventorySub">库存不足提醒只依据您设置的"进货阈值"(不再自动估算断货天数),近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过"记录流水"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。</p>
           <div class="metric-grid" id="inventorySummaryCards" style="margin-bottom:14px;"></div>
           <div id="inventoryInsights"></div>
+          <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin:4px 0 10px;" id="inventoryInsightsPagination"></div>
 
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0;">
-            <div style="position:relative;flex:1;min-width:180px;">
-              <span aria-hidden="true" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:14px;opacity:.7;">🔍</span>
-              <input type="text" id="invSearchInput" data-i18n-placeholder="invSearchPlaceholder" placeholder="按商品名称/分类搜索" style="width:100%;box-sizing:border-box;height:36px;padding:0 12px 0 34px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;" />
+          <div class="inv-toolbar">
+            <div class="inv-search-wrap">
+              <span aria-hidden="true" class="inv-search-icon">🔍</span>
+              <input type="text" id="invSearchInput" class="inv-search-input" data-i18n-placeholder="invSearchPlaceholder" placeholder="按商品名称/分类搜索" />
             </div>
-            <select id="invCategoryFilter" style="height:36px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;padding:0 8px;">
-              <option value="" data-i18n="invFilterAllCategories">全部分类</option>
-            </select>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;" id="invStatusFilterGroup">
-              <button class="btn btn-outline inv-status-filter-btn active" data-status-filter="" style="height:36px;padding:0 12px;font-size:12px;" data-i18n="invFilterAll">全部</button>
-              <button class="btn btn-outline inv-status-filter-btn" data-status-filter="LOW_STOCK" style="height:36px;padding:0 12px;font-size:12px;" data-i18n="statusLowStock">库存不足</button>
-              <button class="btn btn-outline inv-status-filter-btn" data-status-filter="NORMAL" style="height:36px;padding:0 12px;font-size:12px;" data-i18n="statusNormalStock">正常</button>
+            <div class="inv-toolbar-filters">
+              <select id="invCategoryFilter" class="inv-category-select">
+                <option value="" data-i18n="invFilterAllCategories">全部分类</option>
+              </select>
+              <div class="inv-status-filter-group" id="invStatusFilterGroup">
+                <button class="btn btn-outline inv-status-filter-btn active" data-status-filter="" data-i18n="invFilterAll">全部</button>
+                <button class="btn btn-outline inv-status-filter-btn" data-status-filter="LOW_STOCK" data-i18n="statusLowStock">库存不足</button>
+                <button class="btn btn-outline inv-status-filter-btn" data-status-filter="NORMAL" data-i18n="statusNormalStock">正常</button>
+              </div>
             </div>
           </div>
 
-          <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0;flex-wrap:wrap;gap:8px;">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn btn-outline" id="btnViewArchivedInventory" style="height:34px;padding:0 12px;font-size:12px;" data-i18n="viewArchivedItems">查看已归档商品</button>
-              <button class="btn btn-outline" id="btnManageInventoryCategories" style="height:34px;padding:0 12px;font-size:12px;" data-i18n="manageCategories">分类管理</button>
+          <div class="inv-actions-row">
+            <div class="inv-more-menu-wrap">
+              <button class="btn btn-outline inv-more-menu-btn" id="btnInvMoreMenu" type="button" aria-haspopup="true" aria-expanded="false">⋯ <span data-i18n="moreActions">更多</span></button>
+              <div class="inv-more-menu-dropdown hidden" id="invMoreMenuDropdown">
+                <button class="inv-more-menu-item" id="btnViewArchivedInventory" data-i18n="viewArchivedItems">查看已归档商品</button>
+                <button class="inv-more-menu-item" id="btnManageInventoryCategories" data-i18n="manageCategories">分类管理</button>
+              </div>
             </div>
             <button class="btn btn-primary" id="btnAddInventoryItem" data-i18n="addInventoryItem">+ 新增库存商品</button>
           </div>
@@ -902,6 +985,73 @@
   </div>
 </div>
 
+<!-- Bug 修复(用户明确要求:"必须能够编辑所有的内容,切不可非常麻烦。页面一定要非常
+     友好,方便使用"):调整时薪以前用两个连续弹出的浏览器原生 window.prompt() 对话框
+     (先问时薪,再问生效日期),样式丑、容易被误关、也看不到当前值——现在换成跟其它
+     表单一样的正规弹窗,两个字段一次性看到、填好点保存即可。 -->
+<div class="modal-overlay hidden" id="modal-edit-rate">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="editHourlyRate">调整时薪</h3>
+    <p class="modal-sub" id="editRateModalSub"></p>
+    <form id="form-edit-rate">
+      <input type="hidden" id="editRateEmployeeId" />
+      <div class="field">
+        <label data-i18n="fieldHourlyRate">时薪(欧元/小时)</label>
+        <input type="number" min="0" step="0.01" id="editRateValue" required />
+      </div>
+      <div class="field">
+        <label data-i18n="editRateEffectiveFromLabel">生效日期(可选)</label>
+        <input type="date" id="editRateEffectiveFrom" />
+        <div class="field-hint" data-i18n="editRateEffectiveFromHint">留空交给系统自动判断:第一次设置时薪会自动覆盖入职以来的全部历史打卡;涨薪/调薪默认从今天生效。如果这名员工之前打过卡但工资一直显示 €0(说明当时设置晚了),可以在这里手动填一个更早的日期(比如入职当天),把之前的工时也一起补算进去。</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="saveChanges">保存修改</button>
+    </form>
+  </div>
+</div>
+
+<!-- Bug 修复(用户明确要求:"必须能够编辑所有的内容,切不可非常麻烦"):以前添加员工之后
+     姓名/电话/权限级别/用工类型完全没有编辑入口。这里补上一个"编辑资料"弹窗——姓名和
+     电话保存后会真正 PATCH 给后端;权限级别/用工类型这两项后端数据库目前还没有对应
+     字段,如实标注出来(见下面的黄色提示),而不是假装已经跨设备同步好了,避免重演
+     之前"换浏览器内容消失"那类因为"看起来保存了、其实只在本地"造成的信任问题。 -->
+<div class="modal-overlay hidden" id="modal-edit-employee">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 class="modal-title" data-i18n="editEmployeeProfile">编辑员工资料</h3>
+    <p class="modal-sub" id="editEmployeeModalSub"></p>
+    <form id="form-edit-employee">
+      <input type="hidden" id="editEmployeeId" />
+      <div class="form-grid">
+        <div class="field full"><label data-i18n="fieldFullName">姓名</label><input type="text" id="editEmployeeName" required /></div>
+        <div class="field full"><label data-i18n="fieldPhone">电话号码</label><input type="text" id="editEmployeePhone" placeholder="+31 6 1234 5678" /></div>
+        <div class="field full">
+          <label data-i18n="fieldEmployeeId">员工编号</label>
+          <input type="text" id="editEmployeeCodeDisplay" disabled style="opacity:.6;" />
+          <div class="field-hint" data-i18n="employeeCodeImmutableHint">员工编号用于识别登录账号,暂不支持在这里修改;如需更换请联系技术支持。</div>
+        </div>
+        <div class="field">
+          <label data-i18n="fieldPermissionLevel">权限级别</label>
+          <select id="editEmployeeRole">
+            <option value="employee" data-i18n="roleEmployee">员工</option>
+            <option value="manager" data-i18n="roleManager">主管(可审批请假、查看排班)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label data-i18n="fieldEmploymentType">用工类型</label>
+          <select id="editEmployeeType">
+            <option value="full_time" data-i18n="typeFullTime">正式员工</option>
+            <option value="part_time" data-i18n="typePartTime">兼职</option>
+            <option value="temporary" data-i18n="typeTemporary">临时工</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-hint" style="color:var(--warning);" data-i18n="editEmployeeSyncWarningText">权限级别和用工类型这两项,后端数据库目前还没有对应的字段——保存之后只会在这台设备/这个浏览器上生效,换一台设备登录管理后台,可能会看到这两项变回默认值。姓名和电话号码会正常同步到服务器,不受影响。</div>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="saveChanges">保存修改</button>
+    </form>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="modal-leave-center">
   <div class="modal-box wide">
     <button class="modal-close" data-close-modal>✕</button>
@@ -1165,7 +1315,11 @@
         </div>
         <div class="field full" id="invCurrentQtyDisplayWrap">
           <label data-i18n="fieldCurrentQtyDisplay">当前库存总量</label>
-          <div id="invCurrentQtyDisplay" style="padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:14px;">—</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="number" min="0" step="0.01" id="invCurrentQtyEdit" style="flex:1;" />
+            <span id="invCurrentQtyUnitLabel" style="font-size:13px;color:var(--text-2);white-space:nowrap;"></span>
+          </div>
+          <div class="field-hint" data-i18n="currentQtyEditHint">直接改这个数字并保存,系统会在后台自动生成一笔"盘点调整"流水记录下这次改动(时间、改动前后的数字都会留痕),不是凭空覆盖。</div>
         </div>
         <div class="field full hidden" id="invInitialQtyFieldWrap">
           <label data-i18n="fieldInitialQuantity">库存总量(可选)</label>
@@ -1249,6 +1403,10 @@
     <button class="modal-close" data-close-modal>✕</button>
     <h3 class="modal-title" data-i18n="empInventoryTitle">仓库补货</h3>
     <p class="modal-sub" data-i18n="empInventoryModalSub">从仓库取货到操作间时,在对应商品后面填写数量并点"补货",库存会立刻同步给公司后台,不需要另外通知管理员</p>
+    <div id="empRecentWithdrawsPanel" class="hidden" style="margin:12px 0;padding:10px 12px;border-radius:10px;background:rgba(184,134,60,.10);border:1px solid rgba(184,134,60,.30);">
+      <div style="font-weight:700;font-size:12.5px;margin-bottom:6px;" data-i18n="empRecentWithdrawsTitle">刚刚的操作(手误点重复了可以直接撤销)</div>
+      <div id="empRecentWithdrawsList"></div>
+    </div>
     <div style="position:relative;margin:12px 0;">
       <span aria-hidden="true" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:14px;opacity:.7;">🔍</span>
       <input type="text" id="empInvWithdrawSearchInput" data-i18n-placeholder="invSearchPlaceholder" placeholder="按商品名称/分类搜索" style="width:100%;box-sizing:border-box;height:36px;padding:0 12px 0 34px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:inherit;" />
@@ -1262,6 +1420,9 @@
     <button class="modal-close" data-close-modal>✕</button>
     <h3 class="modal-title" id="inventoryHistoryModalTitle" data-i18n="viewTransactionHistory">查看流水记录</h3>
     <div id="inventoryHistoryList"></div>
+    <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:10px;" id="inventoryHistoryPagination"></div>
+    <button class="btn btn-outline btn-block hidden" id="btnToggleReversedHistory" style="margin-top:12px;font-size:12.5px;"></button>
+    <div id="inventoryHistoryReversedList" class="hidden" style="margin-top:8px;"></div>
   </div>
 </div>
 
@@ -1389,6 +1550,12 @@ const i18n = {
     colType: "用工类型", colMonthHoursShort: "本月工时", colTodayHoursShort: "今日工时",
     refreshEmployeeHoursNow: "立即刷新工时", refreshedJustNow: "已刷新",
     typeFullTime: "正式员工", typePartTime: "兼职", typeTemporary: "临时工",
+    fieldEmploymentType: "用工类型",
+    editEmployeeProfile: "编辑员工资料", editEmployeeAction: "编辑资料",
+    editEmployeeModalSub: function (name) { return name; },
+    employeeCodeImmutableHint: "员工编号用于识别登录账号,暂不支持在这里修改;如需更换请联系技术支持。",
+    editEmployeeSyncWarningText: "权限级别和用工类型这两项,后端数据库目前还没有对应的字段——保存之后只会在这台设备/这个浏览器上生效,换一台设备登录管理后台,可能会看到这两项变回默认值。姓名和电话号码会正常同步到服务器,不受影响。",
+    editEmployeeSaveFailedBackendMissing: "保存失败:后端暂不支持修改员工资料这个接口,需要先请技术人员补上(不会影响其它已上线的功能)。",
     caLeaveSub: "年假 / 病假 / 事假 / 培训 / 出差统一在这里审批,每条请求都有留言板可与员工沟通",
     settingsSub: "公司资料与员工邀请码管理",
     companyProfile: "公司资料", settingsAnnualQuota: "默认年假天数(每个公司可自行设置)", saveChanges: "保存修改",
@@ -1466,6 +1633,9 @@ const i18n = {
     editHourlyRate: "调整时薪", editHourlyRatePrompt: "请输入这名员工的新时薪(欧元/小时):",
     editHourlyRateEffectiveFromPrompt: "这个新时薪从哪天开始生效?(格式 年-月-日,例如 2026-07-01)\n\n留空 = 交给系统自动判断:如果这名员工是第一次设置时薪,会自动覆盖 ta 入职以来的全部历史打卡;如果是涨薪/调薪,默认从今天开始生效。\n\n如果你发现这名员工之前打过卡、但工资管理里一直显示 0 工时/€0(说明当时设置晚了),可以在这里手动填一个更早的日期(比如 ta 入职第一天),把之前的工时也一起补算进去。",
     fieldHourlyRate: "时薪(欧元/小时)", hourlyRateHint: "用于自动计算这名员工的工资,之后可以在员工列表里随时修改",
+    editRateEffectiveFromLabel: "生效日期(可选)",
+    editRateEffectiveFromHint: "留空交给系统自动判断:第一次设置时薪会自动覆盖入职以来的全部历史打卡;涨薪/调薪默认从今天生效。如果这名员工之前打过卡但工资一直显示 €0(说明当时设置晚了),可以在这里手动填一个更早的日期(比如入职当天),把之前的工时也一起补算进去。",
+    editRateModalSub: function (name, currentRate) { return name + " · 当前时薪 €" + currentRate + "/小时"; },
     // Bug 修复(用户明确要求:"绝对不能这样自动计算"、"管理员一对一给工人计算工时与小时
     // 工资"):"工资管理"页面不再从打卡记录里自动算工时/工资,改成管理员手工填写。
     // "每日经营报告"页面继续使用原来那套自动算法,不受影响。
@@ -1517,11 +1687,13 @@ const i18n = {
     invItemNameNewOption: "+ 新建商品(手动输入名称)",
     fieldReorderThreshold: "进货阈值(可选)", fieldReorderQuantity: "建议采购量(可选)", fieldLeadTimeDays: "采购提前期(天)",
     fieldCurrentQtyDisplay: "当前库存总量", sectionPackaging: "规格(可选)", newItemStartsAtZero: "新建商品,库存从 0 开始",
+    currentQtyEditHint: "直接改这个数字并保存,系统会在后台自动生成一笔\"盘点调整\"流水记录下这次改动(时间、改动前后的数字都会留痕),不是凭空覆盖。",
+    quickQtyEditNote: function (before, after, unit) { return "在商品资料页直接调整库存总量:" + before + " " + unit + " → " + after + " " + unit; },
     fieldInitialQuantity: "当前库存(可选)",
     initialQuantityHint: "如果这个商品现在仓库里已经有货(比如把线下已有的库存搬进系统),可以直接在这里填一次现有总量——系统会自动生成一笔\"期初库存\"入库流水,不会破坏\"库存只能通过流水变动\"这条规则;留空表示这是全新的 0 库存,以后再用\"记录流水\"入库。",
     reorderThresholdHint: "当前库存总量低于“进货阈值”时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。",
     inventoryItemHint: "库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过\"记录流水\"入库(员工每次从仓库补货到操作间,这里的总量也会相应减少)。",
-    inventoryItemEditHint: function (qty, unit) { return "当前库存(" + qty + " " + unit + ")不能在这里直接改——如果盘点后发现数字不对,请用\"记录流水 → 盘点调整\"来修正,系统会自动算出差值并留下记录,不会出现来路不明的数字变动。"; },
+    inventoryItemEditHint: function (qty, unit) { return "当前库存原本是 " + qty + " " + unit + "——上面可以直接改成盘点后的实际数字,保存时会自动算出差值、生成一笔盘点调整流水,不会出现来路不明的数字变动。"; },
     unitPiece: "件", unitBox: "箱", unitPack: "包", unitStrip: "条",
     recordTransaction: "记录流水", fieldTransactionType: "流水类型",
     typeReceipt: "入库(采购到货)", typeConsumption: "消耗(正常使用)", typeWaste: "浪费/报废", typeAdjustment: "盘点调整",
@@ -1555,6 +1727,13 @@ const i18n = {
     colCurrentQty: "当前库存", colSuggestedReorder: "建议采购量",
     statusLowStock: "库存不足", statusNormalStock: "正常",
     viewTransactionHistory: "查看流水记录", hideTransactionHistory: "收起流水记录", noTransactionsYet: "暂无流水记录",
+    reverseTransactionBtn: "冲正此笔", reverseTransactionDone: "已冲正", reverseTransactionInProgress: "处理中…",
+    reverseTransactionReasonPrompt: "请输入冲正这笔流水的原因(必填,会作为一条新的反向流水记录下来,原始记录不会被删除):",
+    reverseTransactionNote: function (typeLabel, qty, unit, reason) { return "冲正流水(原:" + typeLabel + " " + qty + " " + unit + "):" + reason; },
+    reverseTransactionFailed: "冲正失败,请稍后重试",
+    reversedHistoryToggleShow: function (n) { return "查看已冲正的记录(" + n + ")"; },
+    reversedHistoryToggleHide: "收起已冲正的记录",
+    reversedBadgeLabel: "已冲正",
     noInsights: "暂无需要关注的库存提醒,一切正常。",
     insightLowStockThresholdOnly: function (name, qty, unit) { return name + "库存(" + qty + " " + unit + ")已低于设定的补货阈值,建议尽快采购。"; },
     insightWaste: function (name, ratioPct) { return name + "最近 30 天的浪费占消耗量的 " + ratioPct + "%,建议排查储存或采购批量是否合理。"; },
@@ -1571,8 +1750,14 @@ const i18n = {
     empInventoryWithdrawBtn: "补货", empInventoryNoItems: "暂无库存商品。",
     empInventoryInsufficientStock: "库存不足,补不了这么多,请再确认一下数量。",
     empInventoryQtyRequired: "请先填写本次补货数量。",
+    empRecentWithdrawsTitle: "刚刚的操作(手误点重复了可以直接撤销)",
+    empUndoWithdrawBtn: "撤销", empUndoWithdrawDone: "已撤销", empUndoWithdrawing: "撤销中…",
+    empUndoWithdrawFailed: "撤销失败,请稍后重试或联系管理员",
+    empUndoWithdrawNote: function (itemName) { return "员工撤销误操作(原扣减:" + itemName + ")"; },
+    empRecentWithdrawEntry: function (time, itemName, qty, unit) { return time + " · " + itemName + " -" + qty + " " + unit; },
     empInventoryLastAction: function (qty, unit, time) { return "上次补货:" + time + " · " + qty + " " + unit; },
     invSearchPlaceholder: "按商品名称/分类搜索", invFilterAllCategories: "全部分类", invFilterAll: "全部",
+    moreActions: "更多",
     viewArchivedItems: "查看已归档商品",
     archivedItemsSub: "已归档的商品不会出现在日常库存列表和提醒里,但历史流水完整保留,可以随时恢复",
     fieldQualityGrade: "质量验收", qualityQualified: "合格", qualityMinorIssue: "轻微瑕疵", qualityRejected: "不合格",
@@ -1696,6 +1881,12 @@ const i18n = {
     colType: "Employment type", colMonthHoursShort: "Hours this month", colTodayHoursShort: "Hours today",
     refreshEmployeeHoursNow: "Refresh hours now", refreshedJustNow: "Refreshed",
     typeFullTime: "Full-time", typePartTime: "Part-time", typeTemporary: "Temporary",
+    fieldEmploymentType: "Employment type",
+    editEmployeeProfile: "Edit employee profile", editEmployeeAction: "Edit profile",
+    editEmployeeModalSub: function (name) { return name; },
+    employeeCodeImmutableHint: "The employee code identifies this login and can't be changed here yet — contact support if it needs to change.",
+    editEmployeeSyncWarningText: "Permission level and employment type don't have a database field on the backend yet — saving them only takes effect on this device/browser; logging into the admin dashboard on another device may show these two back at their defaults. Name and phone number sync to the server normally and aren't affected.",
+    editEmployeeSaveFailedBackendMissing: "Save failed: the backend doesn't support updating employee profiles yet — this needs a developer to add that endpoint first (won't affect any other feature that's already live).",
     caLeaveSub: "Annual, sick, personal, training and business-trip requests all live here, each with a message thread to the employee",
     settingsSub: "Company profile and employee invitation codes",
     companyProfile: "Company profile", settingsAnnualQuota: "Default annual leave days (configurable per company)", saveChanges: "Save changes",
@@ -1773,6 +1964,9 @@ const i18n = {
     editHourlyRate: "Edit hourly rate", editHourlyRatePrompt: "Enter this employee's new hourly rate (EUR/hour):",
     editHourlyRateEffectiveFromPrompt: "What date should this new rate take effect from? (YYYY-MM-DD, e.g. 2026-07-01)\n\nLeave blank = let the system decide automatically: if this is the employee's first-ever rate, it will automatically cover all of their attendance since joining; if this is a raise/adjustment, it defaults to today.\n\nIf this employee already clocked in before but Payroll has been showing 0 hours/€0 for them (because the rate was set too late), you can enter an earlier date here (e.g. their first day) to retroactively include those hours.",
     fieldHourlyRate: "Hourly rate (EUR/hour)", hourlyRateHint: "Used to auto-calculate this employee's pay; can be changed anytime from the employee list",
+    editRateEffectiveFromLabel: "Effective date (optional)",
+    editRateEffectiveFromHint: "Leave blank to let the system decide: the first time a rate is set, it retroactively covers all past clock-ins since this employee joined; a raise/adjustment applies from today by default. If this employee has clocked in before but payroll has always shown €0 (meaning the rate was set too late), enter an earlier date here (e.g. their start date) to backfill those hours.",
+    editRateModalSub: function (name, currentRate) { return name + " · current rate €" + currentRate + "/hour"; },
     payrollSub: "Every figure here is a final number you type in yourself — nothing is auto-calculated from clock-in records. Click \"Edit pay\" to enter an employee's regular pay / overtime pay / holiday pay / transport allowance / meal allowance; use adjustments for one-off bonuses or deductions; you can also leave a pay note the employee will see on their own account.",
     overtimeRuleCaption: "Rule: any time worked beyond 8 hours in a single day counts as overtime, paid at 1.5× the regular rate (e.g. €15/h regular → €22.50/h overtime). Wage cost = regular hours × rate + overtime hours × overtime rate.",
     wageCostBreakdown: function (regularAmount, overtimeAmount) { return "(regular €" + regularAmount + " + overtime €" + overtimeAmount + ")"; },
@@ -1814,11 +2008,13 @@ const i18n = {
     invItemNameNewOption: "+ New item (type a new name)",
     fieldReorderThreshold: "Reorder threshold (optional)", fieldReorderQuantity: "Suggested reorder (optional)", fieldLeadTimeDays: "Lead time (days)",
     fieldCurrentQtyDisplay: "Current total stock", sectionPackaging: "Spec (optional)", newItemStartsAtZero: "New item — stock starts at 0",
+    currentQtyEditHint: "Change this number and save — the system automatically logs an \"inventory adjustment\" transaction for it (timestamped, with the before/after values), so it's never a silent overwrite.",
+    quickQtyEditNote: function (before, after, unit) { return "Quantity adjusted directly from the item detail screen: " + before + " " + unit + " → " + after + " " + unit; },
     fieldInitialQuantity: "Current stock (optional)",
     initialQuantityHint: "If this item already has stock sitting in your warehouse right now (e.g. moving your existing offline inventory into the system), you can enter the current total here — the system will automatically record it as an \"opening stock\" receipt transaction, so it still follows the \"stock only changes via transactions\" rule. Leave it blank if this is a brand-new item starting at 0, and add stock later via \"Record transaction\".",
     reorderThresholdHint: "When current stock drops below the \"reorder threshold\", the system automatically works out a suggested reorder quantity and surfaces it in the inventory alerts — no manual math needed.",
     inventoryItemHint: "Stock quantity can't be set here directly — a new item always starts at 0, then goes up via \"Record transaction\" (each time an employee restocks from the warehouse to the prep area, this total goes down accordingly).",
-    inventoryItemEditHint: function (qty, unit) { return "Current stock (" + qty + " " + unit + ") can't be edited here — if a stock count turns up a wrong number, use \"Record transaction → Adjustment\" instead; the system works out the difference and keeps a record, so there's never an untraceable change to the number."; },
+    inventoryItemEditHint: function (qty, unit) { return "Current stock was " + qty + " " + unit + " — change it to the real count above and save; the system works out the difference and logs an adjustment transaction automatically, so there's never an untraceable change to the number."; },
     unitPiece: "piece", unitBox: "box", unitPack: "pack", unitStrip: "strip",
     recordTransaction: "Record transaction", fieldTransactionType: "Transaction type",
     typeReceipt: "Receipt (purchase arrived)", typeConsumption: "Consumption (used in operations)", typeWaste: "Waste / spoilage", typeAdjustment: "Stock count adjustment",
@@ -1852,6 +2048,13 @@ const i18n = {
     colCurrentQty: "Current stock", colSuggestedReorder: "Suggested reorder",
     statusLowStock: "Low stock", statusNormalStock: "Normal",
     viewTransactionHistory: "View transaction history", hideTransactionHistory: "Hide transaction history", noTransactionsYet: "No transactions yet",
+    reverseTransactionBtn: "Reverse", reverseTransactionDone: "Reversed", reverseTransactionInProgress: "Working…",
+    reverseTransactionReasonPrompt: "Enter a reason for reversing this transaction (required — this logs a new offsetting entry; the original record is never deleted):",
+    reverseTransactionNote: function (typeLabel, qty, unit, reason) { return "Reversal (original: " + typeLabel + " " + qty + " " + unit + "): " + reason; },
+    reverseTransactionFailed: "Reversal failed — please try again shortly",
+    reversedHistoryToggleShow: function (n) { return "View reversed entries (" + n + ")"; },
+    reversedHistoryToggleHide: "Hide reversed entries",
+    reversedBadgeLabel: "Reversed",
     noInsights: "No inventory alerts right now — everything looks fine.",
     insightLowStockThresholdOnly: function (name, qty, unit) { return name + " stock (" + qty + " " + unit + ") is below its reorder threshold — suggest ordering soon."; },
     insightWaste: function (name, ratioPct) { return "Waste for " + name + " over the last 30 days is " + ratioPct + "% of consumption — worth checking storage or order batch sizes."; },
@@ -1868,8 +2071,14 @@ const i18n = {
     empInventoryWithdrawBtn: "Restock", empInventoryNoItems: "No inventory items yet.",
     empInventoryInsufficientStock: "Not enough stock for that amount — please double-check the quantity.",
     empInventoryQtyRequired: "Please enter a quantity first.",
+    empRecentWithdrawsTitle: "Just now (tap Undo if you accidentally tapped twice)",
+    empUndoWithdrawBtn: "Undo", empUndoWithdrawDone: "Undone", empUndoWithdrawing: "Undoing…",
+    empUndoWithdrawFailed: "Undo failed — please try again shortly or contact your admin",
+    empUndoWithdrawNote: function (itemName) { return "Employee undo of a mistaken withdrawal (" + itemName + ")"; },
+    empRecentWithdrawEntry: function (time, itemName, qty, unit) { return time + " · " + itemName + " -" + qty + " " + unit; },
     empInventoryLastAction: function (qty, unit, time) { return "Last restock: " + time + " · " + qty + " " + unit; },
     invSearchPlaceholder: "Search by name / category", invFilterAllCategories: "All categories", invFilterAll: "All",
+    moreActions: "More",
     viewArchivedItems: "View archived items",
     archivedItemsSub: "Archived items won't show up in the daily inventory list or alerts, but their full history is kept and they can be restored anytime",
     fieldQualityGrade: "Quality inspection", qualityQualified: "Qualified", qualityMinorIssue: "Minor issue", qualityRejected: "Rejected",
@@ -2014,7 +2223,15 @@ async function apiRequest(path, { method = "GET", body, auth = false, _isRetryAf
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }, method);
   } catch (networkErr) {
-    const err = new Error("无法连接到后端服务,请确认已在本机通过 docker-compose 启动 WorkTrack AI 后端(http://localhost:3000)。");
+    // Bug 修复(用户反馈:"我的账户和密码都没有错,却登录不进去"):这条错误文案以前
+    // 写死引用"本机 docker-compose 启动 http://localhost:3000",那是开发阶段的说法,
+    // 后端早就已经改成指向生产环境的 https://api.worktrackai.com 了(见上面 API_BASE_URL
+    // 的说明),继续显示这句话对真实用户完全没有意义、只会更困惑。更严重的是:登录表单
+    // 那几处 catch 块以前不管什么错误都统一显示"邮箱或密码不正确",导致真正的原因
+    // (比如这里的网络连不上)被完全盖住,用户会以为自己账号密码错了,反复重试也没用。
+    // 现在这条网络错误文案改成中性、准确的说法,并且登录表单会把这里的真实 err.message
+    // 显示出来(而不是永远显示"密码错误"),两个问题一起解决。
+    const err = new Error(currentLang === "zh" ? "暂时连不上服务器,请检查网络连接后重试(不是账号或密码的问题)。" : "Couldn't reach the server right now — please check your connection and try again (this isn't an account or password issue).");
     err.code = "NETWORK_ERROR";
     throw err;
   }
@@ -2702,6 +2919,9 @@ async function syncEmployeesFromBackend() {
         employees.push(local);
       }
       local.name = item.fullName || local.name;
+      // Bug 修复("编辑员工资料"新加的电话字段):后端如果已经返回了 phone,以它为准;
+      // 没返回(比如接口暂时还不支持)就保留本地已有的值,不会用 undefined 把它冲掉。
+      if (item.phone !== undefined && item.phone !== null) local.phone = item.phone;
       local.joined = item.joined;
       local.backendId = item.id;
       // 数据库里真实的当前时薪——不管是不是这台设备/这次登录设置的,都以后端为准。
@@ -2770,7 +2990,8 @@ function renderEmployeeTable() {
     // 还没注册、只是一份待认领邀请(joined=false):不适用时薪/停用,只能撤销邀请。
     const actionsHtml = emp.joined === false
       ? '<button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-cancel-invite="' + emp.id + '">' + dict.cancelInviteAction + '</button>'
-      : '<button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-edit-rate="' + emp.id + '">' + dict.editHourlyRate + '</button> ' +
+      : '<button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-edit-employee="' + emp.id + '">' + dict.editEmployeeAction + '</button> ' +
+        '<button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-edit-rate="' + emp.id + '">' + dict.editHourlyRate + '</button> ' +
         '<button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-toggle-suspend="' + emp.id + '">' +
           (emp.status === "suspended" ? dict.reactivateEmployeeAction : dict.suspendEmployeeAction) + '</button> ' +
         '<button class="btn btn-outline" style="height:30px;padding:0 12px;font-size:12px;" data-delete-employee="' + emp.id + '">' + dict.deleteEmployee + '</button>';
@@ -2859,53 +3080,125 @@ function renderEmployeeTable() {
       renderCaDashboardMetrics();
     });
   });
+  // Bug 修复(用户明确要求:"必须能够编辑所有的内容,切不可非常麻烦。页面一定要非常
+  // 友好,方便使用"):添加员工之后,姓名/电话/权限级别/用工类型以前完全没有编辑入口。
+  // 真正保存的逻辑挪到下面 #form-edit-employee 的 submit 处理里。
+  tbody.querySelectorAll("[data-edit-employee]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const emp = employees.find(e => e.id === Number(btn.dataset.editEmployee));
+      if (!emp) return;
+      document.getElementById("editEmployeeId").value = String(emp.id);
+      document.getElementById("editEmployeeName").value = emp.name || "";
+      document.getElementById("editEmployeePhone").value = emp.phone || "";
+      document.getElementById("editEmployeeCodeDisplay").value = emp.employeeId || "";
+      document.getElementById("editEmployeeRole").value = emp.role || "employee";
+      document.getElementById("editEmployeeType").value = emp.employmentType || "full_time";
+      document.getElementById("editEmployeeModalSub").textContent = emp.name || "";
+      openModal("modal-edit-employee");
+    });
+  });
+  // Bug 修复(用户明确要求:"必须能够编辑所有的内容,切不可非常麻烦。页面一定要非常
+  // 友好,方便使用"):以前这里连续弹两个浏览器原生 window.prompt() 让管理员填时薪和
+  // 生效日期,样式丑、看不到当前值、也很容易被手滑点掉——现在改成打开一个正规表单弹窗,
+  // 两个字段一次看全,真正保存的逻辑挪到下面 #form-edit-rate 的 submit 处理里。
   tbody.querySelectorAll("[data-edit-rate]").forEach(btn => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       const dict2 = i18n[currentLang];
       const targetId = Number(btn.dataset.editRate);
       const emp = employees.find(e => e.id === targetId);
       if (!emp) return;
       const currentRate = ((emp.hourlyRateCents || 0) / 100).toFixed(2);
-      const input = window.prompt(dict2.editHourlyRatePrompt, currentRate);
-      if (input === null) return;
-      const parsed = Number(input);
-      if (Number.isNaN(parsed) || parsed < 0) return;
-      const newRateCents = Math.round(parsed * 100);
-      // Bug 修复(用户反馈:"考勤与工资管理都是相互印证的,是联动的计算逻辑,从打卡开始
-      // 就应该按照预定的工资/小时 × 工作时间"):后端 setWageConfig() 现在会自动判断——
-      // 员工第一次被设置时薪时,自动套用足够早的日期覆盖 ta 入职以来的全部历史打卡;
-      // 涨薪/调薪则继续默认从今天生效,不会悄悄改写历史工资。但对于这次改动上线之前
-      // 就已经"设置晚了"、导致工资管理一直显示 0 工时的员工(比如 Y An/W Zhao 这种
-      // 情况),需要给管理员一个手动补救的入口——这里加一个可选的"生效日期"输入,
-      // 留空就交给后端自动判断,填了就按管理员填的日期为准(比如填 ta 入职当天),
-      // 把之前漏算的工时和成本一次性补算回来。
-      const effectiveFromInput = window.prompt(dict2.editHourlyRateEffectiveFromPrompt, "");
-      const effectiveFrom = effectiveFromInput && /^\d{4}-\d{2}-\d{2}$/.test(effectiveFromInput.trim())
-        ? effectiveFromInput.trim()
-        : undefined;
-      // Bug 修复(用户实测反馈:"每日经营报告"工资成本一直是 €0.00,不是真实报告):
-      // 这里以前只改本地 employees 数组这一份展示数据,从来没有真正调用后端
-      // POST /payroll/wage-configs——"每日经营报告"读的是数据库里的 wage_configs 表,
-      // 本地这份改动它完全看不到,无论怎么调时薪,报告里的工资成本永远是 0。
-      // emp.backendId 对"已加入"的员工来说就是真实的 employeeId(见
-      // CompaniesService.listEmployees),这里真正把这条记录写进后端。
-      if (emp.backendId && accessToken && currentUserCompanyId) {
-        try {
-          await apiRequest("/companies/" + currentUserCompanyId + "/payroll/wage-configs", {
-            method: "POST", auth: true,
-            body: { employeeId: emp.backendId, hourlyRateCents: newRateCents, effectiveFrom },
-          });
-        } catch (err) {
-          window.alert(err.message);
-          return;
-        }
-      }
-      emp.hourlyRateCents = newRateCents;
-      renderEmployeeTable();
-      renderPayrollTable();
+      document.getElementById("editRateEmployeeId").value = String(targetId);
+      document.getElementById("editRateValue").value = currentRate;
+      document.getElementById("editRateEffectiveFrom").value = "";
+      document.getElementById("editRateModalSub").textContent = dict2.editRateModalSub(emp.name, currentRate);
+      openModal("modal-edit-rate");
     });
   });
 }
+
+document.getElementById("form-edit-rate").addEventListener("submit", async e => {
+  e.preventDefault();
+  const targetId = Number(document.getElementById("editRateEmployeeId").value);
+  const emp = employees.find(x => x.id === targetId);
+  if (!emp) return;
+  const parsed = Number(document.getElementById("editRateValue").value);
+  if (Number.isNaN(parsed) || parsed < 0) return;
+  const newRateCents = Math.round(parsed * 100);
+  const effectiveFromRaw = document.getElementById("editRateEffectiveFrom").value;
+  const effectiveFrom = effectiveFromRaw || undefined;
+  const submitBtn = e.target.querySelector("button[type=submit]");
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    // Bug 修复(用户实测反馈:"每日经营报告"工资成本一直是 €0.00,不是真实报告):
+    // 这里以前只改本地 employees 数组这一份展示数据,从来没有真正调用后端
+    // POST /payroll/wage-configs——"每日经营报告"读的是数据库里的 wage_configs 表,
+    // 本地这份改动它完全看不到,无论怎么调时薪,报告里的工资成本永远是 0。
+    // emp.backendId 对"已加入"的员工来说就是真实的 employeeId(见
+    // CompaniesService.listEmployees),这里真正把这条记录写进后端。
+    if (emp.backendId && accessToken && currentUserCompanyId) {
+      await apiRequest("/companies/" + currentUserCompanyId + "/payroll/wage-configs", {
+        method: "POST", auth: true,
+        body: { employeeId: emp.backendId, hourlyRateCents: newRateCents, effectiveFrom },
+      });
+    }
+    emp.hourlyRateCents = newRateCents;
+    renderEmployeeTable();
+    renderPayrollTable();
+    closeModal(document.getElementById("modal-edit-rate"));
+  } catch (err) {
+    window.alert(err.message);
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+});
+
+// Bug 修复(用户明确要求:"必须能够编辑所有的内容,切不可非常麻烦。页面一定要非常
+// 友好,方便使用"):姓名/电话尝试真正 PATCH 给后端(如果这个接口还没上线,请求会
+// 失败,这里用醒目的错误提示告诉管理员"没保存成功",而不是只改本地数据、让人以为
+// 已经存好了——那正是之前"换浏览器内容消失"那个 bug 的根源,这次绝不重蹈覆辙)。
+// 权限级别/用工类型目前后端没有对应字段,只能先存在本地这台设备上,弹窗里已经用
+// 醒目颜色提示了这一点,不隐瞒。
+document.getElementById("form-edit-employee").addEventListener("submit", async e => {
+  e.preventDefault();
+  const dict = i18n[currentLang];
+  const targetId = Number(document.getElementById("editEmployeeId").value);
+  const emp = employees.find(x => x.id === targetId);
+  if (!emp) return;
+  const name = document.getElementById("editEmployeeName").value.trim();
+  if (!name) return;
+  const phone = document.getElementById("editEmployeePhone").value.trim();
+  const role = document.getElementById("editEmployeeRole").value;
+  const employmentType = document.getElementById("editEmployeeType").value;
+  const submitBtn = e.target.querySelector("button[type=submit]");
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    if (emp.backendId && accessToken && currentUserCompanyId) {
+      try {
+        await apiRequest("/companies/" + currentUserCompanyId + "/employees/" + emp.backendId, {
+          method: "PATCH", auth: true,
+          body: { fullName: name, phone: phone || undefined },
+        });
+      } catch (err) {
+        // 接口目前很可能还不存在(后端尚未支持编辑员工资料)——如实告诉管理员没保存成功,
+        // 不悄悄只改本地数据、制造"已经存好了"的假象。
+        window.alert(dict.editEmployeeSaveFailedBackendMissing + (err && err.message ? "\n\n(" + err.message + ")" : ""));
+        return;
+      }
+    }
+    // 姓名/电话确认成功(或者本来就没连后端、走本地模拟)之后才更新本地这几项——
+    // 权限级别/用工类型后端没有字段,只能停留在"本地生效",已在弹窗里用黄色提示如实说明。
+    emp.name = name;
+    emp.phone = phone;
+    emp.role = role;
+    emp.employmentType = employmentType;
+    renderEmployeeTable();
+    renderPayrollTable();
+    closeModal(document.getElementById("modal-edit-employee"));
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+});
 
 document.getElementById("btnAddEmployee").addEventListener("click", () => openModal("modal-add-employee"));
 
@@ -2961,7 +3254,7 @@ document.getElementById("form-add-employee").addEventListener("submit", async e 
       });
       employees.push({
         id: employeeIdCounter++, name, role, status: "pending", employmentType: "full_time",
-        hourlyRateCents, employeeId: employeeCode.toUpperCase(), password: null,
+        hourlyRateCents, employeeId: employeeCode.toUpperCase(), password: null, phone,
         joined: false, backendId: result.invitationCodeId, invitationCode: result.invitationCode,
       });
       renderEmployeeTable();
@@ -2977,7 +3270,7 @@ document.getElementById("form-add-employee").addEventListener("submit", async e 
   }
 
   // 没有连接真实后端(比如后端没启动)时,退回到本地模拟,不阻断这份原型继续可用。
-  employees.push({ id: employeeIdCounter++, name, role, status: "pending", employmentType: "full_time", hourlyRateCents, employeeId: employeeCode.toUpperCase() || null, password: null });
+  employees.push({ id: employeeIdCounter++, name, role, status: "pending", employmentType: "full_time", hourlyRateCents, employeeId: employeeCode.toUpperCase() || null, password: null, phone });
   renderEmployeeTable();
   renderPayrollTable();
   renderCaDashboardMetrics();
@@ -3028,6 +3321,7 @@ document.getElementById("platformSecretMark").addEventListener("click", () => op
 // 已在交付说明里如实披露。
 document.getElementById("form-employee-login").addEventListener("submit", async e => {
   e.preventDefault();
+  const dict = i18n[currentLang];
   const code = document.getElementById("empLoginCode").value.trim().toUpperCase();
   const password = document.getElementById("empLoginPassword").value;
   const errorEl = document.getElementById("employeeLoginError");
@@ -3076,6 +3370,11 @@ document.getElementById("form-employee-login").addEventListener("submit", async 
       startAttendanceLiveRefresh(); // 之后每 20 秒自动重新拉一次,不用等下次手动切换页面/打卡才更新
     }
   } catch (err) {
+    // Bug 修复(用户反馈:"我的账户和密码都没有错,却登录不进去"):以前这里不管什么
+    // 原因登录失败,一律显示"员工编号或密码不正确",把网络问题/服务器错误全部误导成
+    // "账号密码错了"。现在改成优先显示后端/网络返回的真实错误信息,只有在后端确实
+    // 判定为凭证错误(AUTH_INVALID_CREDENTIALS)时才显示这句"编号或密码不正确"。
+    errorEl.textContent = err.code === "AUTH_INVALID_CREDENTIALS" ? dict.employeeLoginError : (err.message || dict.employeeLoginError);
     errorEl.classList.remove("hidden");
   }
 });
@@ -3162,11 +3461,13 @@ document.getElementById("form-employee-register").addEventListener("submit", asy
 });
 document.getElementById("form-company-login").addEventListener("submit", async e => {
   e.preventDefault();
+  const dict = i18n[currentLang];
   const email = document.getElementById("companyLoginEmail").value.trim().toLowerCase();
   const password = document.getElementById("companyLoginPassword").value;
   const errorEl = document.getElementById("companyLoginError");
   errorEl.classList.add("hidden");
   if (!email || !password) {
+    errorEl.textContent = dict.companyLoginError;
     errorEl.classList.remove("hidden");
     return;
   }
@@ -3193,6 +3494,12 @@ document.getElementById("form-company-login").addEventListener("submit", async e
       startAttendanceLiveRefresh(); // 管理员登录后也一样每 20 秒自动刷新,"员工管理"列表能自己跟上员工端的实时变化
     }
   } catch (err) {
+    // Bug 修复(用户反馈:"我的账户和密码都没有错,却登录不进去"):以前这里不管什么
+    // 原因登录失败,一律显示"邮箱或密码不正确",把网络问题/服务器错误全部误导成
+    // "账号密码错了",用户反复确认密码没错也没用,根本不知道问题出在哪。现在改成
+    // 优先显示后端/网络返回的真实错误信息,只有在后端确实判定为凭证错误
+    // (AUTH_INVALID_CREDENTIALS)时才显示这句"邮箱或密码不正确"。
+    errorEl.textContent = err.code === "AUTH_INVALID_CREDENTIALS" ? dict.companyLoginError : (err.message || dict.companyLoginError);
     errorEl.classList.remove("hidden");
   }
 });
@@ -5403,10 +5710,18 @@ async function syncInventoryFromBackend() {
   }
 }
 
+let invInsightsPage = 1;
+const INV_INSIGHTS_PAGE_SIZE = 3;
+
 /** 后端 getInsights() 已经生成好每一条提醒文案(目前只有中文,和其余模块的后端错误文案一样,
-    英文界面下会退化显示中文原文——这不是这次改动引入的新限制,后端提示文案的国际化留到之后处理)。 */
+    英文界面下会退化显示中文原文——这不是这次改动引入的新限制,后端提示文案的国际化留到之后处理)。
+    Bug 修复(用户反馈:"把这一页折叠起来,可以分为几个页面,一个页面只显示3个产品。
+    不然太乱"):商品一多,库存不足提醒以前是一次性把全部预警甩出来,一整屏全是长条,
+    很难一眼看清有多少条真正需要处理。现在跟"每日经营报告"那边一样,改成每页固定
+    3 条 + 翻页按钮,默认只看最上面几条最紧急的。 */
 function renderInventoryInsights(containerId) {
   const container = document.getElementById(containerId || "inventoryInsights");
+  const paginationContainer = document.getElementById((containerId || "inventoryInsights") + "Pagination");
   if (!container) return;
   const dict = i18n[currentLang];
   const data = inventoryInsightsData || {};
@@ -5414,9 +5729,28 @@ function renderInventoryInsights(containerId) {
     .concat((data.lowStockAlerts || []).map(a => ({ type: "low-stock", icon: "⚠️", msg: a.message })))
     .concat((data.wasteAlerts || []).map(a => ({ type: "waste", icon: "♻️", msg: a.message })))
     .concat((data.qualityAlerts || []).map(a => ({ type: "quality", icon: "🔍", msg: a.message })));
-  container.innerHTML = all.length
-    ? all.map(a => '<div class="insight-card ' + a.type + '">' + a.icon + " " + a.msg + "</div>").join("")
-    : '<div class="insight-empty">' + dict.noInsights + "</div>";
+
+  if (!all.length) {
+    container.innerHTML = '<div class="insight-empty">' + dict.noInsights + "</div>";
+    if (paginationContainer) paginationContainer.innerHTML = "";
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(all.length / INV_INSIGHTS_PAGE_SIZE));
+  invInsightsPage = Math.min(Math.max(1, invInsightsPage), totalPages);
+  const pageItems = all.slice((invInsightsPage - 1) * INV_INSIGHTS_PAGE_SIZE, invInsightsPage * INV_INSIGHTS_PAGE_SIZE);
+  container.innerHTML = pageItems.map(a => '<div class="insight-card ' + a.type + '">' + a.icon + " " + a.msg + "</div>").join("");
+
+  if (!paginationContainer) return;
+  if (totalPages <= 1) { paginationContainer.innerHTML = ""; return; }
+  paginationContainer.innerHTML =
+    '<button class="btn btn-outline" id="invInsightsPagePrev" style="height:32px;padding:0 14px;font-size:12px;" ' + (invInsightsPage <= 1 ? "disabled" : "") + ">" + dict.prevPage + "</button>" +
+    '<span style="font-size:13px;color:var(--text-2);">' + dict.pageInfo(invInsightsPage, totalPages) + "</span>" +
+    '<button class="btn btn-outline" id="invInsightsPageNext" style="height:32px;padding:0 14px;font-size:12px;" ' + (invInsightsPage >= totalPages ? "disabled" : "") + ">" + dict.nextPage + "</button>";
+  const prevBtn = document.getElementById("invInsightsPagePrev");
+  const nextBtn = document.getElementById("invInsightsPageNext");
+  if (prevBtn) prevBtn.addEventListener("click", () => { invInsightsPage = Math.max(1, invInsightsPage - 1); renderInventoryInsights(containerId); });
+  if (nextBtn) nextBtn.addEventListener("click", () => { invInsightsPage = Math.min(totalPages, invInsightsPage + 1); renderInventoryInsights(containerId); });
 }
 
 /* 商品"规格"这一列:没设每箱数量就只显示计量单位(例如 "kg"),设了就显示"24 瓶/箱"这样的换算说明,
@@ -5449,13 +5783,17 @@ function renderGroupedInventoryRows(items, dict) {
   });
   return sortedLabels.map(label => {
     const groupItems = groups.get(label);
-    const headerRow = '<tr class="inv-category-header-row"><td colspan="6"><strong>' + label + '</strong>' +
-      '<span style="font-weight:400;color:var(--text-2);"> · ' + groupItems.length + '</span></td></tr>';
-    return headerRow + groupItems.map(item => buildInventoryRowHtml(item)).join("");
+    const headerHtml = '<div class="inv-category-group-title"><span>' + label + '</span>' +
+      '<span class="inv-category-count">· ' + groupItems.length + '</span></div>';
+    const cardsHtml = '<div class="inv-card-list">' + groupItems.map(item => buildInventoryCardHtml(item)).join("") + '</div>';
+    return '<div class="inv-category-group">' + headerHtml + cardsHtml + '</div>';
   }).join("");
 }
 
-function buildInventoryRowHtml(item) {
+/** 精简版商品卡片:名称/分类放最上面,库存/规格/建议采购量做成小标签并排展示(而不是表格的一排列),
+    操作只保留"记录流水"这一个最常用的主按钮,其余(编辑资料/查看流水/归档)收进右侧"⋯"菜单里,
+    避免每一行都摆 4 个按钮造成拥挤感。 */
+function buildInventoryCardHtml(item) {
   const dict = i18n[currentLang];
   const view = computeInventoryView(item);
   const statusBadgeClass = view.status === "LOW_STOCK" ? "danger" : "success";
@@ -5473,19 +5811,31 @@ function buildInventoryRowHtml(item) {
 
   const categoryLabel = categoryDisplayLabel(item);
 
-  return '<tr data-inventory-row="' + item.id + '">' +
-    '<td><strong>' + item.name + "</strong>" + (categoryLabel ? "<br/><span style=\"font-size:12px;color:var(--text-2);\">" + categoryLabel + "</span>" : "") + "</td>" +
-    "<td>" + buildInventorySpecLabel(item, dict) + "</td>" +
-    "<td>" + currentQtyLabel + "</td>" +
-    '<td><span class="badge ' + statusBadgeClass + '">' + statusLabel + "</span></td>" +
-    "<td>" + suggestedLabel + "</td>" +
-    '<td><div style="display:flex;gap:6px;flex-wrap:wrap;">' +
-      '<button class="btn btn-primary" style="height:30px;padding:0 10px;font-size:12px;" data-record-transaction="' + item.id + '">' + dict.recordTransaction + "</button>" +
-      '<button class="btn btn-outline" style="height:30px;padding:0 10px;font-size:12px;" data-edit-inventory-item="' + item.id + '">' + dict.editItem + "</button>" +
-      '<button class="btn btn-outline" style="height:30px;padding:0 10px;font-size:12px;" data-view-inventory-history="' + item.id + '">' + dict.viewTransactionHistory + "</button>" +
-      '<button class="btn btn-outline" style="height:30px;padding:0 10px;font-size:12px;color:var(--danger);" data-archive-inventory-item="' + item.id + '">' + dict.archiveAction + "</button>" +
-    "</div></td>" +
-  "</tr>";
+  return '<div class="inv-card" data-inventory-row="' + item.id + '">' +
+    '<div class="inv-card-head">' +
+      '<div>' +
+        '<div class="inv-card-name">' + item.name + '</div>' +
+        (categoryLabel ? '<div class="inv-card-category">' + categoryLabel + '</div>' : '') +
+      '</div>' +
+      '<span class="badge ' + statusBadgeClass + '">' + statusLabel + '</span>' +
+    '</div>' +
+    '<div class="inv-card-stats">' +
+      '<div class="inv-stat"><div class="inv-stat-label">' + dict.colCurrentQty + '</div><div class="inv-stat-value">' + currentQtyLabel + '</div></div>' +
+      '<div class="inv-stat"><div class="inv-stat-label">' + dict.colSpec + '</div><div class="inv-stat-value">' + buildInventorySpecLabel(item, dict) + '</div></div>' +
+      '<div class="inv-stat"><div class="inv-stat-label">' + dict.colSuggestedReorder + '</div><div class="inv-stat-value">' + suggestedLabel + '</div></div>' +
+    '</div>' +
+    '<div class="inv-card-actions">' +
+      '<button class="btn btn-primary" data-record-transaction="' + item.id + '">' + dict.recordTransaction + '</button>' +
+      '<div class="inv-card-more-wrap">' +
+        '<button class="inv-card-more-btn" type="button" data-toggle-card-menu="' + item.id + '" aria-haspopup="true" aria-expanded="false">⋯</button>' +
+        '<div class="inv-card-menu hidden" data-card-menu="' + item.id + '">' +
+          '<button data-edit-inventory-item="' + item.id + '">' + dict.editItem + '</button>' +
+          '<button data-view-inventory-history="' + item.id + '">' + dict.viewTransactionHistory + '</button>' +
+          '<button style="color:var(--danger);" data-archive-inventory-item="' + item.id + '">' + dict.archiveAction + '</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
 }
 
 /** 编辑/新增商品表单里的"分类"下拉——activeOnly:false 是故意的,已停用的分类如果正好是
@@ -5532,29 +5882,25 @@ function openInventoryItemModal(item) {
   document.getElementById("invFieldPackSize").value = (item && item.packSize !== null && item.packSize !== undefined) ? item.packSize : "";
   document.getElementById("invFieldPackUnitLabel").value = item ? (item.packUnitLabel || "") : "";
 
-  // 编辑已有商品:"当前库存总量"是只读展示,不是表单字段——员工每次从仓库补货到操作间,
-  // 这个数字会相应减少(走的是 CONSUMPTION 流水),这里只是让管理员顺便看一眼。
-  // 新增商品:改成一个可以直接填的"库存总量(可选)"输入框——很多商品在加入系统的时候
-  // 仓库里已经有现货(比如把线下已有的库存搬进系统),不填的话就必须先建好商品、再单独
-  // 跑一次"记录流水"才能把现有库存补上,多一道没必要的手续。填了这里,提交表单时会
-  // 自动在创建商品之后,用同一个"记录流水"接口生成一笔标注为"期初库存"的入库流水——
-  // 库存数量本身依然不是直接写进去的,只是把"新建 + 补首笔库存"合并成一步,不违反
-  // "库存只能通过流水变动"这条规则。
+  // Bug 修复(用户明确要求:"我还是需要能够简单操作,在库存总量上更改数值,太繁琐的
+  // 操作对用户不友好"):这里改成可以直接编辑的数字输入框,填完直接保存,不用再单独
+  // 跳到"记录流水 → 盘点调整"那个流程——但底层依然是走盘点调整这条已有的、会自动
+  // 留痕的路径(见下面 inventoryItemModalOriginalQty 的用法),只是把"改数字"和
+  // "改其他资料"合并成同一次保存操作,体验更简单,同时没有放弃"每次变动都可追溯"
+  // 这条原则。新增商品时这里保持原来的"库存总量(可选)"输入框(首次填入走的是
+  // RECEIPT"期初库存"流水)。
   document.getElementById("invCurrentQtyDisplayWrap").classList.toggle("hidden", !item);
   document.getElementById("invInitialQtyFieldWrap").classList.toggle("hidden", !!item);
   if (item) {
-    const view = computeInventoryView(item);
-    let label = item.currentQuantity + " " + item.unit;
-    if (view.currentQuantityInPacks !== null) {
-      label += " " + dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
-    }
-    document.getElementById("invCurrentQtyDisplay").textContent = label;
+    inventoryItemModalOriginalQty = item.currentQuantity;
+    document.getElementById("invCurrentQtyEdit").value = item.currentQuantity;
+    document.getElementById("invCurrentQtyUnitLabel").textContent = item.unit;
   } else {
+    inventoryItemModalOriginalQty = null;
     document.getElementById("invFieldInitialQuantity").value = "";
   }
 
-  // 编辑已有商品时,把"库存数量不能改"这句提示换成更有用的版本——直接告诉管理员
-  // 真正想改数字时该去哪(记录流水→盘点调整),而不是只说"新建商品初始库存是0"(编辑场景下这句话没有意义)。
+  // 编辑已有商品时,把提示语换成"改上面那个数字就会自动生成盘点调整记录"的说明。
   const quantityHintEl = document.getElementById("inventoryItemQuantityHint");
   if (item) {
     quantityHintEl.removeAttribute("data-i18n");
@@ -5565,6 +5911,8 @@ function openInventoryItemModal(item) {
   }
   openModal("modal-inventory-item");
 }
+
+let inventoryItemModalOriginalQty = null;
 
 function updateInvQuantityHint() {
   const type = document.getElementById("invFieldTransactionType").value;
@@ -5596,7 +5944,216 @@ function transactionTypeLabel(type, dict) {
   return map[type] || type;
 }
 
+/** Bug 修复(用户明确要求:"在管理员这端也有撤回或删除这样的操作按钮"):库存流水
+    本身是"只增不改、全程可追溯"的设计(和考勤记录"更正/作废但不物理删除"是同一套
+    哲学),所以这里不提供真正删除某一笔历史流水的功能——那样反而会让账对不上、没法
+    审计。改成"冲正":管理员对着某一笔手误/多余的流水点"冲正此笔",系统自动补一笔
+    等量反向的流水抵消掉(消耗/浪费被冲正会补一笔入库,入库被冲正会补一笔浪费),
+    必须填写原因,原始那笔连同这笔冲正记录都完整保留在流水历史里,谁都看得出"这笔曾经
+    被冲正过、为什么"。盘点调整(ADJUSTMENT)类型不提供冲正按钮——它本身就是"以当前
+    盘点为准"的绝对值更正,重新做一次盘点调整就是最直接的修正方式。 */
+/** 临时调试用:把每一笔流水原始返回的字段名打到控制台一次,方便确认后端到底叫
+    什么字段(id / transactionId / _id / uuid 之类),改完之后这一行可以删掉。 */
+function debugLogInventoryTransactionShape(txHistory) {
+  if (txHistory && txHistory.length) {
+    console.log("[调试] 流水记录字段:", Object.keys(txHistory[0]), txHistory[0]);
+  }
+}
+
+function inventoryTransactionId(t) {
+  // 不同命名习惯都试一遍,尽量不因为字段名猜错就完全显示不出冲正按钮。
+  return t.id || t.transactionId || t._id || t.uuid || t.txId || null;
+}
+
+/* ---------- Bug 修复(用户明确要求:"冲正之后就让这条拿货信息消失,不然会有非常大的
+   历史羁留;我今天继续补货,拿货会不会全都记录在这个狭小空间里") ----------
+   两个问题分别对应两个改动:
+   1. 冲正过的这一对记录(原始的那笔 + 补的那笔反向流水)默认从主列表里"隐藏"掉,
+      收进一个可展开的"查看已冲正的记录"区域——数据依然完整保留在后端(和考勤记录
+      "作废但不物理删除"是同一套哲学,选型时已经和用户确认过,不是真的从数据库删除),
+      但日常打开这个弹窗看到的主列表是干净的,不会越堆越多。
+   2. 不管有没有冲正,只要商品用得越久,流水一定会越攒越多(每天正常补货/入库都在
+      产生新记录,这是完全正常的业务行为,不是 bug)。所以主列表本身也加了分页,每页
+      固定 8 条,新记录永远排最上面最先看到,老记录翻页往后翻,不会把这个弹窗撑成
+      一个无限增长的长页面。
+   由于后端的流水记录本身没有"这笔是冲正谁的"这种关联字段(私有后端仓库这次改动范围
+   之外),这里用一个轻量的办法:提交冲正流水时,在 note 备注里悄悄带一个不影响阅读的
+   标记 [[revof:原始流水ID]],读取历史记录时用这个标记反推出"哪些是被冲正的原始记录 /
+   哪些是冲正记录本身",展示给用户时会把这段标记文字过滤掉,不会让用户看到这串技术标记。 */
+const INVENTORY_HISTORY_PAGE_SIZE = 8;
+const REVERSAL_MARKER_RE = /\s*\[\[revof:([^\]]+)\]\]/;
+
+let inventoryHistoryData = [];
+let inventoryHistoryItemId = null;
+let inventoryHistoryItem = null;
+let inventoryHistoryPage = 1;
+let inventoryHistoryShowReversed = false;
+
+function cleanNoteText(note) {
+  return (note || "").replace(REVERSAL_MARKER_RE, "").trim();
+}
+
+/** 把这次同步下来的整份流水,拆成"主列表要看的"和"已冲正、默认收起来的"两组。 */
+function splitInventoryHistory(txHistory) {
+  const reversedOriginalIds = new Set();
+  txHistory.forEach(t => {
+    const m = REVERSAL_MARKER_RE.exec(t.note || "");
+    if (m) reversedOriginalIds.add(m[1]);
+  });
+  const visible = [];
+  const reversedPairs = [];
+  txHistory.forEach(t => {
+    const isReversalEntry = REVERSAL_MARKER_RE.test(t.note || "");
+    const txId = inventoryTransactionId(t);
+    const isReversedOriginal = txId && reversedOriginalIds.has(String(txId));
+    if (isReversalEntry || isReversedOriginal) {
+      reversedPairs.push(t);
+    } else {
+      visible.push(t);
+    }
+  });
+  return { visible, reversedPairs };
+}
+
+function buildInventoryHistoryRowHtml(t, item, dict, opts) {
+  const isReversed = !!(opts && opts.dimmed);
+  const time = new Date(t.occurredAt).toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB");
+  const txId = inventoryTransactionId(t);
+  const noteText = cleanNoteText(t.note);
+  const canReverse = !isReversed && txId && t.type !== "ADJUSTMENT";
+  const reversedBadge = isReversed ? ' <span class="badge warning" style="font-size:11px;">' + dict.reversedBadgeLabel + "</span>" : "";
+  const textHtml = '<div class="edit-history-item-text">' + time + " · " + transactionTypeLabel(t.type, dict) + " " + (t.quantity >= 0 ? "+" : "") + t.quantity + " " + item.unit + (noteText ? " (" + noteText + ")" : "") + qualityGradeBadgeHtml(t, dict) + reversedBadge + "</div>";
+  const reverseBtnHtml = canReverse
+    ? '<div class="edit-history-item-actions"><button class="btn-reverse-tx" data-reverse-inventory-tx="' + txId + '" data-reverse-tx-type="' + t.type + '" data-reverse-tx-qty="' + Math.abs(t.quantity) + '">↩ ' + dict.reverseTransactionBtn + "</button></div>"
+    : "";
+  return '<div class="edit-history-item"' + (isReversed ? ' style="opacity:.55;"' : "") + ">" + textHtml + reverseBtnHtml + "</div>";
+}
+
+function renderInventoryHistoryPagination(totalPages) {
+  const container = document.getElementById("inventoryHistoryPagination");
+  if (!container) return;
+  const dict = i18n[currentLang];
+  if (totalPages <= 1) { container.innerHTML = ""; return; }
+  container.innerHTML =
+    '<button class="btn btn-outline" id="invHistPagePrev" style="height:32px;padding:0 14px;font-size:12px;" ' + (inventoryHistoryPage <= 1 ? "disabled" : "") + ">" + dict.prevPage + "</button>" +
+    '<span style="font-size:13px;color:var(--text-2);">' + dict.pageInfo(inventoryHistoryPage, totalPages) + "</span>" +
+    '<button class="btn btn-outline" id="invHistPageNext" style="height:32px;padding:0 14px;font-size:12px;" ' + (inventoryHistoryPage >= totalPages ? "disabled" : "") + ">" + dict.nextPage + "</button>";
+  const prevBtn = document.getElementById("invHistPagePrev");
+  const nextBtn = document.getElementById("invHistPageNext");
+  if (prevBtn) prevBtn.addEventListener("click", () => { inventoryHistoryPage = Math.max(1, inventoryHistoryPage - 1); renderInventoryHistoryView(); });
+  if (nextBtn) nextBtn.addEventListener("click", () => { inventoryHistoryPage = Math.min(totalPages, inventoryHistoryPage + 1); renderInventoryHistoryView(); });
+}
+
+function renderInventoryHistoryView() {
+  const dict = i18n[currentLang];
+  const item = inventoryHistoryItem;
+  if (!item) return;
+  const { visible, reversedPairs } = splitInventoryHistory(inventoryHistoryData);
+
+  const totalPages = Math.max(1, Math.ceil(visible.length / INVENTORY_HISTORY_PAGE_SIZE));
+  inventoryHistoryPage = Math.min(Math.max(1, inventoryHistoryPage), totalPages);
+  const pageItems = visible.slice((inventoryHistoryPage - 1) * INVENTORY_HISTORY_PAGE_SIZE, inventoryHistoryPage * INVENTORY_HISTORY_PAGE_SIZE);
+
+  const listEl = document.getElementById("inventoryHistoryList");
+  listEl.innerHTML = pageItems.length
+    ? pageItems.map(t => buildInventoryHistoryRowHtml(t, item, dict, { dimmed: false })).join("")
+    : '<div style="font-size:12px;color:var(--text-2);">' + dict.noTransactionsYet + "</div>";
+  listEl.querySelectorAll("[data-reverse-inventory-tx]").forEach(btn => {
+    btn.addEventListener("click", () => handleReverseInventoryTransaction(btn));
+  });
+  renderInventoryHistoryPagination(totalPages);
+
+  const toggleBtn = document.getElementById("btnToggleReversedHistory");
+  const reversedListEl = document.getElementById("inventoryHistoryReversedList");
+  if (!reversedPairs.length) {
+    toggleBtn.classList.add("hidden");
+    reversedListEl.classList.add("hidden");
+    return;
+  }
+  toggleBtn.classList.remove("hidden");
+  toggleBtn.textContent = inventoryHistoryShowReversed ? dict.reversedHistoryToggleHide : dict.reversedHistoryToggleShow(reversedPairs.length);
+  reversedListEl.classList.toggle("hidden", !inventoryHistoryShowReversed);
+  if (inventoryHistoryShowReversed) {
+    reversedListEl.innerHTML = reversedPairs.map(t => buildInventoryHistoryRowHtml(t, item, dict, { dimmed: true })).join("");
+  }
+}
+
+document.getElementById("btnToggleReversedHistory").addEventListener("click", () => {
+  inventoryHistoryShowReversed = !inventoryHistoryShowReversed;
+  renderInventoryHistoryView();
+});
+
+async function loadAndRenderInventoryHistory(itemId, item) {
+  const dict = i18n[currentLang];
+  inventoryHistoryItemId = itemId;
+  inventoryHistoryItem = item;
+  inventoryHistoryPage = 1;
+  inventoryHistoryShowReversed = false;
+  try {
+    const txHistory = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + itemId + "/transactions", { auth: true });
+    debugLogInventoryTransactionShape(txHistory);
+    // 后端返回的通常是"最早的排前面",这里翻成"最新的排最前面",管理员打开就能先看到
+    // 今天/刚刚发生的,不用每次都翻到最后一页去找。
+    inventoryHistoryData = txHistory.slice().reverse();
+    renderInventoryHistoryView();
+  } catch (err) {
+    document.getElementById("inventoryHistoryList").innerHTML = '<div style="font-size:12px;color:var(--danger);">' + err.message + "</div>";
+  }
+}
+
+async function handleReverseInventoryTransaction(btnEl) {
+  const dict = i18n[currentLang];
+  const itemId = inventoryHistoryItemId;
+  const item = inventoryHistoryItem;
+  if (!itemId || !item) return;
+  const originalTxId = btnEl.dataset.reverseInventoryTx;
+  const originalType = btnEl.dataset.reverseTxType;
+  const qty = Number(btnEl.dataset.reverseTxQty);
+  const reason = window.prompt(dict.reverseTransactionReasonPrompt);
+  if (!reason || !reason.trim()) return; // 取消或空理由都不提交,避免误触
+  const reverseType = originalType === "RECEIPT" ? "WASTE" : "RECEIPT"; // 冲正入库用"浪费"抵消,冲正消耗/浪费用"入库"补回
+  btnEl.disabled = true;
+  btnEl.textContent = dict.reverseTransactionInProgress;
+  try {
+    // 备注末尾悄悄带上 [[revof:原始流水ID]] 这个标记,用来在历史列表里认出"这一对是
+    // 冲正关系",从而把它们一起收进"已冲正"分组、默认不占主列表的空间——不影响这段
+    // 备注本身给人看的文字,展示时会把这段标记过滤掉。
+    const note = dict.reverseTransactionNote(transactionTypeLabel(originalType, dict), qty, item.unit, reason.trim()) + " [[revof:" + originalTxId + "]]";
+    await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + itemId + "/transactions", {
+      method: "POST", auth: true,
+      body: { type: reverseType, quantity: qty, note: note },
+    });
+    await syncInventoryFromBackend();
+    await loadAndRenderInventoryHistory(itemId, item); // 刷新列表,新补的这笔冲正流水和原始那笔会一起被收进"已冲正"分组
+  } catch (err) {
+    window.alert(dict.reverseTransactionFailed + (err && err.message ? "(" + err.message + ")" : ""));
+    btnEl.disabled = false;
+    btnEl.textContent = "↩ " + dict.reverseTransactionBtn;
+  }
+}
+
+/** 关闭当前列表里所有打开的"⋯"卡片菜单——每次要打开一个新菜单、或者点了菜单里任意一个
+    操作之后,都先把其它/自己的菜单收起来,避免同时开着好几个菜单让页面显得乱。 */
+function closeAllInventoryCardMenus(container) {
+  container.querySelectorAll(".inv-card-menu").forEach(menu => menu.classList.add("hidden"));
+  container.querySelectorAll("[data-toggle-card-menu]").forEach(btn => btn.setAttribute("aria-expanded", "false"));
+}
+
 function wireInventoryCardEvents(container) {
+  container.querySelectorAll("[data-toggle-card-menu]").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      const id = btn.dataset.toggleCardMenu;
+      const menu = container.querySelector('[data-card-menu="' + id + '"]');
+      if (!menu) return;
+      const willOpen = menu.classList.contains("hidden");
+      closeAllInventoryCardMenus(container);
+      if (willOpen) {
+        menu.classList.remove("hidden");
+        btn.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
   container.querySelectorAll("[data-view-inventory-history]").forEach(btn => {
     btn.addEventListener("click", async () => {
       const dict = i18n[currentLang];
@@ -5608,17 +6165,7 @@ function wireInventoryCardEvents(container) {
       openModal("modal-inventory-history");
       // 流水历史现在按需从后端拉取(不再随商品列表一起返回全部历史),避免库存列表接口
       // 因为动辄成百上千条流水而越来越重。
-      try {
-        const txHistory = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + id + "/transactions", { auth: true });
-        document.getElementById("inventoryHistoryList").innerHTML = txHistory.length
-          ? txHistory.map(t => {
-              const time = new Date(t.occurredAt).toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB");
-              return '<div class="edit-history-item">' + time + " · " + transactionTypeLabel(t.type, dict) + " " + (t.quantity >= 0 ? "+" : "") + t.quantity + " " + item.unit + (t.note ? " (" + t.note + ")" : "") + qualityGradeBadgeHtml(t, dict) + "</div>";
-            }).join("")
-          : '<div style="font-size:12px;color:var(--text-2);">' + dict.noTransactionsYet + "</div>";
-      } catch (err) {
-        document.getElementById("inventoryHistoryList").innerHTML = '<div style="font-size:12px;color:var(--danger);">' + err.message + "</div>";
-      }
+      await loadAndRenderInventoryHistory(id, item);
     });
   });
   container.querySelectorAll("[data-archive-inventory-item]").forEach(btn => {
@@ -5739,22 +6286,12 @@ function renderInventoryTable() {
   const pageItems = filtered.slice((invCurrentPage - 1) * INV_PAGE_SIZE, invCurrentPage * INV_PAGE_SIZE);
 
   const emptyMessage = allActiveItems.length === 0 ? dict.empInventoryNoItems : dict.noResultsFound;
-  const rowsHtml = pageItems.length
-    ? renderGroupedInventoryRows(pageItems, dict)
-    : '<tr><td colspan="6" style="text-align:center;color:var(--text-2);">' + emptyMessage + "</td></tr>";
 
-  container.innerHTML =
-    '<table class="data-table">' +
-      "<thead><tr>" +
-        "<th>" + dict.colItemName + "</th>" +
-        "<th>" + dict.colSpec + "</th>" +
-        "<th>" + dict.colCurrentQty + "</th>" +
-        "<th>" + dict.colStatus + "</th>" +
-        "<th>" + dict.colSuggestedReorder + "</th>" +
-        "<th>" + dict.colActions + "</th>" +
-      "</tr></thead>" +
-      "<tbody>" + rowsHtml + "</tbody>" +
-    "</table>";
+  // 精简版:不再用表格,改成"按分类分组的卡片列表",每张卡片自己带名称/分类/关键数字/主操作,
+  // 手机上不用横向滚动就能看清楚,长列表也不会因为一排排列太挤而显得混乱。
+  container.innerHTML = pageItems.length
+    ? renderGroupedInventoryRows(pageItems, dict)
+    : '<div class="inv-empty-state">' + emptyMessage + "</div>";
   wireInventoryCardEvents(container);
   renderInventoryPagination(totalPages);
   renderInventoryInsights();
@@ -5763,6 +6300,39 @@ function renderInventoryTable() {
 
 document.getElementById("btnAddInventoryItem").addEventListener("click", () => openInventoryItemModal(null));
 document.getElementById("invFieldTransactionType").addEventListener("change", updateInvQuantityHint);
+
+// 顶部工具栏的"⋯ 更多"菜单(收纳"查看已归档商品"/"分类管理"这两个不常用的入口):
+// 点按钮开关菜单,点页面其它地方或菜单里的任意一项之后自动收起。
+(function wireInvMoreMenu() {
+  const btn = document.getElementById("btnInvMoreMenu");
+  const dropdown = document.getElementById("invMoreMenuDropdown");
+  if (!btn || !dropdown) return;
+  btn.addEventListener("click", e => {
+    e.stopPropagation();
+    const willOpen = dropdown.classList.contains("hidden");
+    dropdown.classList.toggle("hidden", !willOpen);
+    btn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+  });
+  dropdown.querySelectorAll("button").forEach(item => {
+    item.addEventListener("click", () => {
+      dropdown.classList.add("hidden");
+      btn.setAttribute("aria-expanded", "false");
+    });
+  });
+})();
+
+// 点页面任意空白处:收起商品卡片的"⋯"菜单,以及顶部工具栏的"⋯ 更多"菜单——
+// 避免打开一个菜单之后一直挂在页面上,点别处却不关闭。
+document.addEventListener("click", () => {
+  const invList = document.getElementById("inventoryList");
+  if (invList) closeAllInventoryCardMenus(invList);
+  const moreDropdown = document.getElementById("invMoreMenuDropdown");
+  const moreBtn = document.getElementById("btnInvMoreMenu");
+  if (moreDropdown && !moreDropdown.classList.contains("hidden")) {
+    moreDropdown.classList.add("hidden");
+    if (moreBtn) moreBtn.setAttribute("aria-expanded", "false");
+  }
+});
 
 // 搜索/分类/状态筛选:任何一个条件变了就回到第 1 页重新渲染,避免筛完之后停在一个已经不存在的页码上。
 document.getElementById("invSearchInput").addEventListener("input", e => {
@@ -5899,11 +6469,29 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
   // "把已经设置过的分类清空"的语义,这是一个已知的小限制,不影响正常的分类分配/切换。
   if (categoryId) body.categoryId = categoryId;
 
+  // Bug 修复(用户明确要求:"我还是需要能够简单操作,在库存总量上更改数值,太繁琐的
+  // 操作对用户不友好"):编辑已有商品时,如果管理员改了"当前库存总量"这个数字,保存
+  // 的同时自动补一笔盘点调整(ADJUSTMENT)流水,把改动前后的数字都记下来——对管理员
+  // 来说只是"改个数字、点保存"这一步,对系统来说依然是一次可追溯的正式流水,没有绕开
+  // "库存只能通过流水变动"这条规则,只是把两步合并成一步,减少不必要的操作。
+  const editedQtyRaw = idVal ? document.getElementById("invCurrentQtyEdit").value : "";
+  const editedQty = editedQtyRaw !== "" ? Number(editedQtyRaw) : null;
+  const qtyChanged = idVal && editedQty !== null && inventoryItemModalOriginalQty !== null && editedQty !== inventoryItemModalOriginalQty;
+
   const submitBtn = document.getElementById("btnSubmitInventoryItem");
   submitBtn.disabled = true;
   try {
     if (idVal) {
       await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + idVal, { method: "PATCH", auth: true, body });
+      if (qtyChanged) {
+        await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + idVal + "/transactions", {
+          method: "POST", auth: true,
+          body: {
+            type: "ADJUSTMENT", quantity: editedQty,
+            note: dict.quickQtyEditNote(inventoryItemModalOriginalQty, editedQty, unit),
+          },
+        });
+      }
     } else {
       // SKU 由系统自动生成,管理员不需要看到也不需要输入;极小概率撞到已存在的编号时
       // 后端会返回 INVENTORY_DUPLICATE_SKU,这里再换一个自动生成的编号重试一次即可,
@@ -6218,7 +6806,7 @@ function renderEmpInventoryWithdrawList() {
     : '<div style="color:var(--text-2);">' + (allItems.length ? dict.noResultsFound : dict.empInventoryNoItems) + "</div>";
 
   container.querySelectorAll("[data-emp-withdraw-btn]").forEach(btn => {
-    btn.addEventListener("click", () => handleEmpInventoryWithdraw(btn.dataset.empWithdrawBtn));
+    btn.addEventListener("click", () => handleEmpInventoryWithdraw(btn.dataset.empWithdrawBtn, btn));
   });
 }
 
@@ -6230,7 +6818,13 @@ if (empInvWithdrawSearchInputEl) {
   });
 }
 
-async function handleEmpInventoryWithdraw(itemId) {
+/** Bug 修复(用户实测反馈:"点击取货按钮的时候,出现了反应迟缓,于是就点击两下,造成
+    流水与库存减少两次取货数量"):根本原因是这个按钮以前点下去之后不会立刻禁用,网络
+    慢一点、请求还没返回,用户看不到任何反馈,很自然地会以为"没点上"再点一次,于是同一次
+    取货被提交了两遍。现在改成:一点下去就立刻禁用按钮、文字换成"处理中…",成功后这一行
+    会被重新渲染(按钮跟着一起换掉,不需要手动恢复);只有失败了才把按钮恢复成可点状态,
+    让用户能重试。 */
+async function handleEmpInventoryWithdraw(itemId, btnEl) {
   const dict = i18n[currentLang];
   const item = inventoryItems.find(i => i.id === itemId);
   if (!item) return;
@@ -6250,15 +6844,86 @@ async function handleEmpInventoryWithdraw(itemId) {
     return;
   }
 
+  const originalBtnText = btnEl ? btnEl.textContent : null;
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = dict.empUndoWithdrawing; }
+
   try {
     await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + itemId + "/transactions", {
       method: "POST", auth: true,
       body: { type: "CONSUMPTION", quantity: rawQuantity, note: currentLang === "zh" ? "员工仓库补货" : "Employee warehouse restock" },
     });
+    // Bug 修复(用户明确要求:"在员工操作端有一个发现错误撤回或删除的按钮"):每次成功
+    // 取货后,记一笔到本地"刚刚的操作"面板(只在这次登录/这个会话里有效,不持久化),
+    // 员工手滑点重复了可以立刻自己点"撤销",不用去找管理员。撤销不是真的删除这条流水
+    // (库存流水本来就设计成只增不改、全程可追溯),而是自动补一笔反向的入库流水抵消掉,
+    // 两条记录都留痕,账目对得上,和"更正/作废考勤记录不物理删除"是同一套设计哲学。
+    pushEmpRecentWithdraw(item, rawQuantity);
     await syncInventoryFromBackend(); // 重新拉取后,员工列表和公司后台的库存表格/提醒会一起刷新成最新数字
   } catch (err) {
     errorEl.textContent = err.code === "INVENTORY_INSUFFICIENT_STOCK" ? dict.empInventoryInsufficientStock : err.message;
     errorEl.classList.remove("hidden");
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalBtnText; }
+  }
+}
+
+/* ---------- 员工端"刚刚的操作"撤销面板(纯前端会话状态,不持久化,只覆盖这次打开
+   补货清单期间自己做过的操作;历史更久远的记录要撤销,得由管理员在"智能库存 → 流水
+   记录"里操作,见下面 wireInventoryHistoryReversalEvents()) ---------- */
+let empRecentWithdraws = [];
+
+function pushEmpRecentWithdraw(item, quantity) {
+  empRecentWithdraws.unshift({
+    recordId: "w" + Date.now() + Math.random().toString(36).slice(2, 7),
+    itemId: item.id, itemName: item.name, quantity: quantity, unit: item.unit,
+    time: new Date(), undone: false, undoing: false,
+  });
+  empRecentWithdraws = empRecentWithdraws.slice(0, 5); // 只保留最近 5 条,面板不需要无限增长
+  renderEmpRecentWithdraws();
+}
+
+function renderEmpRecentWithdraws() {
+  const panel = document.getElementById("empRecentWithdrawsPanel");
+  const list = document.getElementById("empRecentWithdrawsList");
+  if (!panel || !list) return;
+  if (!empRecentWithdraws.length) { panel.classList.add("hidden"); list.innerHTML = ""; return; }
+  panel.classList.remove("hidden");
+  const dict = i18n[currentLang];
+  list.innerHTML = empRecentWithdraws.map(rec => {
+    const timeStr = rec.time.toLocaleTimeString(currentLang === "zh" ? "zh-CN" : "en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const label = dict.empRecentWithdrawEntry(timeStr, rec.itemName, rec.quantity, rec.unit);
+    const actionHtml = rec.undone
+      ? '<span class="badge success" style="font-size:11px;">' + dict.empUndoWithdrawDone + "</span>"
+      : '<button class="btn btn-outline" style="height:26px;padding:0 10px;font-size:11.5px;" ' + (rec.undoing ? "disabled" : "") + ' data-undo-withdraw="' + rec.recordId + '">' +
+          (rec.undoing ? dict.empUndoWithdrawing : dict.empUndoWithdrawBtn) + "</button>";
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;padding:4px 0;">' +
+      "<span>" + label + "</span>" + actionHtml + "</div>";
+  }).join("");
+  list.querySelectorAll("[data-undo-withdraw]").forEach(btn => {
+    btn.addEventListener("click", () => handleEmpUndoWithdraw(btn.dataset.undoWithdraw));
+  });
+}
+
+async function handleEmpUndoWithdraw(recordId) {
+  const dict = i18n[currentLang];
+  const rec = empRecentWithdraws.find(r => r.recordId === recordId);
+  if (!rec || rec.undone || rec.undoing) return;
+  if (!accessToken || !currentUserCompanyId) return;
+  rec.undoing = true;
+  renderEmpRecentWithdraws();
+  try {
+    // 撤销 = 补一笔等量的入库(RECEIPT)流水抵消掉原来那笔多余的消耗,不改动/不删除原始
+    // 那条流水记录本身——两条记录都留痕,和后端"库存数量只能通过流水变动"的设计一致。
+    await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + rec.itemId + "/transactions", {
+      method: "POST", auth: true,
+      body: { type: "RECEIPT", quantity: rec.quantity, note: dict.empUndoWithdrawNote(rec.itemName) },
+    });
+    rec.undone = true;
+    await syncInventoryFromBackend();
+  } catch (err) {
+    window.alert(dict.empUndoWithdrawFailed + (err && err.message ? "(" + err.message + ")" : ""));
+  } finally {
+    rec.undoing = false;
+    renderEmpRecentWithdraws();
   }
 }
 
@@ -6932,6 +7597,51 @@ function renderDailyReportLeaveReminder() {
   container.innerHTML = renderGroup(dict.dailyReportLeaveTodayHeading, onLeaveToday) + renderGroup(dict.dailyReportLeaveUpcomingHeading, upcoming);
 }
 
+let dailyReportInventoryPage = 1;
+const DAILY_REPORT_INVENTORY_PAGE_SIZE = 3;
+
+/** Bug 修复(用户明确要求:"下面库存可否分不同的页,不要让界面过分复杂,凌乱"):
+    库存提醒以前是把低库存/浪费/质量三类预警全部拼成一个长列表一次性甩出来,商品一多,
+    "每日经营报告"这一屏就变得又长又乱,还得配合上方新加的模块化卡片一起看才协调。
+    现在改成分页展示,每页固定 3 条,配上下面的翻页按钮——老板打开 App 先看到"有几条
+    需要关注",不会被一大坨文字淹没,想看全部翻页即可。这里是"每日经营报告"专用的
+    分页版本,用的是它自己独立的页码状态(dailyReportInventoryPage);"智能库存"
+    页面顶部那个 renderInventoryInsights() 后来(用户反馈同样的问题后)也加上了一样的
+    分页,用的是它自己的页码状态(invInsightsPage),两边互不影响。 */
+function renderDailyReportInventoryAlerts() {
+  const container = document.getElementById("dailyReportInventoryList");
+  const paginationContainer = document.getElementById("dailyReportInventoryPagination");
+  if (!container) return;
+  const dict = i18n[currentLang];
+  const data = inventoryInsightsData || {};
+  const all = []
+    .concat((data.lowStockAlerts || []).map(a => ({ type: "low-stock", icon: "⚠️", msg: a.message })))
+    .concat((data.wasteAlerts || []).map(a => ({ type: "waste", icon: "♻️", msg: a.message })))
+    .concat((data.qualityAlerts || []).map(a => ({ type: "quality", icon: "🔍", msg: a.message })));
+
+  if (!all.length) {
+    container.innerHTML = '<div class="insight-empty">' + dict.noInsights + "</div>";
+    if (paginationContainer) paginationContainer.innerHTML = "";
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(all.length / DAILY_REPORT_INVENTORY_PAGE_SIZE));
+  dailyReportInventoryPage = Math.min(Math.max(1, dailyReportInventoryPage), totalPages);
+  const pageItems = all.slice((dailyReportInventoryPage - 1) * DAILY_REPORT_INVENTORY_PAGE_SIZE, dailyReportInventoryPage * DAILY_REPORT_INVENTORY_PAGE_SIZE);
+  container.innerHTML = pageItems.map(a => '<div class="insight-card ' + a.type + '">' + a.icon + " " + a.msg + "</div>").join("");
+
+  if (!paginationContainer) return;
+  if (totalPages <= 1) { paginationContainer.innerHTML = ""; return; }
+  paginationContainer.innerHTML =
+    '<button class="btn btn-outline" id="dailyReportInvPagePrev" style="height:32px;padding:0 14px;font-size:12px;" ' + (dailyReportInventoryPage <= 1 ? "disabled" : "") + ">" + dict.prevPage + "</button>" +
+    '<span style="font-size:13px;color:var(--text-2);">' + dict.pageInfo(dailyReportInventoryPage, totalPages) + "</span>" +
+    '<button class="btn btn-outline" id="dailyReportInvPageNext" style="height:32px;padding:0 14px;font-size:12px;" ' + (dailyReportInventoryPage >= totalPages ? "disabled" : "") + ">" + dict.nextPage + "</button>";
+  const prevBtn = document.getElementById("dailyReportInvPagePrev");
+  const nextBtn = document.getElementById("dailyReportInvPageNext");
+  if (prevBtn) prevBtn.addEventListener("click", () => { dailyReportInventoryPage = Math.max(1, dailyReportInventoryPage - 1); renderDailyReportInventoryAlerts(); });
+  if (nextBtn) nextBtn.addEventListener("click", () => { dailyReportInventoryPage = Math.min(totalPages, dailyReportInventoryPage + 1); renderDailyReportInventoryAlerts(); });
+}
+
 // Bug 修复(用户明确反馈:"我不需要死代码,我需要真正的报告"):这几块以前分别是:
 // GPS 异常停留(已经是真实接口)、工时与工资成本(本地假算法,见 renderWageTable()
 // 的说明)、库存提醒(已经是真实接口,但依赖别的页面之前访问过才会有数据)。现在
@@ -6944,7 +7654,8 @@ async function renderDailyReport() {
   if (currentUserRole === "COMPANY_ADMIN") await refreshCompanyLeaveRequests();
   renderDailyReportLeaveReminder();
   await syncInventoryFromBackend();
-  renderInventoryInsights("dailyReportInventoryList");
+  dailyReportInventoryPage = 1;
+  renderDailyReportInventoryAlerts();
 }
 
 /* ---------- 密码修改 / 找回密码:JS 逻辑 ---------- */
