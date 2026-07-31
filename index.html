@@ -5650,13 +5650,28 @@ function transactionTypeLabel(type, dict) {
     必须填写原因,原始那笔连同这笔冲正记录都完整保留在流水历史里,谁都看得出"这笔曾经
     被冲正过、为什么"。盘点调整(ADJUSTMENT)类型不提供冲正按钮——它本身就是"以当前
     盘点为准"的绝对值更正,重新做一次盘点调整就是最直接的修正方式。 */
+/** 临时调试用:把每一笔流水原始返回的字段名打到控制台一次,方便确认后端到底叫
+    什么字段(id / transactionId / _id / uuid 之类),改完之后这一行可以删掉。 */
+function debugLogInventoryTransactionShape(txHistory) {
+  if (txHistory && txHistory.length) {
+    console.log("[调试] 流水记录字段:", Object.keys(txHistory[0]), txHistory[0]);
+  }
+}
+
+function inventoryTransactionId(t) {
+  // 不同命名习惯都试一遍,尽量不因为字段名猜错就完全显示不出冲正按钮。
+  return t.id || t.transactionId || t._id || t.uuid || t.txId || null;
+}
+
 function renderInventoryHistoryRows(txHistory, item, dict) {
   if (!txHistory.length) return '<div style="font-size:12px;color:var(--text-2);">' + dict.noTransactionsYet + "</div>";
+  debugLogInventoryTransactionShape(txHistory);
   return txHistory.map(t => {
     const time = new Date(t.occurredAt).toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB");
-    const canReverse = t.id && t.type !== "ADJUSTMENT";
+    const txId = inventoryTransactionId(t);
+    const canReverse = txId && t.type !== "ADJUSTMENT";
     const reverseBtnHtml = canReverse
-      ? '<button class="btn btn-outline" style="height:24px;padding:0 8px;font-size:11px;margin-left:8px;" data-reverse-inventory-tx="' + t.id + '" data-reverse-tx-type="' + t.type + '" data-reverse-tx-qty="' + Math.abs(t.quantity) + '">' + dict.reverseTransactionBtn + "</button>"
+      ? '<button class="btn btn-outline" style="height:24px;padding:0 8px;font-size:11px;margin-left:8px;" data-reverse-inventory-tx="' + txId + '" data-reverse-tx-type="' + t.type + '" data-reverse-tx-qty="' + Math.abs(t.quantity) + '">' + dict.reverseTransactionBtn + "</button>"
       : "";
     return '<div class="edit-history-item">' + time + " · " + transactionTypeLabel(t.type, dict) + " " + (t.quantity >= 0 ? "+" : "") + t.quantity + " " + item.unit + (t.note ? " (" + t.note + ")" : "") + qualityGradeBadgeHtml(t, dict) + reverseBtnHtml + "</div>";
   }).join("");
