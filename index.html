@@ -289,17 +289,15 @@
   .edit-history-item { font-size: 12.5px; color: var(--text-2); padding: 10px 0; border-bottom: 1px solid var(--border-c); }
   .edit-history-item:last-child { border-bottom: none; }
   .edit-history-item-text { line-height: 1.5; }
-  /* Bug 修复(用户反馈:"手机用户的管理员看不到冲正的按钮"):以前这个按钮是跟在一整
-     行文字后面、细边框+透明底的小按钮,手机屏幕窄的时候文字一长就容易把它挤到不显眼
-     的地方,配色又淡,很容易被忽略、以为"没有这个按钮"。现在把按钮换到单独一行、
-     两端对齐布局,配色改成和主按钮一致的酒红色实心底(和"冲正"这种需要认真对待的
-     操作分量匹配),字号和高度也加大一些,手机上点按更舒服、更容易一眼看到。 */
+  /* 按钮放到单独一行、右对齐布局,方便手机上找到。配色改成浅灰(用户反馈:酒红色实心
+     底太重、按钮太大,手机上看着不舒服),做成一个低调的次要操作,不抢主列表文字的
+     视觉重点,尺寸也调小一些。 */
   .edit-history-item-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
   .btn-reverse-tx {
-    background: var(--brand-blue); color: #FBF3EE; border: none; border-radius: 999px;
-    height: 32px; padding: 0 16px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    background: rgba(42,32,26,.06); color: var(--text-2); border: 1px solid var(--border-c); border-radius: 999px;
+    height: 24px; padding: 0 10px; font-size: 11px; font-weight: 500; cursor: pointer;
   }
-  .btn-reverse-tx:hover { background: #641F2C; }
+  .btn-reverse-tx:hover { background: rgba(42,32,26,.11); color: var(--text-1); }
   .btn-reverse-tx:disabled { opacity: .6; cursor: default; }
   .corrected-value { text-decoration: line-through; opacity: .55; margin-right: 6px; }
   .insight-card { border-radius: var(--radius-md); border: 1px solid var(--border-c); border-left: 4px solid var(--success); padding: 10px 14px; margin-bottom: 8px; font-size: 13px; background: rgba(76,122,90,.06); }
@@ -338,10 +336,9 @@
     .entrance-actions { width: 100%; }
     .entrance-actions .btn { flex: 1; }
     .form-grid { grid-template-columns: 1fr; }
-    /* 手机上弹窗内边距紧一点、"冲正"按钮改成整行宽度,更好点按,布局更贴合手机操作习惯 */
+    /* 手机上弹窗内边距紧一点,布局更贴合手机操作习惯;"冲正"按钮保持小巧、右对齐,
+       不需要撑满整行(用户反馈:太大、太抢眼,浅灰小按钮看着更舒服)。 */
     .modal-box { padding: 20px; }
-    .edit-history-item-actions { justify-content: stretch; }
-    .btn-reverse-tx { width: 100%; height: 38px; font-size: 13px; }
   }
 </style>
 </head>
