@@ -286,8 +286,21 @@
   .msg-input-row input { flex: 1; height: 36px; border-radius: 999px; border: 1px solid var(--border-c); background: rgba(120,130,160,.06); padding: 0 14px; font-size: 12.5px; color: var(--text-1); }
   .msg-toggle { background: none; border: none; color: var(--brand-blue); font-size: 12px; cursor: pointer; padding: 0; font-family: inherit; }
   .leave-card.voided { opacity: .6; background: rgba(178,58,78,.04); }
-  .edit-history-item { font-size: 12px; color: var(--text-2); padding: 6px 0; border-bottom: 1px solid var(--border-c); }
+  .edit-history-item { font-size: 12.5px; color: var(--text-2); padding: 10px 0; border-bottom: 1px solid var(--border-c); }
   .edit-history-item:last-child { border-bottom: none; }
+  .edit-history-item-text { line-height: 1.5; }
+  /* Bug 修复(用户反馈:"手机用户的管理员看不到冲正的按钮"):以前这个按钮是跟在一整
+     行文字后面、细边框+透明底的小按钮,手机屏幕窄的时候文字一长就容易把它挤到不显眼
+     的地方,配色又淡,很容易被忽略、以为"没有这个按钮"。现在把按钮换到单独一行、
+     两端对齐布局,配色改成和主按钮一致的酒红色实心底(和"冲正"这种需要认真对待的
+     操作分量匹配),字号和高度也加大一些,手机上点按更舒服、更容易一眼看到。 */
+  .edit-history-item-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+  .btn-reverse-tx {
+    background: var(--brand-blue); color: #FBF3EE; border: none; border-radius: 999px;
+    height: 32px; padding: 0 16px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  }
+  .btn-reverse-tx:hover { background: #641F2C; }
+  .btn-reverse-tx:disabled { opacity: .6; cursor: default; }
   .corrected-value { text-decoration: line-through; opacity: .55; margin-right: 6px; }
   .insight-card { border-radius: var(--radius-md); border: 1px solid var(--border-c); border-left: 4px solid var(--success); padding: 10px 14px; margin-bottom: 8px; font-size: 13px; background: rgba(76,122,90,.06); }
   .insight-card.low-stock { border-left-color: var(--danger); background: rgba(178,58,78,.06); }
@@ -325,6 +338,10 @@
     .entrance-actions { width: 100%; }
     .entrance-actions .btn { flex: 1; }
     .form-grid { grid-template-columns: 1fr; }
+    /* 手机上弹窗内边距紧一点、"冲正"按钮改成整行宽度,更好点按,布局更贴合手机操作习惯 */
+    .modal-box { padding: 20px; }
+    .edit-history-item-actions { justify-content: stretch; }
+    .btn-reverse-tx { width: 100%; height: 38px; font-size: 13px; }
   }
 </style>
 </head>
@@ -1290,6 +1307,9 @@
     <button class="modal-close" data-close-modal>✕</button>
     <h3 class="modal-title" id="inventoryHistoryModalTitle" data-i18n="viewTransactionHistory">查看流水记录</h3>
     <div id="inventoryHistoryList"></div>
+    <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:10px;" id="inventoryHistoryPagination"></div>
+    <button class="btn btn-outline btn-block hidden" id="btnToggleReversedHistory" style="margin-top:12px;font-size:12.5px;"></button>
+    <div id="inventoryHistoryReversedList" class="hidden" style="margin-top:8px;"></div>
   </div>
 </div>
 
@@ -1587,6 +1607,9 @@ const i18n = {
     reverseTransactionReasonPrompt: "请输入冲正这笔流水的原因(必填,会作为一条新的反向流水记录下来,原始记录不会被删除):",
     reverseTransactionNote: function (typeLabel, qty, unit, reason) { return "冲正流水(原:" + typeLabel + " " + qty + " " + unit + "):" + reason; },
     reverseTransactionFailed: "冲正失败,请稍后重试",
+    reversedHistoryToggleShow: function (n) { return "查看已冲正的记录(" + n + ")"; },
+    reversedHistoryToggleHide: "收起已冲正的记录",
+    reversedBadgeLabel: "已冲正",
     noInsights: "暂无需要关注的库存提醒,一切正常。",
     insightLowStockThresholdOnly: function (name, qty, unit) { return name + "库存(" + qty + " " + unit + ")已低于设定的补货阈值,建议尽快采购。"; },
     insightWaste: function (name, ratioPct) { return name + "最近 30 天的浪费占消耗量的 " + ratioPct + "%,建议排查储存或采购批量是否合理。"; },
@@ -1893,6 +1916,9 @@ const i18n = {
     reverseTransactionReasonPrompt: "Enter a reason for reversing this transaction (required — this logs a new offsetting entry; the original record is never deleted):",
     reverseTransactionNote: function (typeLabel, qty, unit, reason) { return "Reversal (original: " + typeLabel + " " + qty + " " + unit + "): " + reason; },
     reverseTransactionFailed: "Reversal failed — please try again shortly",
+    reversedHistoryToggleShow: function (n) { return "View reversed entries (" + n + ")"; },
+    reversedHistoryToggleHide: "Hide reversed entries",
+    reversedBadgeLabel: "Reversed",
     noInsights: "No inventory alerts right now — everything looks fine.",
     insightLowStockThresholdOnly: function (name, qty, unit) { return name + " stock (" + qty + " " + unit + ") is below its reorder threshold — suggest ordering soon."; },
     insightWaste: function (name, ratioPct) { return "Waste for " + name + " over the last 30 days is " + ratioPct + "% of consumption — worth checking storage or order batch sizes."; },
@@ -5663,35 +5689,148 @@ function inventoryTransactionId(t) {
   return t.id || t.transactionId || t._id || t.uuid || t.txId || null;
 }
 
-function renderInventoryHistoryRows(txHistory, item, dict) {
-  if (!txHistory.length) return '<div style="font-size:12px;color:var(--text-2);">' + dict.noTransactionsYet + "</div>";
-  debugLogInventoryTransactionShape(txHistory);
-  return txHistory.map(t => {
-    const time = new Date(t.occurredAt).toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB");
-    const txId = inventoryTransactionId(t);
-    const canReverse = txId && t.type !== "ADJUSTMENT";
-    const reverseBtnHtml = canReverse
-      ? '<button class="btn btn-outline" style="height:24px;padding:0 8px;font-size:11px;margin-left:8px;" data-reverse-inventory-tx="' + txId + '" data-reverse-tx-type="' + t.type + '" data-reverse-tx-qty="' + Math.abs(t.quantity) + '">' + dict.reverseTransactionBtn + "</button>"
-      : "";
-    return '<div class="edit-history-item">' + time + " · " + transactionTypeLabel(t.type, dict) + " " + (t.quantity >= 0 ? "+" : "") + t.quantity + " " + item.unit + (t.note ? " (" + t.note + ")" : "") + qualityGradeBadgeHtml(t, dict) + reverseBtnHtml + "</div>";
-  }).join("");
+/* ---------- Bug 修复(用户明确要求:"冲正之后就让这条拿货信息消失,不然会有非常大的
+   历史羁留;我今天继续补货,拿货会不会全都记录在这个狭小空间里") ----------
+   两个问题分别对应两个改动:
+   1. 冲正过的这一对记录(原始的那笔 + 补的那笔反向流水)默认从主列表里"隐藏"掉,
+      收进一个可展开的"查看已冲正的记录"区域——数据依然完整保留在后端(和考勤记录
+      "作废但不物理删除"是同一套哲学,选型时已经和用户确认过,不是真的从数据库删除),
+      但日常打开这个弹窗看到的主列表是干净的,不会越堆越多。
+   2. 不管有没有冲正,只要商品用得越久,流水一定会越攒越多(每天正常补货/入库都在
+      产生新记录,这是完全正常的业务行为,不是 bug)。所以主列表本身也加了分页,每页
+      固定 8 条,新记录永远排最上面最先看到,老记录翻页往后翻,不会把这个弹窗撑成
+      一个无限增长的长页面。
+   由于后端的流水记录本身没有"这笔是冲正谁的"这种关联字段(私有后端仓库这次改动范围
+   之外),这里用一个轻量的办法:提交冲正流水时,在 note 备注里悄悄带一个不影响阅读的
+   标记 [[revof:原始流水ID]],读取历史记录时用这个标记反推出"哪些是被冲正的原始记录 /
+   哪些是冲正记录本身",展示给用户时会把这段标记文字过滤掉,不会让用户看到这串技术标记。 */
+const INVENTORY_HISTORY_PAGE_SIZE = 8;
+const REVERSAL_MARKER_RE = /\s*\[\[revof:([^\]]+)\]\]/;
+
+let inventoryHistoryData = [];
+let inventoryHistoryItemId = null;
+let inventoryHistoryItem = null;
+let inventoryHistoryPage = 1;
+let inventoryHistoryShowReversed = false;
+
+function cleanNoteText(note) {
+  return (note || "").replace(REVERSAL_MARKER_RE, "").trim();
 }
+
+/** 把这次同步下来的整份流水,拆成"主列表要看的"和"已冲正、默认收起来的"两组。 */
+function splitInventoryHistory(txHistory) {
+  const reversedOriginalIds = new Set();
+  txHistory.forEach(t => {
+    const m = REVERSAL_MARKER_RE.exec(t.note || "");
+    if (m) reversedOriginalIds.add(m[1]);
+  });
+  const visible = [];
+  const reversedPairs = [];
+  txHistory.forEach(t => {
+    const isReversalEntry = REVERSAL_MARKER_RE.test(t.note || "");
+    const txId = inventoryTransactionId(t);
+    const isReversedOriginal = txId && reversedOriginalIds.has(String(txId));
+    if (isReversalEntry || isReversedOriginal) {
+      reversedPairs.push(t);
+    } else {
+      visible.push(t);
+    }
+  });
+  return { visible, reversedPairs };
+}
+
+function buildInventoryHistoryRowHtml(t, item, dict, opts) {
+  const isReversed = !!(opts && opts.dimmed);
+  const time = new Date(t.occurredAt).toLocaleString(currentLang === "zh" ? "zh-CN" : "en-GB");
+  const txId = inventoryTransactionId(t);
+  const noteText = cleanNoteText(t.note);
+  const canReverse = !isReversed && txId && t.type !== "ADJUSTMENT";
+  const reversedBadge = isReversed ? ' <span class="badge warning" style="font-size:11px;">' + dict.reversedBadgeLabel + "</span>" : "";
+  const textHtml = '<div class="edit-history-item-text">' + time + " · " + transactionTypeLabel(t.type, dict) + " " + (t.quantity >= 0 ? "+" : "") + t.quantity + " " + item.unit + (noteText ? " (" + noteText + ")" : "") + qualityGradeBadgeHtml(t, dict) + reversedBadge + "</div>";
+  const reverseBtnHtml = canReverse
+    ? '<div class="edit-history-item-actions"><button class="btn-reverse-tx" data-reverse-inventory-tx="' + txId + '" data-reverse-tx-type="' + t.type + '" data-reverse-tx-qty="' + Math.abs(t.quantity) + '">↩ ' + dict.reverseTransactionBtn + "</button></div>"
+    : "";
+  return '<div class="edit-history-item"' + (isReversed ? ' style="opacity:.55;"' : "") + ">" + textHtml + reverseBtnHtml + "</div>";
+}
+
+function renderInventoryHistoryPagination(totalPages) {
+  const container = document.getElementById("inventoryHistoryPagination");
+  if (!container) return;
+  const dict = i18n[currentLang];
+  if (totalPages <= 1) { container.innerHTML = ""; return; }
+  container.innerHTML =
+    '<button class="btn btn-outline" id="invHistPagePrev" style="height:32px;padding:0 14px;font-size:12px;" ' + (inventoryHistoryPage <= 1 ? "disabled" : "") + ">" + dict.prevPage + "</button>" +
+    '<span style="font-size:13px;color:var(--text-2);">' + dict.pageInfo(inventoryHistoryPage, totalPages) + "</span>" +
+    '<button class="btn btn-outline" id="invHistPageNext" style="height:32px;padding:0 14px;font-size:12px;" ' + (inventoryHistoryPage >= totalPages ? "disabled" : "") + ">" + dict.nextPage + "</button>";
+  const prevBtn = document.getElementById("invHistPagePrev");
+  const nextBtn = document.getElementById("invHistPageNext");
+  if (prevBtn) prevBtn.addEventListener("click", () => { inventoryHistoryPage = Math.max(1, inventoryHistoryPage - 1); renderInventoryHistoryView(); });
+  if (nextBtn) nextBtn.addEventListener("click", () => { inventoryHistoryPage = Math.min(totalPages, inventoryHistoryPage + 1); renderInventoryHistoryView(); });
+}
+
+function renderInventoryHistoryView() {
+  const dict = i18n[currentLang];
+  const item = inventoryHistoryItem;
+  if (!item) return;
+  const { visible, reversedPairs } = splitInventoryHistory(inventoryHistoryData);
+
+  const totalPages = Math.max(1, Math.ceil(visible.length / INVENTORY_HISTORY_PAGE_SIZE));
+  inventoryHistoryPage = Math.min(Math.max(1, inventoryHistoryPage), totalPages);
+  const pageItems = visible.slice((inventoryHistoryPage - 1) * INVENTORY_HISTORY_PAGE_SIZE, inventoryHistoryPage * INVENTORY_HISTORY_PAGE_SIZE);
+
+  const listEl = document.getElementById("inventoryHistoryList");
+  listEl.innerHTML = pageItems.length
+    ? pageItems.map(t => buildInventoryHistoryRowHtml(t, item, dict, { dimmed: false })).join("")
+    : '<div style="font-size:12px;color:var(--text-2);">' + dict.noTransactionsYet + "</div>";
+  listEl.querySelectorAll("[data-reverse-inventory-tx]").forEach(btn => {
+    btn.addEventListener("click", () => handleReverseInventoryTransaction(btn));
+  });
+  renderInventoryHistoryPagination(totalPages);
+
+  const toggleBtn = document.getElementById("btnToggleReversedHistory");
+  const reversedListEl = document.getElementById("inventoryHistoryReversedList");
+  if (!reversedPairs.length) {
+    toggleBtn.classList.add("hidden");
+    reversedListEl.classList.add("hidden");
+    return;
+  }
+  toggleBtn.classList.remove("hidden");
+  toggleBtn.textContent = inventoryHistoryShowReversed ? dict.reversedHistoryToggleHide : dict.reversedHistoryToggleShow(reversedPairs.length);
+  reversedListEl.classList.toggle("hidden", !inventoryHistoryShowReversed);
+  if (inventoryHistoryShowReversed) {
+    reversedListEl.innerHTML = reversedPairs.map(t => buildInventoryHistoryRowHtml(t, item, dict, { dimmed: true })).join("");
+  }
+}
+
+document.getElementById("btnToggleReversedHistory").addEventListener("click", () => {
+  inventoryHistoryShowReversed = !inventoryHistoryShowReversed;
+  renderInventoryHistoryView();
+});
 
 async function loadAndRenderInventoryHistory(itemId, item) {
   const dict = i18n[currentLang];
+  inventoryHistoryItemId = itemId;
+  inventoryHistoryItem = item;
+  inventoryHistoryPage = 1;
+  inventoryHistoryShowReversed = false;
   try {
     const txHistory = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + itemId + "/transactions", { auth: true });
-    document.getElementById("inventoryHistoryList").innerHTML = renderInventoryHistoryRows(txHistory, item, dict);
-    document.getElementById("inventoryHistoryList").querySelectorAll("[data-reverse-inventory-tx]").forEach(btn => {
-      btn.addEventListener("click", () => handleReverseInventoryTransaction(itemId, item, btn));
-    });
+    debugLogInventoryTransactionShape(txHistory);
+    // 后端返回的通常是"最早的排前面",这里翻成"最新的排最前面",管理员打开就能先看到
+    // 今天/刚刚发生的,不用每次都翻到最后一页去找。
+    inventoryHistoryData = txHistory.slice().reverse();
+    renderInventoryHistoryView();
   } catch (err) {
     document.getElementById("inventoryHistoryList").innerHTML = '<div style="font-size:12px;color:var(--danger);">' + err.message + "</div>";
   }
 }
 
-async function handleReverseInventoryTransaction(itemId, item, btnEl) {
+async function handleReverseInventoryTransaction(btnEl) {
   const dict = i18n[currentLang];
+  const itemId = inventoryHistoryItemId;
+  const item = inventoryHistoryItem;
+  if (!itemId || !item) return;
+  const originalTxId = btnEl.dataset.reverseInventoryTx;
   const originalType = btnEl.dataset.reverseTxType;
   const qty = Number(btnEl.dataset.reverseTxQty);
   const reason = window.prompt(dict.reverseTransactionReasonPrompt);
@@ -5700,16 +5839,20 @@ async function handleReverseInventoryTransaction(itemId, item, btnEl) {
   btnEl.disabled = true;
   btnEl.textContent = dict.reverseTransactionInProgress;
   try {
+    // 备注末尾悄悄带上 [[revof:原始流水ID]] 这个标记,用来在历史列表里认出"这一对是
+    // 冲正关系",从而把它们一起收进"已冲正"分组、默认不占主列表的空间——不影响这段
+    // 备注本身给人看的文字,展示时会把这段标记过滤掉。
+    const note = dict.reverseTransactionNote(transactionTypeLabel(originalType, dict), qty, item.unit, reason.trim()) + " [[revof:" + originalTxId + "]]";
     await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + itemId + "/transactions", {
       method: "POST", auth: true,
-      body: { type: reverseType, quantity: qty, note: dict.reverseTransactionNote(transactionTypeLabel(originalType, dict), qty, item.unit, reason.trim()) },
+      body: { type: reverseType, quantity: qty, note: note },
     });
     await syncInventoryFromBackend();
-    await loadAndRenderInventoryHistory(itemId, item); // 刷新列表,冲正后新补的这笔流水会出现在最上面
+    await loadAndRenderInventoryHistory(itemId, item); // 刷新列表,新补的这笔冲正流水和原始那笔会一起被收进"已冲正"分组
   } catch (err) {
     window.alert(dict.reverseTransactionFailed + (err && err.message ? "(" + err.message + ")" : ""));
     btnEl.disabled = false;
-    btnEl.textContent = dict.reverseTransactionBtn;
+    btnEl.textContent = "↩ " + dict.reverseTransactionBtn;
   }
 }
 
