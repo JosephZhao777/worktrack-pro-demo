@@ -295,6 +295,21 @@
   .insight-card.waste { border-left-color: var(--brand-amber); background: rgba(198,138,61,.07); }
   .insight-card.quality { border-left-color: var(--danger); background: rgba(178,58,78,.05); }
   .insight-empty { font-size: 12.5px; color: var(--text-2); }
+
+  /* ---------- "每日经营报告"模块卡片(应用户要求:"把这几个不同区域模块化,用不同
+     颜色更加清晰地表现出来...感觉很专业,像一种手机界面那样") ----------
+     四个模块按"关注程度"分配底色,而不是随便配色:GPS 异常停留平时大多是"一切正常",
+     用最不打眼的浅灰;工资成本是中性财务数据,用比浅灰略深一点、带一点品牌色的浅色;
+     人员排班提醒需要管理员"提前安排",用浅琥珀提醒但不算警告;库存提醒是真正的"库存
+     不足需要采购"预警,用浅红/深红对比最强的配色,一眼就能从最不需要处理排到最需要
+     处理。 */
+  .report-module { border-radius: var(--radius-md); padding: 14px 16px 16px; margin: 12px 0 22px; }
+  .report-module-title { font-weight: 700; font-size: 15px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+  .report-module-icon { font-size: 16px; line-height: 1; }
+  .report-module--neutral { background: rgba(42,32,26,.035); border: 1px solid var(--border-c); }
+  .report-module--info { background: rgba(61,37,48,.06); border: 1px solid rgba(61,37,48,.18); }
+  .report-module--warning { background: rgba(184,134,60,.10); border: 1px solid rgba(184,134,60,.30); }
+  .report-module--danger { background: rgba(178,58,78,.08); border: 1px solid rgba(178,58,78,.26); }
   table.data-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
   table.data-table th { text-align: left; padding: 10px 8px; color: var(--text-2); font-weight: 600; font-size: 12px; }
   table.data-table td { padding: 10px 8px; border-top: 1px solid var(--border-c); }
@@ -475,22 +490,31 @@
           <h2 class="section-title" data-i18n="navDailyReport">每日经营报告</h2>
           <p class="section-sub" data-i18n="dailyReportSub">整合当天的 GPS 异常停留、员工工时与工资成本、库存预警,老板打开 App 30 秒内就能看到今天需要关注什么。以下算法与后端 ReportsModule/GpsModule/PayrollModule 完全一致,只是用的是演示假数据。</p>
 
-          <div style="font-weight:700;margin:18px 0 8px;" data-i18n="dailyReportGpsTitle">GPS 异常停留</div>
-          <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportGpsSub">连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)</p>
-          <div id="dailyReportGpsList"></div>
+          <div class="report-module report-module--neutral">
+            <div class="report-module-title"><span class="report-module-icon">📍</span><span data-i18n="dailyReportGpsTitle">GPS 异常停留</span></div>
+            <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportGpsSub">连续 20 分钟以上速度低于 3 km/h 判定为一次异常停留(仅提示,不自动判定违规)</p>
+            <div id="dailyReportGpsList"></div>
+          </div>
 
-          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportWageTitle">今日工时与工资成本</div>
-          <p class="section-sub" style="margin:0 0 4px;font-size:12px;" id="dailyReportWageRangeCaption"></p>
-          <p class="section-sub" style="margin:0 0 8px;font-size:12px;" data-i18n="overtimeRuleCaption">规则:每人每天工作超过 8 小时的部分算加班,加班时薪 = 正常时薪 × 1.5倍(例如时薪 €15,加班时薪就是 €22.50)。工资成本 = 正常工时×时薪 + 加班工时×加班时薪。</p>
-          <table class="data-table" id="dailyReportWageTable"></table>
-          <p class="section-sub" style="margin:8px 0 0;font-size:12px;" id="dailyReportWageMonthToDateCaption"></p>
+          <div class="report-module report-module--info">
+            <div class="report-module-title"><span class="report-module-icon">💰</span><span data-i18n="dailyReportWageTitle">今日工时与工资成本</span></div>
+            <p class="section-sub" style="margin:0 0 4px;font-size:12px;" id="dailyReportWageRangeCaption"></p>
+            <p class="section-sub" style="margin:0 0 8px;font-size:12px;" data-i18n="overtimeRuleCaption">规则:每人每天工作超过 8 小时的部分算加班,加班时薪 = 正常时薪 × 1.5倍(例如时薪 €15,加班时薪就是 €22.50)。工资成本 = 正常工时×时薪 + 加班工时×加班时薪。</p>
+            <table class="data-table" id="dailyReportWageTable"></table>
+            <p class="section-sub" style="margin:8px 0 0;font-size:12px;" id="dailyReportWageMonthToDateCaption"></p>
+          </div>
 
-          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportLeaveTitle">人员排班提醒</div>
-          <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportLeaveSub">今天正在请假、以及未来 7 天内即将请假的员工,提前安排替补人手上班,避免临时缺人。</p>
-          <div id="dailyReportLeaveList"></div>
+          <div class="report-module report-module--warning">
+            <div class="report-module-title"><span class="report-module-icon">🗓️</span><span data-i18n="dailyReportLeaveTitle">人员排班提醒</span></div>
+            <p class="section-sub" style="margin:0 0 10px;" data-i18n="dailyReportLeaveSub">今天正在请假、以及未来 7 天内即将请假的员工,提前安排替补人手上班,避免临时缺人。</p>
+            <div id="dailyReportLeaveList"></div>
+          </div>
 
-          <div style="font-weight:700;margin:20px 0 8px;" data-i18n="dailyReportInventoryTitle">库存提醒</div>
-          <div id="dailyReportInventoryList"></div>
+          <div class="report-module report-module--danger">
+            <div class="report-module-title"><span class="report-module-icon">📦</span><span data-i18n="dailyReportInventoryTitle">库存提醒</span></div>
+            <div id="dailyReportInventoryList"></div>
+            <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:10px;" id="dailyReportInventoryPagination"></div>
+          </div>
         </div>
         <div class="glass ca-section" id="ca-employees" style="display:none;margin-top:20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -6932,6 +6956,50 @@ function renderDailyReportLeaveReminder() {
   container.innerHTML = renderGroup(dict.dailyReportLeaveTodayHeading, onLeaveToday) + renderGroup(dict.dailyReportLeaveUpcomingHeading, upcoming);
 }
 
+let dailyReportInventoryPage = 1;
+const DAILY_REPORT_INVENTORY_PAGE_SIZE = 3;
+
+/** Bug 修复(用户明确要求:"下面库存可否分不同的页,不要让界面过分复杂,凌乱"):
+    库存提醒以前是把低库存/浪费/质量三类预警全部拼成一个长列表一次性甩出来,商品一多,
+    "每日经营报告"这一屏就变得又长又乱,还得配合上方新加的模块化卡片一起看才协调。
+    现在改成分页展示,每页固定 3 条,配上下面的翻页按钮——老板打开 App 先看到"有几条
+    需要关注",不会被一大坨文字淹没,想看全部翻页即可。这里是"每日经营报告"专用的
+    分页版本,不影响"智能库存"页面顶部那个 renderInventoryInsights() 一次性展示的
+    版本(那边本来就在库存页面里,数量有限,不需要分页)。 */
+function renderDailyReportInventoryAlerts() {
+  const container = document.getElementById("dailyReportInventoryList");
+  const paginationContainer = document.getElementById("dailyReportInventoryPagination");
+  if (!container) return;
+  const dict = i18n[currentLang];
+  const data = inventoryInsightsData || {};
+  const all = []
+    .concat((data.lowStockAlerts || []).map(a => ({ type: "low-stock", icon: "⚠️", msg: a.message })))
+    .concat((data.wasteAlerts || []).map(a => ({ type: "waste", icon: "♻️", msg: a.message })))
+    .concat((data.qualityAlerts || []).map(a => ({ type: "quality", icon: "🔍", msg: a.message })));
+
+  if (!all.length) {
+    container.innerHTML = '<div class="insight-empty">' + dict.noInsights + "</div>";
+    if (paginationContainer) paginationContainer.innerHTML = "";
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(all.length / DAILY_REPORT_INVENTORY_PAGE_SIZE));
+  dailyReportInventoryPage = Math.min(Math.max(1, dailyReportInventoryPage), totalPages);
+  const pageItems = all.slice((dailyReportInventoryPage - 1) * DAILY_REPORT_INVENTORY_PAGE_SIZE, dailyReportInventoryPage * DAILY_REPORT_INVENTORY_PAGE_SIZE);
+  container.innerHTML = pageItems.map(a => '<div class="insight-card ' + a.type + '">' + a.icon + " " + a.msg + "</div>").join("");
+
+  if (!paginationContainer) return;
+  if (totalPages <= 1) { paginationContainer.innerHTML = ""; return; }
+  paginationContainer.innerHTML =
+    '<button class="btn btn-outline" id="dailyReportInvPagePrev" style="height:32px;padding:0 14px;font-size:12px;" ' + (dailyReportInventoryPage <= 1 ? "disabled" : "") + ">" + dict.prevPage + "</button>" +
+    '<span style="font-size:13px;color:var(--text-2);">' + dict.pageInfo(dailyReportInventoryPage, totalPages) + "</span>" +
+    '<button class="btn btn-outline" id="dailyReportInvPageNext" style="height:32px;padding:0 14px;font-size:12px;" ' + (dailyReportInventoryPage >= totalPages ? "disabled" : "") + ">" + dict.nextPage + "</button>";
+  const prevBtn = document.getElementById("dailyReportInvPagePrev");
+  const nextBtn = document.getElementById("dailyReportInvPageNext");
+  if (prevBtn) prevBtn.addEventListener("click", () => { dailyReportInventoryPage = Math.max(1, dailyReportInventoryPage - 1); renderDailyReportInventoryAlerts(); });
+  if (nextBtn) nextBtn.addEventListener("click", () => { dailyReportInventoryPage = Math.min(totalPages, dailyReportInventoryPage + 1); renderDailyReportInventoryAlerts(); });
+}
+
 // Bug 修复(用户明确反馈:"我不需要死代码,我需要真正的报告"):这几块以前分别是:
 // GPS 异常停留(已经是真实接口)、工时与工资成本(本地假算法,见 renderWageTable()
 // 的说明)、库存提醒(已经是真实接口,但依赖别的页面之前访问过才会有数据)。现在
@@ -6944,7 +7012,8 @@ async function renderDailyReport() {
   if (currentUserRole === "COMPANY_ADMIN") await refreshCompanyLeaveRequests();
   renderDailyReportLeaveReminder();
   await syncInventoryFromBackend();
-  renderInventoryInsights("dailyReportInventoryList");
+  dailyReportInventoryPage = 1;
+  renderDailyReportInventoryAlerts();
 }
 
 /* ---------- 密码修改 / 找回密码:JS 逻辑 ---------- */
