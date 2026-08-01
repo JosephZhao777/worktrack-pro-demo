@@ -7280,18 +7280,28 @@ async function renderPayrollTable() {
     dict.colAdjustments + '</th><th>' + dict.colTotal + '</th><th>' + dict.colActions + '</th></tr>';
   joinedEmployees.forEach(emp => {
     const savedWage = manualWageRecordsCache[emp.backendId];
-    let w = savedWage;
-    let isAutoEstimated = false;
-    if (!w) {
-      isAutoEstimated = true;
-      const hourlyRate = typeof emp.hourlyRateCents === "number" ? emp.hourlyRateCents / 100 : 0;
-      const { regularHours, overtimeHours } = computeRegularOvertimeHoursForEmployee(emp.backendId, payrollMonthStart, payrollMonthEnd);
-      w = {
-        regularPayCents: Math.round(regularHours * hourlyRate * 100),
-        overtimePayCents: Math.round(overtimeHours * hourlyRate * AUTO_OVERTIME_MULTIPLIER * 100),
-        holidayPayCents: 0, transportAllowanceCents: 0, mealAllowanceCents: 0,
-      };
-    }
+    // Bug 修复(用户明确反馈,截图证实:"计算工资那一栏无法计算工资数量...一定要有链接。
+    // 自动计算":上一次的修复只在"后端完全没有这条手工工资记录"时才触发自动估算——
+    // 但实测发现后端其实会给每一位员工都预先建好一条正常/加班工资都是 0 的空白记录
+    // (不是管理员真的点过"填写工资"确认过 0 元),导致 `savedWage` 永远存在、永远走不到
+    // 自动估算这条分支,表现就是截图里那样:明明打卡 3 小时 40 分钟,工资还是死板的
+    // €0.00。现在改成:只要"正常工资"和"加班工资"这两项都还是 0(不管是完全没有记录,
+    // 还是有记录但这两项从没被真正填过),并且这名员工这个月确实有算出工时,就自动
+    // 拿工时 × 时薪顶上——节假日工资/交通/餐费这些和打卡工时无关的字段,只要管理员
+    // 保存过就完全尊重原样,不会被这里覆盖。
+    const hourlyRate = typeof emp.hourlyRateCents === "number" ? emp.hourlyRateCents / 100 : 0;
+    const { regularHours, overtimeHours } = computeRegularOvertimeHoursForEmployee(emp.backendId, payrollMonthStart, payrollMonthEnd);
+    const computedRegularCents = Math.round(regularHours * hourlyRate * 100);
+    const computedOvertimeCents = Math.round(overtimeHours * hourlyRate * AUTO_OVERTIME_MULTIPLIER * 100);
+    const regularOvertimeUnconfirmed = !savedWage || (!savedWage.regularPayCents && !savedWage.overtimePayCents);
+    const isAutoEstimated = regularOvertimeUnconfirmed && (computedRegularCents > 0 || computedOvertimeCents > 0);
+    const w = {
+      regularPayCents: isAutoEstimated ? computedRegularCents : (savedWage ? savedWage.regularPayCents : 0),
+      overtimePayCents: isAutoEstimated ? computedOvertimeCents : (savedWage ? savedWage.overtimePayCents : 0),
+      holidayPayCents: savedWage ? savedWage.holidayPayCents : 0,
+      transportAllowanceCents: savedWage ? savedWage.transportAllowanceCents : 0,
+      mealAllowanceCents: savedWage ? savedWage.mealAllowanceCents : 0,
+    };
     const empAdjustments = adjustmentsByEmployeeId[emp.backendId] || [];
     const adjustmentTotalCents = empAdjustments.reduce((sum, a) => sum + a.amountCents, 0);
     const allowancesCents = w.transportAllowanceCents + w.mealAllowanceCents;
