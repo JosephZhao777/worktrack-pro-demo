@@ -1325,7 +1325,11 @@
           <select id="invFieldNameSelect" style="margin-bottom:8px;">
             <option value="__new__" data-i18n="invItemNameNewOption">+ 新建商品(手动输入名称)</option>
           </select>
-          <input type="text" id="invFieldName" required />
+          <!-- Bug 修复(用户反馈:"无法保存新增商品"):这里去掉了原生 required 属性——
+               手机浏览器在这种自定义弹窗(不是原生 <dialog>)里,原生"必填校验"经常
+               触发不出任何看得见的提示,表现就是点保存"完全没反应"。改成完全交给下面
+               表单提交时的 JS 校验来处理(会弹出清楚的提示并聚焦这个框),行为更可控。 -->
+          <input type="text" id="invFieldName" />
           <div class="field-hint" data-i18n="invItemNameSyncHint">选好分类后,上面的下拉菜单会自动列出该分类下已有的商品,直接选择就能带出名称并自动带出对应分类,避免重复新建或分类选错;选"+ 新建商品"可以手动输入全新的商品名称。</div>
         </div>
         <div class="field full" id="invCurrentQtyDisplayWrap">
@@ -1561,6 +1565,7 @@ const i18n = {
     addEmployee: "+ 添加员工", addEmployeeSub: "该员工会收到邀请码,自行完成注册并设置密码",
     fieldPermissionLevel: "权限级别", submitAddEmployee: "生成邀请码并添加",
     addEmployeeMissingFields: "请填写姓名和员工编号",
+    itemNameRequiredAlert: "请先填写“商品名称”再保存(上面下拉菜单选“+ 新建商品”之后,还需要在下面这个框里手动输入名字)。",
     addEmployeeInviteCodeAlert: "已生成邀请码,请把这个码发给对方完成注册:",
     suspendEmployeeAction: "停用", reactivateEmployeeAction: "恢复", cancelInviteAction: "撤销邀请",
     confirmSuspendEmployee: "确定要停用这名员工吗?停用后对方无法再登录,随时可以恢复。",
@@ -1900,6 +1905,7 @@ const i18n = {
     addEmployee: "+ Add employee", addEmployeeSub: "This employee will receive an invitation code to complete registration and set their own password",
     fieldPermissionLevel: "Permission level", submitAddEmployee: "Generate invitation code and add",
     addEmployeeMissingFields: "Please fill in the full name and employee ID",
+    itemNameRequiredAlert: "Please enter the item name before saving (if you picked \"+ New item\" in the dropdown above, you still need to type the actual name into the box below it).",
     addEmployeeInviteCodeAlert: "Invitation code generated — share this with them to complete registration: ",
     suspendEmployeeAction: "Suspend", reactivateEmployeeAction: "Reactivate", cancelInviteAction: "Cancel invite",
     confirmSuspendEmployee: "Suspend this employee? They won't be able to log in until reactivated.",
@@ -6629,7 +6635,18 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
   // 只在"新增商品"时才读取和使用这个值——编辑已有商品时这个输入框是隐藏的,不应该被
   // 拿来当成"要把库存改成这个数字",库存的变动永远只能走"记录流水"。
   const initialQuantityRaw = idVal ? "" : document.getElementById("invFieldInitialQuantity").value;
-  if (!name) return;
+  // Bug 修复(用户明确反馈:"无法保存新增商品,这是很不好的事情"):根本原因是这里以前
+  // 只写了 "if (!name) return;"——名字没填(比如上面下拉选了"+ 新建商品"之后,忘了在
+  // 下面这个文本框里手动打字)就直接静默 return,没有任何提示、弹窗也不会关,在用户
+  // 看来就是点了保存"什么都没发生"。虽然这个输入框本来就带 HTML5 的 required 属性,
+  // 但手机浏览器在自定义弹窗(不是原生 <dialog>)里经常无法正确弹出/定位这个原生提示,
+  // 表现就是"完全没反应"。现在改成:名字没填就用看得见的提示框直接说清楚原因,并且把
+  // 光标定位到这个输入框上,不再让人以为是系统卡住或者坏了。
+  if (!name) {
+    window.alert(dict.itemNameRequiredAlert);
+    document.getElementById("invFieldName").focus();
+    return;
+  }
   if (!accessToken || !currentUserCompanyId) {
     window.alert(dict.inventorySyncError);
     return;
