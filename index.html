@@ -691,7 +691,7 @@
         </div>
         <div class="glass ca-section" id="ca-payroll" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navPayroll">工资管理</h2>
-          <p class="section-sub" data-i18n="payrollSub">这里的每一笔工资都是你自己填的最终数字,系统不会用打卡记录自动计算。点"填写工资"给某位员工录入正常工资/加班工资/节假日工资/交通费/餐费;需要额外发放奖金或做扣款时,可以另外增加调整项;还可以给员工留一段工资说明,员工能在自己账号里看到。</p>
+          <p class="section-sub" data-i18n="payrollSub">还没手动确认过的工资,会先用本月真实打卡工时 × 时薪自动算一个数字直接显示(标"自动估算"),方便一眼看出大概应发多少;点"填写工资"核对无误后保存,就变成正式的最终数字,以后不会再跟着工时变动。需要额外发放奖金或做扣款时,可以另外增加调整项;还可以给员工留一段工资说明,员工能在自己账号里看到。</p>
           <div id="payrollTable"></div>
         </div>
         <div class="glass ca-section" id="ca-leave" style="display:none;margin-top:20px;">
@@ -1665,7 +1665,7 @@ const i18n = {
     // Bug 修复(用户明确要求:"绝对不能这样自动计算"、"管理员一对一给工人计算工时与小时
     // 工资"):"工资管理"页面不再从打卡记录里自动算工时/工资,改成管理员手工填写。
     // "每日经营报告"页面继续使用原来那套自动算法,不受影响。
-    payrollSub: "这里的每一笔工资都是你自己填的最终数字,系统不会用打卡记录自动计算。点「填写工资」给某位员工录入正常工资/加班工资/节假日工资/交通费/餐费;需要额外发放奖金或做扣款时,可以另外增加调整项;还可以给员工留一段工资说明,员工能在自己账号里看到。",
+    payrollSub: "还没手动确认过的工资,会先用本月真实打卡工时 × 时薪自动算一个数字直接显示(标「自动估算」),方便一眼看出大概应发多少;点「填写工资」核对无误后保存,就变成正式的最终数字,以后不会再跟着工时变动。需要额外发放奖金或做扣款时,可以另外增加调整项;还可以给员工留一段工资说明,员工能在自己账号里看到。",
     overtimeRuleCaption: "规则:每人每天工作超过 8 小时的部分算加班,加班时薪 = 正常时薪 × 1.5倍(例如时薪 €15,加班时薪就是 €22.50)。工资成本 = 正常工时×时薪 + 加班工时×加班时薪。",
     // Bug 修复(用户质疑:"1小时15欧,工作8小时,加班2.8小时,怎么算出这个数的?"):光给一个
     // 汇总金额,管理员没法自己核对,这里把"正常多少钱 + 加班多少钱"直接摆在总额下面,不需要
@@ -1677,6 +1677,7 @@ const i18n = {
     fieldAdjustmentLabel: "说明", fieldAdjustmentAmount: "金额(欧元,扣款请填负数)", submitAddAdjustment: "添加调整项",
     colRegularPay: "正常工资", colOvertimePay: "加班工资", colHolidayPay: "节假日工资", colAllowances: "交通/餐费",
     allowanceBreakdown: function (transport, meal) { return "(交通€" + transport + " + 餐费€" + meal + ")"; },
+    autoEstimatedPayNote: "⚡ 自动估算(本月工时×时薪,尚未确认;点“填写工资”可核对或改成最终数字)",
     editManualWage: "填写工资", managePayrollNotes: "工资说明",
     manualWageModalTitle: "填写工资",
     manualWageModalSub: "左边填工时、单价、天数这些基础数字,右边会自动算出这一类的金额——算出来的数字本身就是要保存的最终数字,也可以直接手动改成别的数字。",
@@ -2000,7 +2001,7 @@ const i18n = {
     editRateEffectiveFromLabel: "Effective date (optional)",
     editRateEffectiveFromHint: "Leave blank to let the system decide: the first time a rate is set, it retroactively covers all past clock-ins since this employee joined; a raise/adjustment applies from today by default. If this employee has clocked in before but payroll has always shown €0 (meaning the rate was set too late), enter an earlier date here (e.g. their start date) to backfill those hours.",
     editRateModalSub: function (name, currentRate) { return name + " · current rate €" + currentRate + "/hour"; },
-    payrollSub: "Every figure here is a final number you type in yourself — nothing is auto-calculated from clock-in records. Click \"Edit pay\" to enter an employee's regular pay / overtime pay / holiday pay / transport allowance / meal allowance; use adjustments for one-off bonuses or deductions; you can also leave a pay note the employee will see on their own account.",
+    payrollSub: "Pay that hasn't been manually confirmed yet is shown as an automatic estimate — this month's real clocked hours × hourly rate — so you can see roughly what's owed at a glance. Click \"Edit pay\", review it, and save to lock in the final number (it won't keep changing with hours after that). Use adjustments for one-off bonuses or deductions; you can also leave a pay note the employee will see on their own account.",
     overtimeRuleCaption: "Rule: any time worked beyond 8 hours in a single day counts as overtime, paid at 1.5× the regular rate (e.g. €15/h regular → €22.50/h overtime). Wage cost = regular hours × rate + overtime hours × overtime rate.",
     wageCostBreakdown: function (regularAmount, overtimeAmount) { return "(regular €" + regularAmount + " + overtime €" + overtimeAmount + ")"; },
     colBasePay: "Base pay", colAdjustments: "Adjustments", deleteAction: "Delete", noAdjustmentsYet: "No adjustments yet",
@@ -2008,6 +2009,7 @@ const i18n = {
     payrollAdjustmentSub: "Use a positive amount for bonuses/allowances, a negative amount for deductions/corrections — it's added to this employee's total pay.",
     colRegularPay: "Regular pay", colOvertimePay: "Overtime pay", colHolidayPay: "Holiday pay", colAllowances: "Transport/meal",
     allowanceBreakdown: function (transport, meal) { return "(transport €" + transport + " + meal €" + meal + ")"; },
+    autoEstimatedPayNote: "⚡ Auto-estimated (this month's hours × hourly rate, not yet confirmed — click \"Edit pay\" to review or finalize)",
     editManualWage: "Edit pay", managePayrollNotes: "Pay notes",
     manualWageModalTitle: "Edit pay",
     manualWageModalSub: "Fill in hours, rate, and days on the left and the amount is calculated automatically on the right — the calculated number is the final figure that gets saved, and you can also edit it directly.",
@@ -7242,19 +7244,43 @@ async function renderPayrollTable() {
     adjustmentsByEmployeeId[a.employeeId].push(a);
   });
 
+  // Bug 修复(用户明确反馈:"员工工作3:40,工资却是0.希望能够链接起来"):以前只要
+  // 管理员还没点开"填写工资"手动保存过,这里就死板地显示全 0,哪怕这名员工今天已经
+  // 真实打卡工作了 3 小时 40 分钟,数字完全不出现,看起来像是两块功能没有连起来。
+  // 现在改成:没有保存过手工工资记录时,自动用这名员工"本自然月"的真实打卡工时 ×
+  // 当前时薪现算一个数字直接显示出来(和"填写工资"弹窗里预填用的是同一套算法:自然日
+  // 分桶、每日 8 小时封顶算加班、加班按 1.5 倍算),不用管理员先点一次"填写工资"才能
+  // 看到数字。这个自动算出来的数字仍然打上"自动估算"标记、颜色更淡——一旦管理员点
+  // "填写工资"保存过一次(哪怕存的就是这同一个数字),就变成真正的手工工资记录,不再
+  // 是估算,以后即使工时继续变化也不会再跟着变,这条界限没有被打破。
+  const payrollMonthStart = startOfMonth(new Date());
+  const payrollMonthEnd = new Date(payrollMonthStart.getFullYear(), payrollMonthStart.getMonth() + 1, 1);
+  const AUTO_OVERTIME_MULTIPLIER = 1.5;
+
   let totalCents = 0;
   let html = '<table class="data-table"><tr><th>' + dict.colName + '</th><th>' + dict.colRegularPay + '</th><th>' +
     dict.colOvertimePay + '</th><th>' + dict.colHolidayPay + '</th><th>' + dict.colAllowances + '</th><th>' +
     dict.colAdjustments + '</th><th>' + dict.colTotal + '</th><th>' + dict.colActions + '</th></tr>';
   joinedEmployees.forEach(emp => {
-    const w = manualWageRecordsCache[emp.backendId] || {
-      regularPayCents: 0, overtimePayCents: 0, holidayPayCents: 0, transportAllowanceCents: 0, mealAllowanceCents: 0,
-    };
+    const savedWage = manualWageRecordsCache[emp.backendId];
+    let w = savedWage;
+    let isAutoEstimated = false;
+    if (!w) {
+      isAutoEstimated = true;
+      const hourlyRate = typeof emp.hourlyRateCents === "number" ? emp.hourlyRateCents / 100 : 0;
+      const { regularHours, overtimeHours } = computeRegularOvertimeHoursForEmployee(emp.backendId, payrollMonthStart, payrollMonthEnd);
+      w = {
+        regularPayCents: Math.round(regularHours * hourlyRate * 100),
+        overtimePayCents: Math.round(overtimeHours * hourlyRate * AUTO_OVERTIME_MULTIPLIER * 100),
+        holidayPayCents: 0, transportAllowanceCents: 0, mealAllowanceCents: 0,
+      };
+    }
     const empAdjustments = adjustmentsByEmployeeId[emp.backendId] || [];
     const adjustmentTotalCents = empAdjustments.reduce((sum, a) => sum + a.amountCents, 0);
     const allowancesCents = w.transportAllowanceCents + w.mealAllowanceCents;
     const rowTotalCents = w.regularPayCents + w.overtimePayCents + w.holidayPayCents + allowancesCents + adjustmentTotalCents;
     totalCents += rowTotalCents;
+    const autoBadge = isAutoEstimated ? '<div style="font-size:10.5px;color:var(--text-2);font-weight:400;">' + dict.autoEstimatedPayNote + '</div>' : '';
 
     const adjustmentsHtml = empAdjustments.length
       ? empAdjustments.map(a =>
@@ -7266,7 +7292,7 @@ async function renderPayrollTable() {
       : '<span style="color:var(--text-2);font-size:12px;">' + dict.noAdjustmentsYet + '</span>';
 
     html += '<tr>' +
-      '<td>' + emp.name + '</td>' +
+      '<td>' + emp.name + autoBadge + '</td>' +
       '<td>€' + (w.regularPayCents / 100).toFixed(2) + '</td>' +
       '<td>€' + (w.overtimePayCents / 100).toFixed(2) + '</td>' +
       '<td>€' + (w.holidayPayCents / 100).toFixed(2) + '</td>' +
