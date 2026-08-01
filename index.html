@@ -1790,6 +1790,7 @@ const i18n = {
     empInventoryQtyRequired: "请先填写本次出库数量。",
     empRecentWithdrawsTitle: "刚刚的操作(手误点重复了可以直接撤销)",
     empUndoWithdrawBtn: "撤销", empUndoWithdrawDone: "已撤销", empUndoWithdrawing: "撤销中…",
+    savingEllipsis: "保存中…",
     empUndoWithdrawFailed: "撤销失败,请稍后重试或联系管理员",
     empUndoWithdrawNote: function (itemName) { return "员工撤销误操作(原扣减:" + itemName + ")"; },
     empRecentWithdrawEntry: function (time, itemName, qty, unit) { return time + " · " + itemName + " -" + qty + " " + unit; },
@@ -2120,6 +2121,7 @@ const i18n = {
     empInventoryQtyRequired: "Please enter a quantity first.",
     empRecentWithdrawsTitle: "Just now (tap Undo if you accidentally tapped twice)",
     empUndoWithdrawBtn: "Undo", empUndoWithdrawDone: "Undone", empUndoWithdrawing: "Undoing…",
+    savingEllipsis: "Saving…",
     empUndoWithdrawFailed: "Undo failed — please try again shortly or contact your admin",
     empUndoWithdrawNote: function (itemName) { return "Employee undo of a mistaken withdrawal (" + itemName + ")"; },
     empRecentWithdrawEntry: function (time, itemName, qty, unit) { return time + " · " + itemName + " -" + qty + " " + unit; },
@@ -6673,7 +6675,9 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
   const qtyChanged = idVal && editedQty !== null && inventoryItemModalOriginalQty !== null && editedQty !== inventoryItemModalOriginalQty;
 
   const submitBtn = document.getElementById("btnSubmitInventoryItem");
+  const submitBtnOriginalText = submitBtn.textContent;
   submitBtn.disabled = true;
+  submitBtn.textContent = dict.savingEllipsis;
   let savedItemId = idVal || null;
   try {
     if (idVal) {
@@ -6725,8 +6729,13 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
       }
       saveState();
     }
-    await syncInventoryFromBackend();
+    // Bug 修复(用户反馈:"每次更改之后要停留很久才能看到变化"):真正写入(POST/PATCH)
+    // 已经成功了,不需要再让管理员多等一轮"重新拉取分类+商品+预警"这三个接口(尤其
+    // 后端部署在 Railway 上,冷启动/免费额度下响应本来就可能慢)才让弹窗关闭——先关掉
+    // 弹窗、让管理员立刻知道"保存成功了",完整的列表刷新改成不等待、在后台继续跑,
+    // 跑完自然会把界面上的数字更新成最新的。
     closeModal(document.getElementById("modal-inventory-item"));
+    syncInventoryFromBackend();
   } catch (err) {
     if (err.code === "INVENTORY_CATEGORY_NOT_FOUND") {
       window.alert(dict.categoryNotFoundError);
@@ -6735,6 +6744,7 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
     }
   } finally {
     submitBtn.disabled = false;
+    submitBtn.textContent = submitBtnOriginalText;
   }
 });
 
@@ -6756,7 +6766,8 @@ document.getElementById("form-inventory-transaction").addEventListener("submit",
   const qualityNote = type === "RECEIPT" ? document.getElementById("invFieldQualityNote").value.trim() : undefined;
 
   const submitBtn = e.target.querySelector('button[type="submit"]');
-  if (submitBtn) submitBtn.disabled = true;
+  const submitBtnOriginalText = submitBtn ? submitBtn.textContent : null;
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = dict.savingEllipsis; }
   try {
     // 库存数量的加减、"是否会变成负数"这些校验现在完全交给后端(recordTransaction())来做——
     // 前端不再自己算一遍签名量再判断,避免前后端算法哪天不小心算出不一样的结果。
@@ -6764,13 +6775,16 @@ document.getElementById("form-inventory-transaction").addEventListener("submit",
       method: "POST", auth: true,
       body: { type: type, quantity: rawQuantity, note: note || undefined, qualityGrade: qualityGrade, qualityNote: qualityNote || undefined },
     });
-    await syncInventoryFromBackend();
+    // Bug 修复(用户反馈:"每次更改之后要停留很久才能看到变化"):流水已经真正记到后端了,
+    // 不用再让员工/管理员多等一轮完整的库存列表刷新才看到弹窗关闭——先关弹窗确认"记
+    // 好了",列表刷新放到后台继续跑。
     closeModal(document.getElementById("modal-inventory-transaction"));
+    syncInventoryFromBackend();
   } catch (err) {
     errorEl.textContent = err.code === "INVENTORY_INSUFFICIENT_STOCK" ? dict.insufficientStockError : err.message;
     errorEl.classList.remove("hidden");
   } finally {
-    if (submitBtn) submitBtn.disabled = false;
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitBtnOriginalText; }
   }
 });
 
