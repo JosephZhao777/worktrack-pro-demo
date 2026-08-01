@@ -158,6 +158,13 @@
   .inv-card-menu button { display: block; width: 100%; text-align: left; background: none; border: none; padding: 10px 14px; font-size: 13px; color: var(--text-1); cursor: pointer; font-family: inherit; }
   .inv-card-menu button:hover { background: rgba(123,38,53,.08); }
   .inv-empty-state { text-align: center; color: var(--text-2); padding: 28px 10px; font-size: 13px; }
+  /* Bug 修复(用户明确反馈:"打卡工人上班之后,根本就不联络,所有数据之间没有联合,不联动"):
+     根本原因是打卡按钮以前遇到后端一时连不上时会静默退回"只在本地假装打卡成功",员工
+     端按钮照样显示"已打卡"、完全看不出异常,但员工管理/GPS看板/每日经营报告这几处全部
+     读的是数据库真实考勤记录——数据库里根本没有这一条,当然处处都"看不到、不联动"。
+     现在只要打卡没有真正被服务器确认,就一直显示这条醒目的黄色提示条,不让员工/店长
+     误以为这次打卡已经生效。 */
+  .clock-sync-warning { background: rgba(198,138,61,.22); border: 1px solid rgba(198,138,61,.5); color: #FCEBD5; border-radius: 10px; padding: 9px 12px; font-size: 12.5px; line-height: 1.5; margin: 10px 0; text-align: center; }
   .sync-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 9999; max-width: min(92vw, 480px); background: #3A1116; color: #FBF3EE; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.4; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.35); }
   .sync-toast .sync-toast-msg { flex: 1; }
   .sync-toast button { flex-shrink: 0; background: transparent; border: 1px solid rgba(255,255,255,.4); color: inherit; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
@@ -456,6 +463,7 @@
         <h2 class="section-title" id="employeeWelcomeTitle">欢迎回来</h2>
 
         <button class="clock-btn" id="clockBtn" data-i18n="clockIn">上班打卡</button>
+        <div id="clockSyncWarning" class="clock-sync-warning hidden"></div>
         <div style="text-align:center;font-size:13px;opacity:.75;margin-top:-8px;">
           <span data-i18n="todayWorked">今日已工作</span>: <span id="todayTimer">00:00:00</span>
         </div>
@@ -1507,10 +1515,15 @@ const i18n = {
     geocodeSuccessAlert: "注册成功!已根据您填写的地址自动匹配到 GPS 坐标,后续 GPS 看板会用得上。",
     geocodeFailedAlert: "注册成功,但填写的地址暂时无法自动匹配到 GPS 坐标(不影响使用)——如果需要用到公司地图定位,建议之后去\"设置\"里检查一下地址是否写得完整。",
     clockInConflictAlert: "打卡系统检测到您名下有一条之前没有正常关闭的打卡记录,已经自动尝试清理但没有成功——这次打卡的工时会正常记录,但 GPS 追踪这次可能无法开始,建议联系公司管理员确认一下。",
-    clockInFailedAlertPrefix: "打卡未能同步到后台服务器(工时仍会正常记录,但这段时间不会有 GPS 追踪):",
+    // Bug 修复(用户明确反馈:"打卡工人上班之后,根本就不联络,所有数据之间没有联合,
+    // 不联动"):这条提示以前写的是"工时仍会正常记录",但事实上这种情况下服务器根本
+    // 没有收到这次打卡,员工管理/GPS看板/每日经营报告全都看不到这条记录,是真的没有
+    // 记录,不是显示延迟——不能再这样安慰性地误导员工,必须如实说清楚。
+    clockInFailedAlertPrefix: "打卡未能确认同步到服务器,这段时间暂时不会出现在公司后台(工时/GPS都不会有记录),系统会每 20 秒自动重试补交,恢复网络后会自动补上:",
     passwordHint: "密码由您自行设置,注册成功后可随时在个人资料中修改。",
     submitRegister: "提交注册", submitRegisterCompany: "提交注册,开始 30 天免费试用",
     footerText: "© 2026 WorkTrack AI",
+    clockSyncPendingWarning: "⚠️ 这次打卡尚未确认同步到服务器,公司后台暂时看不到这条记录(系统每 20 秒自动重试补交,不用手动操作;如果一直显示这条提示,请检查网络后重新打开 App)。",
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "欢迎回来", clockIn: "上班打卡", clockOut: "下班打卡",
     todayWorked: "今日已工作", weekHours: "本周工时", monthHours: "本月工时", salary: "工资总额", attendanceRate: "出勤率",
     todayAttendanceTitle: "今日打卡记录", inProgressLabel: "进行中", noAttendanceToday: "今天还没有打卡记录",
@@ -1850,10 +1863,11 @@ const i18n = {
     geocodeSuccessAlert: "Registration successful! We've automatically matched your address to GPS coordinates, which the GPS dashboard will use later.",
     geocodeFailedAlert: "Registration successful, but the address you entered couldn't be automatically matched to GPS coordinates (this doesn't affect account use) — if you'll need map location later, check that the address is complete under \"Settings\".",
     clockInConflictAlert: "Our system found a previous clock-in for you that was never properly closed, and the automatic cleanup didn't succeed. This shift's hours will still be recorded, but GPS tracking may not start this time — please check with your company admin.",
-    clockInFailedAlertPrefix: "Clock-in couldn't be synced to the server (your hours will still be recorded, but there won't be GPS tracking for this period): ",
+    clockInFailedAlertPrefix: "Clock-in couldn't be confirmed by the server — it won't show up in the company dashboard yet (no hours, no GPS) until this is resolved. The app will automatically retry every 20 seconds once you're back online: ",
     passwordHint: "You set this password yourself — change it anytime from your profile after registering.",
     submitRegister: "Submit registration", submitRegisterCompany: "Submit and start your 30-day free trial",
     footerText: "© 2026 WorkTrack AI",
+    clockSyncPendingWarning: "⚠️ This clock-in hasn't been confirmed by the server yet — the company dashboard can't see it (the app retries automatically every 20 seconds, no action needed; if this stays up for a while, check your connection and reopen the app).",
     companyName: "Delicious Poke Co.", welcomeTitlePrefix: "Welcome back", clockIn: "Clock in", clockOut: "Clock out",
     todayWorked: "Worked today", weekHours: "This week", monthHours: "This month", salary: "Total pay", attendanceRate: "Attendance rate",
     todayAttendanceTitle: "Today's clock-ins", inProgressLabel: "In progress", noAttendanceToday: "No clock-ins yet today",
@@ -2845,6 +2859,7 @@ function startAttendanceLiveRefresh() {
       refreshLatestAnnouncement(); // 管理员刚发布/删除的公告,也在 20 秒内自动同步过来
       refreshMyManualWage(); // 管理员刚改的手工工资,20 秒内自动同步到"工资总额"卡片
       refreshMyPayrollNotes(); // 管理员刚发布/删除的工资说明留言,也一样自动同步
+      retryPendingClockIn(); // Bug 修复(用户反馈:"打卡工人上班之后,根本就不联络,所有数据之间没有联合,不联动"):如果之前那次打卡还没被服务器确认,这里自动重试补交,不需要员工自己发现问题再手动处理
     }
   }, 20000);
 }
@@ -4033,7 +4048,15 @@ clockBtn.addEventListener("click", async () => {
             // 也不会有任何 GPS 追踪,而所有人都以为一切正常。
             window.alert((i18n[currentLang].clockInFailedAlertPrefix || "") + (err.message || ""));
           } else {
-            console.warn("打卡请求后端失败(网络原因),退回本地记录(不阻断打卡本身):", err);
+            // Bug 修复(用户明确反馈:"打卡工人上班之后,根本就不联络,所有数据之间没有
+            // 联合,不联动"):这个分支(网络暂时连不上)以前只在浏览器控制台打一行
+            // console.warn,员工完全看不到任何提示,按钮还是照样显示"已打卡"——但数据库
+            // 里根本没有这条记录,所以员工管理/GPS看板/每日经营报告这几处当然都看不到、
+            // 都"不联动"。现在改成一定要让员工看到明确提示(不是安慰性地说"仍会正常
+            // 记录",因为事实上并没有),并且在下面的 20 秒自动轮询里持续尝试补交
+            // (见 retryPendingClockIn()),恢复网络后会自动补上,不需要员工自己重新操作。
+            console.warn("打卡请求后端失败(网络原因),暂时标记为待同步,等待自动重试:", err);
+            window.alert((i18n[currentLang].clockInFailedAlertPrefix || "") + (err.message || ""));
           }
         }
       }
@@ -4041,6 +4064,7 @@ clockBtn.addEventListener("click", async () => {
       clockedIn = true;
       clockBtn.classList.add("clocked-in");
       currentClockInAt = new Date();
+      renderClockSyncWarning(); // sessionId 为空时(打卡还没被服务器确认)会显示醒目提示,不再悄悄假装成功
       // Bug 修复(用户明确要求"关闭 App 之后 GPS 仍要持续追踪"):只有真正拿到后端
       // session id 才开始上报 GPS 打点。优先尝试原生后台定位(App 被关闭/切后台也能
       // 继续追踪),只有不是原生环境(比如纯网页版demo)或者原生插件初始化失败时,
@@ -4095,6 +4119,7 @@ clockBtn.addEventListener("click", async () => {
       currentAttendanceSessionId = null;
       elapsedSeconds = 0;
       refreshRealAttendanceData();
+      renderClockSyncWarning(); // 下班之后 clockedIn 变 false,这条提示条应该跟着隐藏
     }
     saveState(); // 立刻落盘,不等下一次别的操作顺带触发——避免"刚点完上班打卡就关App"这个最容易丢数据的场景
     applyI18n();
@@ -4133,6 +4158,53 @@ function resumeActiveClockSession() {
     startNativeBackgroundTracking(currentAttendanceSessionId, currentUserCompanyId, accessToken).then(nativeStarted => {
       if (!nativeStarted) startGpsPingCapture(currentAttendanceSessionId);
     });
+  }
+  renderClockSyncWarning(); // 刷新页面恢复"打卡中"状态时,如果这次打卡本来就还没被服务器确认,提示条也要跟着恢复显示
+}
+
+/** Bug 修复(用户明确反馈:"打卡工人上班之后,根本就不联络,所有数据之间没有联合,
+    不联动"):clockedIn=true 但 currentAttendanceSessionId 为空,说明这次打卡从始至终
+    都只存在于这台设备本地,数据库里没有真正的考勤记录——员工管理/GPS看板/每日经营
+    报告当然都看不到、都"不联动",因为根本没有数据可以联。这个函数就是把这种"待确认"
+    状态明确地、持续地显示出来,不再让按钮看起来一切正常。 */
+function renderClockSyncWarning() {
+  const el = document.getElementById("clockSyncWarning");
+  if (!el) return;
+  const pending = clockedIn && !currentAttendanceSessionId;
+  el.classList.toggle("hidden", !pending);
+  if (pending) el.textContent = i18n[currentLang].clockSyncPendingWarning;
+}
+
+/** 配合上面的提示条:员工不需要自己发现"打卡没同步"然后手动重新点一次——每 20 秒的
+    自动轮询(startAttendanceLiveRefresh)里会调用这个函数,只要还处于"待确认"状态,
+    就自动重新尝试一次真正的打卡请求,成功了就补上 sessionId、开始 GPS 追踪、隐藏提示,
+    网络一恢复基本不需要员工做任何操作就能自愈。 */
+async function retryPendingClockIn() {
+  if (!clockedIn || currentAttendanceSessionId) return;
+  if (!accessToken || !currentUserCompanyId) return;
+  try {
+    const pos = await getCurrentPositionSafe();
+    const session = await apiRequest("/companies/" + currentUserCompanyId + "/attendance/clock-in", {
+      method: "POST", auth: true,
+      body: pos ? { latitude: pos.latitude, longitude: pos.longitude } : {},
+    });
+    currentAttendanceSessionId = session.id;
+    saveState();
+    renderClockSyncWarning();
+    startNativeBackgroundTracking(session.id, currentUserCompanyId, accessToken).then(nativeStarted => {
+      if (!nativeStarted) startGpsPingCapture(session.id);
+    });
+    refreshRealAttendanceData(); // 补交成功后立刻刷新一次,员工管理/GPS看板/每日经营报告最多 20 秒内就能看到这条记录
+  } catch (err) {
+    // 如果这次重试又发现"已经有一条打卡中的记录"(比如上一次重试其实已经在服务器上
+    // 成功了,只是响应没送达这台设备),直接当作已经同步成功处理,不用再纠结拿不到
+    // 这条记录真正的 sessionId——员工管理等页面本来就会在下次 20 秒轮询里正常显示它,
+    // 这里只需要让本机的提示条消失,不用继续假装"还没打卡"。
+    if (err.code === "ATTENDANCE_SESSION_ALREADY_OPEN") {
+      console.warn("重试打卡时发现服务器上其实已有进行中的记录,视为已同步:", err);
+    } else {
+      console.warn("重试补交打卡仍然失败,继续保持'待同步'提示,下一轮再试:", err);
+    }
   }
 }
 
@@ -5679,7 +5751,16 @@ let invCurrentPage = 1;
 let inventoryItems = []; // 每一项就是后端 InventoryItemView——status(只依据进货阈值)/建议采购量都已经算好
 let inventoryCategoryTree = []; // GET .../inventory/categories?includeInactive=true 的树状结果(含已停用的,方便管理员重新启用)
 let inventoryInsightsData = { lowStockAlerts: [], wasteAlerts: [], qualityAlerts: [] };
-let inventorySyncInFlight = false; // 避免短时间内重复点击导致同时发出好几个相同的同步请求
+// Bug 修复(用户明确反馈:"进货后,添加了货物之后,总数不变,这是很让人抓狂的事情"):
+// 根源是这里以前用一个简单的布尔开关(inventorySyncInFlight)做防抖——如果这次调用
+// 撞上了后台每 20 秒自动轮询的那一次同步正好还没跑完,就会直接静默 return,什么都
+// 不做。管理员在"记录流水"/"编辑资料"保存成功后,代码里明明写了"保存完再同步一次
+// 拿最新数字",但只要运气不好撞上了后台轮询,这次"保存后应该刷新"的调用就被这个开关
+// 直接吞掉、界面上的总数还是旧的——不是数字真的没变,是刷新请求被跳过了,而且完全没
+// 有任何提示,看起来就是"改了不生效"。现在改成让第二个调用方等同一个正在进行的 Promise
+// (而不是直接放弃),这样不管撞没撞上后台轮询,保存之后一定会等到一次真正刷新完成、
+// 数字一定会更新,不会再出现"看起来没保存上"的情况。
+let inventorySyncPromise = null;
 
 // Bug 修复(用户明确要求:"商品价格要添加进去。总价,单价都要显示进去"):后端的库存商品
 // 目前完全没有"单价"这个字段(也没有对应的数据库列),而库存商品列表每次都会整份从
@@ -5742,30 +5823,36 @@ function activeInventoryItems() {
 
 /** 从后端(分类树 + 商品列表 + 预警)重新拉一遍最新数据,员工/管理员双方看到的永远是数据库里
     真实的库存数字——员工在仓库补货页面扣一次库存,管理员这边下次同步就会看到少了一件。 */
-async function syncInventoryFromBackend() {
-  if (!accessToken || !currentUserCompanyId) return;
-  if (inventorySyncInFlight) return;
-  inventorySyncInFlight = true;
-  try {
-    const [categories, items, insights] = await Promise.all([
-      apiRequest("/companies/" + currentUserCompanyId + "/inventory/categories?includeInactive=true", { auth: true }),
-      apiRequest("/companies/" + currentUserCompanyId + "/inventory/items", { auth: true }),
-      apiRequest("/companies/" + currentUserCompanyId + "/inventory/insights", { auth: true }),
-    ]);
-    inventoryCategoryTree = categories;
-    inventoryItems = items;
-    inventoryInsightsData = insights;
-    renderInventoryTable();
-    renderEmpInventoryWithdrawList();
-    updateEmpInventoryDashboardNote();
-  } catch (err) {
-    // 同步失败(比如后端暂时没响应)不阻断已经登录成功这件事,继续显示上一次成功同步的数据;
-    // 用户切换页面、或者手动做一次库存相关操作时会自然再次触发重试。
-    console.warn("同步库存数据失败:", err);
-    notifySyncIssue();
-  } finally {
-    inventorySyncInFlight = false;
-  }
+function syncInventoryFromBackend() {
+  if (!accessToken || !currentUserCompanyId) return Promise.resolve();
+  // 如果已经有一次同步正在进行(比如刚好撞上后台每 20 秒的自动轮询),不再直接放弃——
+  // 而是把这次调用"挂"在同一个正在进行的 Promise 上,等它跑完。这样调用方(比如
+  // "记录流水"/"编辑资料"保存成功之后)一定能等到一次真正完成的刷新,界面上的总数
+  // 一定会更新,不会再出现调用被静默跳过、数字看起来没变的情况。
+  if (inventorySyncPromise) return inventorySyncPromise;
+  inventorySyncPromise = (async () => {
+    try {
+      const [categories, items, insights] = await Promise.all([
+        apiRequest("/companies/" + currentUserCompanyId + "/inventory/categories?includeInactive=true", { auth: true }),
+        apiRequest("/companies/" + currentUserCompanyId + "/inventory/items", { auth: true }),
+        apiRequest("/companies/" + currentUserCompanyId + "/inventory/insights", { auth: true }),
+      ]);
+      inventoryCategoryTree = categories;
+      inventoryItems = items;
+      inventoryInsightsData = insights;
+      renderInventoryTable();
+      renderEmpInventoryWithdrawList();
+      updateEmpInventoryDashboardNote();
+    } catch (err) {
+      // 同步失败(比如后端暂时没响应)不阻断已经登录成功这件事,继续显示上一次成功同步的数据;
+      // 用户切换页面、或者手动做一次库存相关操作时会自然再次触发重试。
+      console.warn("同步库存数据失败:", err);
+      notifySyncIssue();
+    } finally {
+      inventorySyncPromise = null;
+    }
+  })();
+  return inventorySyncPromise;
 }
 
 let invInsightsPage = 1;
