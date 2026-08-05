@@ -5301,6 +5301,23 @@ function computeInventoryView(item) {
   };
 }
 
+// Bug 修复(用户反馈:"这个约2.1;约7.0是什么?这样描述要改变过来,这种描述不清楚"):
+// 库存列表里"2 box (约 2 1)"、"7 pack (约 7 10包)"这类读不通的文字,根源是这批商品的
+// packSize(每箱/包数量)全都是 1、packUnitLabel(箱/包单位标签)又被填成了纯数字或
+// "数字+字"这种明显不对的文本——很可能是当初新建商品时"每箱数量"和"单位标签"两个
+// 字段被填反了/填错了。packSize=1 时"换算成箱数"和原始数量永远是同一个数字,换算了
+// 也没有任何信息量,纯属噪音;label 是乱填的数字就更没有意义。这里统一收敛成一条规则:
+// 只有 packSize 确实大于 1(换算才有意义)、并且单位标签看起来是正常文字(不是纯数字),
+// 才在列表/规格/编辑弹窗里展示"约 N 箱"这一类换算提示,否则完全不显示,不会再冒出
+// 让人看不懂的文字。三处用到换算提示的地方(主列表当前库存列/建议采购列、员工出库
+// 清单、编辑商品弹窗)都改成调用这一个共用函数,以后要调整规则只需要改这一处。
+function hasMeaningfulPackInfo(item) {
+  const hasRealPackSize = typeof item.packSize === "number" && item.packSize > 1;
+  const label = item.packUnitLabel;
+  const isSensibleLabel = !label || !/^[\d.\s]+$/.test(String(label).trim());
+  return hasRealPackSize && isSensibleLabel;
+}
+
 /** "大类 / 子类"这样的展示文本;商品没有挂分类时返回空字符串。 */
 function categoryDisplayLabel(item) {
   if (!item.categoryName) return "";
@@ -5377,7 +5394,7 @@ function renderInventoryInsights(containerId) {
 /* 商品"规格"这一列:没设每箱数量就只显示计量单位(例如 "kg"),设了就显示"24 瓶/箱"这样的换算说明,
    一眼就能看出这款商品是按箱管理还是按散装单位管理。 */
 function buildInventorySpecLabel(item, dict) {
-  if (item.packSize !== null && item.packSize !== undefined && item.packSize > 0) {
+  if (hasMeaningfulPackInfo(item)) {
     return item.packSize + " " + item.unit + " / " + (item.packUnitLabel || dict.defaultPackUnitLabel);
   }
   return item.unit;
@@ -5389,13 +5406,14 @@ function buildInventoryRowHtml(item) {
   const statusBadgeClass = view.status === "LOW_STOCK" ? "danger" : "success";
   const statusLabel = view.status === "LOW_STOCK" ? dict.statusLowStock : dict.statusNormalStock;
 
+  const showPackInfo = hasMeaningfulPackInfo(item);
   let currentQtyLabel = item.currentQuantity + " " + item.unit;
-  if (view.currentQuantityInPacks !== null) {
+  if (showPackInfo && view.currentQuantityInPacks !== null) {
     currentQtyLabel += " " + dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
   }
 
   let suggestedLabel = view.suggestedReorderQuantity !== null ? (view.suggestedReorderQuantity + " " + item.unit) : "—";
-  if (view.suggestedReorderPacks !== null) {
+  if (showPackInfo && view.suggestedReorderPacks !== null) {
     suggestedLabel += " " + dict.packCountSuffix(view.suggestedReorderPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
   }
 
@@ -5474,17 +5492,12 @@ function openInventoryItemModal(item) {
   if (item) {
     currentQtyInput.value = item.currentQuantity;
     currentQtyInput.dataset.originalQuantity = String(item.currentQuantity);
-    // Bug 修复:这里之前手动拼了一个"≈ "前缀,而 dict.packCountSuffix 本身已经带了
-    // "(约 ...)"/"(~ ...)",两个"约等于"叠在一起变成"≈ (约 2 1)"这种读不通的文字。
-    // 另外"箱/包单位标签"是一个可以自由输入的文本字段,如果之前被误填成纯数字
-    // (比如把"每箱数量"和"单位标签"两个字段填反了),直接显示出来会更让人看不懂
-    // (比如"约 2 1")——这种情况就不展示这行提示,不editorializing 猜它本来该是什么,
-    // 只是避免把明显有问题的数据摆到管理员面前。
+    // 是否展示"约 N 箱"这一类换算提示,和列表页用的是完全同一条规则(hasMeaningfulPackInfo):
+    // packSize 必须真的大于 1、单位标签必须是正常文字,否则不展示,不会冒出"约 2 1"这种
+    // 读不通的文字(参见该函数上方的详细说明)。
     const view = computeInventoryView(item);
-    const packUnitLabel = item.packUnitLabel || dict.defaultPackUnitLabel;
-    const isSensibleLabel = !!packUnitLabel && !/^\d+(\.\d+)?$/.test(String(packUnitLabel).trim());
-    packHintEl.textContent = (view.currentQuantityInPacks !== null && isSensibleLabel)
-      ? dict.packCountSuffix(view.currentQuantityInPacks, packUnitLabel)
+    packHintEl.textContent = (hasMeaningfulPackInfo(item) && view.currentQuantityInPacks !== null)
+      ? dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel)
       : "";
   } else {
     document.getElementById("invFieldInitialQuantity").value = "";
@@ -6135,7 +6148,7 @@ function buildEmpInventoryWithdrawRowHtml(item) {
   const statusBadgeClass = view.status === "LOW_STOCK" ? "danger" : "success";
   const statusLabel = view.status === "LOW_STOCK" ? dict.statusLowStock : dict.statusNormalStock;
   let currentQtyLabel = item.currentQuantity + " " + item.unit;
-  if (view.currentQuantityInPacks !== null) {
+  if (hasMeaningfulPackInfo(item) && view.currentQuantityInPacks !== null) {
     currentQtyLabel += " " + dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
   }
   const categoryLabel = categoryDisplayLabel(item);
