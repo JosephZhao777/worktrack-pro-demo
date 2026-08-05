@@ -545,7 +545,7 @@
         </div>
         <div class="glass ca-section" id="ca-inventory" style="display:none;margin-top:20px;">
           <h2 class="section-title" data-i18n="navInventory">智能库存</h2>
-          <p class="section-sub" data-i18n="inventorySub">库存不足提醒只依据您设置的"进货阈值"(不再自动估算断货天数),近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过"记录流水"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。</p>
+          <p class="section-sub" data-i18n="inventorySub">库存不足提醒只依据您设置的"进货阈值"(不再自动估算断货天数),近 30 天浪费占比超过 10% 会单独提醒。库存数量可以通过"记录流水"(入库/消耗/浪费/盘点调整)变动,也可以在编辑商品时直接改"当前库存总量"——两种方式系统都会自动生成对应的流水记录,每一次变化都可追溯。</p>
           <div class="metric-grid" id="inventorySummaryCards" style="margin-bottom:14px;"></div>
           <div id="inventoryInsights"></div>
 
@@ -1144,8 +1144,9 @@
           <div class="field-hint" data-i18n="invItemNameSyncHint">选好分类后,上面的下拉菜单会自动列出该分类下已有的商品,直接选择就能带出名称并自动带出对应分类,避免重复新建或分类选错;选"+ 新建商品"可以手动输入全新的商品名称。</div>
         </div>
         <div class="field full" id="invCurrentQtyDisplayWrap">
-          <label data-i18n="fieldCurrentQtyDisplay">当前库存总量</label>
-          <div id="invCurrentQtyDisplay" style="padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:14px;">—</div>
+          <label data-i18n="fieldCurrentQtyDisplay">当前库存总量(可编辑)</label>
+          <input type="number" min="0" step="0.01" id="invFieldCurrentQuantity" />
+          <div class="field-hint" id="invCurrentQtyPackHint"></div>
         </div>
         <div class="field full hidden" id="invInitialQtyFieldWrap">
           <label data-i18n="fieldInitialQuantity">库存总量(可选)</label>
@@ -1477,18 +1478,18 @@ const i18n = {
     wageCalcSubsidyHint: "还要发奖金或临时补贴?不算进上面的合计里。",
     noLeaveRequestsYet: "暂无请假记录",
     navInventory: "智能库存",
-    inventorySub: "系统按近 14 天的消耗速率自动预测断货天数与建议采购量,近 30 天浪费占比超过 10% 会单独提醒。库存数量只能通过\"记录流水\"变动(入库/消耗/浪费/盘点调整),不支持直接改库存数字,每一次变化都可追溯。",
+    inventorySub: "库存不足提醒只依据您设置的\"进货阈值\"(不再自动估算断货天数),近 30 天浪费占比超过 10% 会单独提醒。库存数量可以通过\"记录流水\"(入库/消耗/浪费/盘点调整)变动,也可以在编辑商品时直接改\"当前库存总量\"——两种方式系统都会自动生成对应的流水记录,每一次变化都可追溯。",
     addInventoryItem: "+ 新增库存商品", editItem: "编辑商品资料", submitAddItem: "保存",
     fieldSku: "SKU 编号", fieldItemName: "商品名称", fieldCategory: "分类(可选)", fieldUnit: "单位",
     invItemNameSyncHint: "选好分类后,上面的下拉菜单会自动列出该分类下已有的商品,直接选择就能带出名称并自动带出对应分类,避免重复新建或分类选错;选\"+ 新建商品\"可以手动输入全新的商品名称。",
     invItemNameNewOption: "+ 新建商品(手动输入名称)",
     fieldReorderThreshold: "进货阈值(可选)", fieldReorderQuantity: "建议采购量(可选)", fieldLeadTimeDays: "采购提前期(天)",
-    fieldCurrentQtyDisplay: "当前库存总量", sectionPackaging: "规格(可选)", newItemStartsAtZero: "新建商品,库存从 0 开始",
+    fieldCurrentQtyDisplay: "当前库存总量(可编辑)", sectionPackaging: "规格(可选)", newItemStartsAtZero: "新建商品,库存从 0 开始",
     fieldInitialQuantity: "当前库存(可选)",
     initialQuantityHint: "如果这个商品现在仓库里已经有货(比如把线下已有的库存搬进系统),可以直接在这里填一次现有总量——系统会自动生成一笔\"期初库存\"入库流水,不会破坏\"库存只能通过流水变动\"这条规则;留空表示这是全新的 0 库存,以后再用\"记录流水\"入库。",
     reorderThresholdHint: "当前库存总量低于“进货阈值”时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。",
     inventoryItemHint: "库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过\"记录流水\"入库(员工每次从仓库补货到操作间,这里的总量也会相应减少)。",
-    inventoryItemEditHint: function (qty, unit) { return "当前库存(" + qty + " " + unit + ")不能在这里直接改——如果盘点后发现数字不对,请用\"记录流水 → 盘点调整\"来修正,系统会自动算出差值并留下记录,不会出现来路不明的数字变动。"; },
+    inventoryItemEditHint: function (unit) { return "单位是" + unit + "。上面这个数字可以直接改成盘点后的实际库存——保存时如果数字有变化,系统会自动生成一笔\"盘点调整\"流水记录,差值、时间全部留痕,不会出现来路不明的数字变动。"; },
     unitPiece: "件", unitBox: "箱", unitPack: "包", unitStrip: "条",
     recordTransaction: "记录流水", fieldTransactionType: "流水类型",
     typeReceipt: "入库(采购到货)", typeConsumption: "消耗(正常使用)", typeWaste: "浪费/报废", typeAdjustment: "盘点调整",
@@ -1774,18 +1775,18 @@ const i18n = {
     fieldAdjustmentLabel: "Description", fieldAdjustmentAmount: "Amount (EUR, use negative for a deduction)", submitAddAdjustment: "Add adjustment",
     noLeaveRequestsYet: "No leave requests yet",
     navInventory: "Smart Inventory",
-    inventorySub: "Low-stock alerts are based only on the reorder threshold you set (no more auto-estimated days-until-stockout), and waste is flagged separately when it exceeds 10% of consumption over the last 30 days. Stock quantity only changes via \"Record transaction\" (receipt/consumption/waste/adjustment) — there's no way to edit the number directly, so every change stays traceable.",
+    inventorySub: "Low-stock alerts are based only on the reorder threshold you set (no more auto-estimated days-until-stockout), and waste is flagged separately when it exceeds 10% of consumption over the last 30 days. Stock quantity can change via \"Record transaction\" (receipt/consumption/waste/adjustment), or by editing \"current total stock\" directly on an item — either way the system automatically logs a matching transaction, so every change stays traceable.",
     addInventoryItem: "+ Add inventory item", editItem: "Edit item", submitAddItem: "Save",
     fieldSku: "SKU", fieldItemName: "Item name", fieldCategory: "Category (optional)", fieldUnit: "Unit",
     invItemNameSyncHint: "Once you pick a category, the dropdown above lists existing items in that category — pick one to fill in the name and auto-select its category, avoiding duplicates or the wrong category; choose \"+ New item\" to type a brand-new name.",
     invItemNameNewOption: "+ New item (type a new name)",
     fieldReorderThreshold: "Reorder threshold (optional)", fieldReorderQuantity: "Suggested reorder (optional)", fieldLeadTimeDays: "Lead time (days)",
-    fieldCurrentQtyDisplay: "Current total stock", sectionPackaging: "Spec (optional)", newItemStartsAtZero: "New item — stock starts at 0",
+    fieldCurrentQtyDisplay: "Current total stock (editable)", sectionPackaging: "Spec (optional)", newItemStartsAtZero: "New item — stock starts at 0",
     fieldInitialQuantity: "Current stock (optional)",
     initialQuantityHint: "If this item already has stock sitting in your warehouse right now (e.g. moving your existing offline inventory into the system), you can enter the current total here — the system will automatically record it as an \"opening stock\" receipt transaction, so it still follows the \"stock only changes via transactions\" rule. Leave it blank if this is a brand-new item starting at 0, and add stock later via \"Record transaction\".",
     reorderThresholdHint: "When current stock drops below the \"reorder threshold\", the system automatically works out a suggested reorder quantity and surfaces it in the inventory alerts — no manual math needed.",
     inventoryItemHint: "Stock quantity can't be set here directly — a new item always starts at 0, then goes up via \"Record transaction\" (each time an employee restocks from the warehouse to the prep area, this total goes down accordingly).",
-    inventoryItemEditHint: function (qty, unit) { return "Current stock (" + qty + " " + unit + ") can't be edited here — if a stock count turns up a wrong number, use \"Record transaction → Adjustment\" instead; the system works out the difference and keeps a record, so there's never an untraceable change to the number."; },
+    inventoryItemEditHint: function (unit) { return "Unit: " + unit + ". You can edit the number above directly to match an actual stock count — if it changes, the system automatically records an \"Adjustment\" transaction with the difference and timestamp, so there's never an untraceable change."; },
     unitPiece: "piece", unitBox: "box", unitPack: "pack", unitStrip: "strip",
     recordTransaction: "Record transaction", fieldTransactionType: "Transaction type",
     typeReceipt: "Receipt (purchase arrived)", typeConsumption: "Consumption (used in operations)", typeWaste: "Waste / spoilage", typeAdjustment: "Stock count adjustment",
@@ -5458,33 +5459,37 @@ function openInventoryItemModal(item) {
   document.getElementById("invFieldPackSize").value = (item && item.packSize !== null && item.packSize !== undefined) ? item.packSize : "";
   document.getElementById("invFieldPackUnitLabel").value = item ? (item.packUnitLabel || "") : "";
 
-  // 编辑已有商品:"当前库存总量"是只读展示,不是表单字段——员工每次从仓库补货到操作间,
-  // 这个数字会相应减少(走的是 CONSUMPTION 流水),这里只是让管理员顺便看一眼。
-  // 新增商品:改成一个可以直接填的"库存总量(可选)"输入框——很多商品在加入系统的时候
-  // 仓库里已经有现货(比如把线下已有的库存搬进系统),不填的话就必须先建好商品、再单独
-  // 跑一次"记录流水"才能把现有库存补上,多一道没必要的手续。填了这里,提交表单时会
-  // 自动在创建商品之后,用同一个"记录流水"接口生成一笔标注为"期初库存"的入库流水——
-  // 库存数量本身依然不是直接写进去的,只是把"新建 + 补首笔库存"合并成一步,不违反
-  // "库存只能通过流水变动"这条规则。
+  // Bug 修复(用户明确要求:"总库存无法编辑...我希望智能库存总库存是可以编辑的,不要
+  // 写死了"):以前编辑已有商品时"当前库存总量"是一个只读展示,库存数字只能通过单独的
+  // "记录流水"弹窗改——现在改成可以直接在这里填一个新数字。不是简单地把这个数字直接
+  // 写进数据库:保存的时候,如果这个数字和原来不一样,会自动在后台生成一笔类型为
+  // "盘点调整"的流水记录(和"记录流水→盘点调整"走的是完全同一个接口/同一套后端校验),
+  // 差值多少、什么时候改的、谁改的,全部照样留痕——只是不用再多开一个弹窗、多一步操作。
+  // 新增商品:沿用原来"库存总量(可选)"输入框,填了会生成一笔"期初库存"入库流水。
   document.getElementById("invCurrentQtyDisplayWrap").classList.toggle("hidden", !item);
   document.getElementById("invInitialQtyFieldWrap").classList.toggle("hidden", !!item);
+  const currentQtyInput = document.getElementById("invFieldCurrentQuantity");
+  const packHintEl = document.getElementById("invCurrentQtyPackHint");
   if (item) {
+    currentQtyInput.value = item.currentQuantity;
+    currentQtyInput.dataset.originalQuantity = String(item.currentQuantity);
     const view = computeInventoryView(item);
-    let label = item.currentQuantity + " " + item.unit;
-    if (view.currentQuantityInPacks !== null) {
-      label += " " + dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel);
-    }
-    document.getElementById("invCurrentQtyDisplay").textContent = label;
+    packHintEl.textContent = view.currentQuantityInPacks !== null
+      ? "≈ " + dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel)
+      : "";
   } else {
     document.getElementById("invFieldInitialQuantity").value = "";
+    currentQtyInput.value = "";
+    currentQtyInput.dataset.originalQuantity = "";
+    packHintEl.textContent = "";
   }
 
-  // 编辑已有商品时,把"库存数量不能改"这句提示换成更有用的版本——直接告诉管理员
-  // 真正想改数字时该去哪(记录流水→盘点调整),而不是只说"新建商品初始库存是0"(编辑场景下这句话没有意义)。
+  // 编辑已有商品时,把提示语换成"改这里会自动生成盘点调整流水"的说明;新建商品时
+  // 保持原来"初始库存怎么填"的说明。
   const quantityHintEl = document.getElementById("inventoryItemQuantityHint");
   if (item) {
     quantityHintEl.removeAttribute("data-i18n");
-    quantityHintEl.textContent = dict.inventoryItemEditHint(item.currentQuantity, item.unit);
+    quantityHintEl.textContent = dict.inventoryItemEditHint(item.unit);
   } else {
     quantityHintEl.setAttribute("data-i18n", "inventoryItemHint");
     quantityHintEl.textContent = dict.inventoryItemHint;
@@ -5805,8 +5810,8 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
   const leadTimeDays = Number(document.getElementById("invFieldLeadTimeDays").value) || 0;
   const packSizeRaw = document.getElementById("invFieldPackSize").value;
   const packUnitLabelRaw = document.getElementById("invFieldPackUnitLabel").value.trim();
-  // 只在"新增商品"时才读取和使用这个值——编辑已有商品时这个输入框是隐藏的,不应该被
-  // 拿来当成"要把库存改成这个数字",库存的变动永远只能走"记录流水"。
+  // 只在"新增商品"时才读取和使用这个值——编辑已有商品时这个输入框是隐藏的,库存总量
+  // 改用下面的 invFieldCurrentQuantity(可编辑),两个字段不会互相干扰。
   const initialQuantityRaw = idVal ? "" : document.getElementById("invFieldInitialQuantity").value;
   if (!name) return;
   if (!accessToken || !currentUserCompanyId) {
@@ -5825,11 +5830,32 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
   // "把已经设置过的分类清空"的语义,这是一个已知的小限制,不影响正常的分类分配/切换。
   if (categoryId) body.categoryId = categoryId;
 
+  // Bug 修复(用户明确要求:"总库存无法编辑...我希望智能库存总库存是可以编辑的,
+  // 不要写死了"):编辑已有商品时,"当前库存总量"输入框如果被改动过,就在保存完
+  // 商品资料之后,自动生成一笔"盘点调整"流水——quantity 按 ADJUSTMENT 的语义传
+  // "盘点后的实际库存数量"(不是差值),后端会自己算出差值并落库,和"记录流水→
+  // 盘点调整"那个独立弹窗走的是完全同一个接口/同一套校验规则,只是省掉了那一步。
+  let adjustedQuantity = null;
+  if (idVal) {
+    const currentQtyInput = document.getElementById("invFieldCurrentQuantity");
+    const rawNewQty = currentQtyInput.value;
+    const originalQty = Number(currentQtyInput.dataset.originalQuantity || "0");
+    if (rawNewQty !== "" && Number(rawNewQty) !== originalQty) {
+      adjustedQuantity = Number(rawNewQty);
+    }
+  }
+
   const submitBtn = document.getElementById("btnSubmitInventoryItem");
   submitBtn.disabled = true;
   try {
     if (idVal) {
       await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + idVal, { method: "PATCH", auth: true, body });
+      if (adjustedQuantity !== null) {
+        await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + idVal + "/transactions", {
+          method: "POST", auth: true,
+          body: { type: "ADJUSTMENT", quantity: adjustedQuantity, note: currentLang === "zh" ? "编辑商品资料时调整库存" : "Stock adjusted while editing item" },
+        });
+      }
     } else {
       // SKU 由系统自动生成,管理员不需要看到也不需要输入;极小概率撞到已存在的编号时
       // 后端会返回 INVENTORY_DUPLICATE_SKU,这里再换一个自动生成的编号重试一次即可,
