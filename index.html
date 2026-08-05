@@ -5474,9 +5474,17 @@ function openInventoryItemModal(item) {
   if (item) {
     currentQtyInput.value = item.currentQuantity;
     currentQtyInput.dataset.originalQuantity = String(item.currentQuantity);
+    // Bug 修复:这里之前手动拼了一个"≈ "前缀,而 dict.packCountSuffix 本身已经带了
+    // "(约 ...)"/"(~ ...)",两个"约等于"叠在一起变成"≈ (约 2 1)"这种读不通的文字。
+    // 另外"箱/包单位标签"是一个可以自由输入的文本字段,如果之前被误填成纯数字
+    // (比如把"每箱数量"和"单位标签"两个字段填反了),直接显示出来会更让人看不懂
+    // (比如"约 2 1")——这种情况就不展示这行提示,不editorializing 猜它本来该是什么,
+    // 只是避免把明显有问题的数据摆到管理员面前。
     const view = computeInventoryView(item);
-    packHintEl.textContent = view.currentQuantityInPacks !== null
-      ? "≈ " + dict.packCountSuffix(view.currentQuantityInPacks, item.packUnitLabel || dict.defaultPackUnitLabel)
+    const packUnitLabel = item.packUnitLabel || dict.defaultPackUnitLabel;
+    const isSensibleLabel = !!packUnitLabel && !/^\d+(\.\d+)?$/.test(String(packUnitLabel).trim());
+    packHintEl.textContent = (view.currentQuantityInPacks !== null && isSensibleLabel)
+      ? dict.packCountSuffix(view.currentQuantityInPacks, packUnitLabel)
       : "";
   } else {
     document.getElementById("invFieldInitialQuantity").value = "";
