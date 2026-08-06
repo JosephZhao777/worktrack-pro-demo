@@ -2343,13 +2343,20 @@ const API_BASE_URL = "https://api.worktrackai.com/api/v1";
 // 提示都触发不到,因为请求根本没有失败,只是"永远没结束"。现在给每次请求加一个 20 秒
 // 超时:超过 20 秒还没响应就主动放弃,抛出一个看得懂的错误,保存流程一定会在有限时间
 // 内要么成功、要么把失败原因显示出来,不会再无限期挂着。
+// 自我复查发现的问题:GET 请求本来就有最多 3 次重试兜底,单次超时给 20 秒足够;但
+// POST/PATCH/DELETE(比如保存商品、记录流水)只有这一次机会、没有重试,如果正好
+// 撞上 Railway 冷启动(这个项目已知会比较慢,代码里好几处都提到过),20 秒有可能不够,
+// 会把一个"本来会成功、只是慢"的保存提前判定成失败——这是刚加超时限制时没考虑周全
+// 的地方,这里把没有重试兜底的写操作超时放宽到 45 秒,GET 保持 20 秒不变。
 const API_REQUEST_TIMEOUT_MS = 20000;
+const API_WRITE_REQUEST_TIMEOUT_MS = 45000;
 async function fetchWithRetry(url, options, method) {
   const maxAttempts = method === "GET" ? 3 : 1;
+  const timeoutMs = method === "GET" ? API_REQUEST_TIMEOUT_MS : API_WRITE_REQUEST_TIMEOUT_MS;
   let lastErr;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await fetch(url, Object.assign({}, options, { signal: controller.signal }));
     } catch (networkErr) {
@@ -3264,6 +3271,7 @@ function renderEmployeeTable() {
       document.getElementById("editEmployeeRole").value = emp.role || "employee";
       document.getElementById("editEmployeeType").value = emp.employmentType || "full_time";
       document.getElementById("editEmployeeModalSub").textContent = emp.name || "";
+      document.getElementById("editEmployeeFormError").classList.add("hidden");
       openModal("modal-edit-employee");
     });
   });
@@ -3282,6 +3290,7 @@ function renderEmployeeTable() {
       document.getElementById("editRateValue").value = currentRate;
       document.getElementById("editRateEffectiveFrom").value = "";
       document.getElementById("editRateModalSub").textContent = dict2.editRateModalSub(emp.name, currentRate);
+      document.getElementById("editRateFormError").classList.add("hidden");
       openModal("modal-edit-rate");
     });
   });
@@ -5280,6 +5289,7 @@ document.getElementById("doctorNoteFile").addEventListener("change", e => {
 });
 
 document.getElementById("btnOpenLeaveCenter").addEventListener("click", () => {
+  document.getElementById("leaveRequestFormError").classList.add("hidden");
   openModal("modal-leave-center");
   // 每次打开"请假中心"都重新拉一次真实数据,避免上次打开之后员工在另一台设备提交/
   // 管理员审批过,这台设备上还显示旧的一份。
@@ -5686,6 +5696,7 @@ function wireAttendanceCardEvents(container) {
       document.getElementById("correctClockIn").value = formatHhMm(clockInAt);
       document.getElementById("correctClockOut").value = session.clockOutAt ? formatHhMm(new Date(session.clockOutAt)) : "";
       document.getElementById("correctReason").value = "";
+      document.getElementById("correctAttendanceFormError").classList.add("hidden");
       openModal("modal-correct-attendance");
     });
   });
@@ -7631,6 +7642,7 @@ async function renderPayrollTable() {
       document.getElementById("form-payroll-adjustment").reset();
       populateEmployeeSelect("payrollAdjustmentEmployee");
       document.getElementById("payrollAdjustmentEmployee").value = btn.dataset.addAdjustment;
+      document.getElementById("payrollAdjustmentFormError").classList.add("hidden");
       openModal("modal-payroll-adjustment");
     });
   });
@@ -7807,6 +7819,7 @@ if (btnOpenAdjustmentFromWage) {
     const employeeId = document.getElementById("manualWageEmployeeId").value;
     populateEmployeeSelect("payrollAdjustmentEmployee");
     document.getElementById("payrollAdjustmentEmployee").value = employeeId;
+    document.getElementById("payrollAdjustmentFormError").classList.add("hidden");
     openModal("modal-payroll-adjustment");
   });
 }
@@ -7900,6 +7913,7 @@ async function openPayrollNotesModal(employeeId) {
   const title = document.getElementById("payrollNotesModalTitle");
   if (title) title.textContent = i18n[currentLang].payrollNotesModalTitle + (emp ? "  ·  " + emp.name : "");
   document.getElementById("payrollNoteInput").value = "";
+  document.getElementById("payrollNoteFormError").classList.add("hidden");
   openModal("modal-payroll-notes");
   await refreshPayrollNotesListForAdmin(employeeId);
 }
