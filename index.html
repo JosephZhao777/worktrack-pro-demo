@@ -287,6 +287,11 @@
   }
   .app-topbar .back-link span.arrow { color: var(--text-2); font-weight: 400; }
   .app-body { max-width: 1080px; margin: 0 auto; padding: 28px 24px 60px; }
+  /* 用户明确要求:"能否装一个刷新网页的按钮或者刷新设置,不要让缓存影响这个app的使用
+     体验感"——放进顶部导航栏,任何一个页面都能看到、点得到,不用先找到"设置"才能刷新。 */
+  .btn-force-refresh-app { margin-left: auto; display: flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border-c); border-radius: 8px; padding: 6px 12px; font-size: 12.5px; color: var(--text-2); cursor: pointer; }
+  .btn-force-refresh-app:hover { background: rgba(123,38,53,.06); color: var(--text-1); }
+  .btn-force-refresh-app:disabled { opacity: .6; cursor: default; }
 
   .glass {
     background: var(--surface); border: 1px solid var(--border-c); border-radius: var(--radius-lg); padding: 20px;
@@ -455,6 +460,7 @@
 <div class="view" id="view-employeeApp">
   <div class="app-topbar">
     <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack AI</span></button>
+    <button type="button" class="btn-force-refresh-app" data-i18n="forceRefreshAppBtn" data-i18n-title="forceRefreshAppTitle" title="清缓存并重新加载">⟳ 刷新</button>
   </div>
   <div class="app-body">
     <div class="phone-frame">
@@ -536,6 +542,7 @@
 <div class="view" id="view-companyAdminApp">
   <div class="app-topbar">
     <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack AI</span></button>
+    <button type="button" class="btn-force-refresh-app" data-i18n="forceRefreshAppBtn" data-i18n-title="forceRefreshAppTitle" title="清缓存并重新加载">⟳ 刷新</button>
   </div>
   <div class="app-body">
     <div class="admin-layout">
@@ -781,6 +788,7 @@
 <div class="view" id="view-platformAdminApp">
   <div class="app-topbar">
     <button class="back-link" data-back-home><span class="arrow">←</span> <span data-i18n="brand">WorkTrack AI</span></button>
+    <button type="button" class="btn-force-refresh-app" data-i18n="forceRefreshAppBtn" data-i18n-title="forceRefreshAppTitle" title="清缓存并重新加载">⟳ 刷新</button>
   </div>
   <div class="app-body">
     <div class="admin-layout">
@@ -1027,6 +1035,7 @@
         <input type="date" id="editRateEffectiveFrom" />
         <div class="field-hint" data-i18n="editRateEffectiveFromHint">留空交给系统自动判断:第一次设置时薪会自动覆盖入职以来的全部历史打卡;涨薪/调薪默认从今天生效。如果这名员工之前打过卡但工资一直显示 €0(说明当时设置晚了),可以在这里手动填一个更早的日期(比如入职当天),把之前的工时也一起补算进去。</div>
       </div>
+      <div class="field-hint hidden" id="editRateFormError" style="color:var(--danger);font-weight:600;"></div>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="saveChanges">保存修改</button>
     </form>
   </div>
@@ -1069,6 +1078,7 @@
         </div>
       </div>
       <div class="field-hint" style="color:var(--warning);" data-i18n="editEmployeeSyncWarningText">权限级别和用工类型这两项,后端数据库目前还没有对应的字段——保存之后只会在这台设备/这个浏览器上生效,换一台设备登录管理后台,可能会看到这两项变回默认值。姓名和电话号码会正常同步到服务器,不受影响。</div>
+      <div class="field-hint hidden" id="editEmployeeFormError" style="color:var(--danger);font-weight:600;"></div>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="saveChanges">保存修改</button>
     </form>
   </div>
@@ -1113,6 +1123,7 @@
         </div>
       </div>
       <span class="field-hint hidden" id="leaveBalanceInsufficientHint" style="color:var(--danger);display:block;margin:6px 0;" data-i18n="leaveBalanceInsufficientHint">剩余额度不足,请调整请假天数或联系公司管理员</span>
+      <span class="field-hint hidden" id="leaveRequestFormError" style="color:var(--danger);display:block;margin:6px 0;font-weight:600;"></span>
       <button type="submit" class="btn btn-primary btn-block" style="margin-top:6px;" data-i18n="submitLeaveRequest">提交申请</button>
     </form>
 
@@ -1131,6 +1142,7 @@
       <div class="field"><label data-i18n="fieldClockIn">上班打卡时间</label><input type="time" id="correctClockIn" required /></div>
       <div class="field"><label data-i18n="fieldClockOut">下班打卡时间</label><input type="time" id="correctClockOut" required /></div>
       <div class="field"><label data-i18n="fieldCorrectionReason">更正理由(必填,会永久记录在案)</label><input type="text" id="correctReason" placeholder="例如:员工忘记下班打卡" required /></div>
+      <div class="field-hint hidden" id="correctAttendanceFormError" style="color:var(--danger);font-weight:600;"></div>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="submitCorrection">保存更正(留痕)</button>
     </form>
   </div>
@@ -1167,6 +1179,7 @@
       </div>
       <div class="field full"><label data-i18n="fieldAdjustmentLabel">说明</label><input type="text" id="payrollAdjustmentLabel" placeholder="例如:节日奖金" required /></div>
       <div class="field full"><label data-i18n="fieldAdjustmentAmount">金额(欧元,扣款请填负数)</label><input type="number" id="payrollAdjustmentAmount" step="0.01" placeholder="50 或 -20" required /></div>
+      <div class="field-hint hidden" id="payrollAdjustmentFormError" style="color:var(--danger);font-weight:600;"></div>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="submitAddAdjustment">添加调整项</button>
     </form>
   </div>
@@ -1315,6 +1328,7 @@
     <div id="payrollNotesList" style="margin-bottom:12px;"></div>
     <form id="form-payroll-note">
       <div class="field full"><label data-i18n="fieldPayrollNote">新增说明</label><textarea id="payrollNoteInput" placeholder="例如:7月加班比较多,加班工资按2.8小时算的。"></textarea></div>
+      <div class="field-hint hidden" id="payrollNoteFormError" style="color:var(--danger);font-weight:600;"></div>
       <button type="submit" class="btn btn-primary btn-block" data-i18n="submitPayrollNote">发布说明</button>
     </form>
   </div>
@@ -1504,6 +1518,38 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+/** 用户明确反馈:"我觉得这个App缓存太多,每次打开很难刷新...能否装一个刷新网页的
+    按钮或者刷新设置"——虽然 sw.js 本身刻意没做任何离线缓存(见该文件开头说明),
+    但用户设备上仍然可能残留旧版本注册过的 Service Worker(改这一版之前的),或者
+    浏览器/系统自己的 HTTP 缓存把旧的 HTML/JS 存住了没重新拉取。这个按钮做三件事,
+    尽量把"能清的缓存"都清掉:注销所有 Service Worker 注册、删光 Cache Storage 里
+    的内容、最后带一个每次都不一样的时间戳参数强制刷新页面(绕开浏览器的 HTTP 缓存,
+    保证这次请求一定是全新的,不是命中缓存的旧文件)。整个顶部导航栏(员工端/公司
+    管理端/平台管理端)都放了这个按钮,不需要先找到"设置"才能用。 */
+async function forceRefreshApp(btn) {
+  const dict = i18n[currentLang];
+  if (btn) { btn.disabled = true; btn.textContent = dict.forceRefreshAppConfirming; }
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(r => r.unregister()));
+    }
+    if (window.caches && caches.keys) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch (e) {
+    // 清缓存这一步就算失败(比如浏览器不支持某个 API),也不影响下面强制刷新这一步,
+    // 不要因为这里出错就卡住、什么都不做。
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.set("_refresh", String(Date.now()));
+  window.location.href = url.toString();
+}
+document.querySelectorAll(".btn-force-refresh-app").forEach(btn => {
+  btn.addEventListener("click", () => forceRefreshApp(btn));
+});
+
 const i18n = {
   zh: {
     brand: "WorkTrack AI",
@@ -1588,6 +1634,12 @@ const i18n = {
     itemNameRequiredAlert: "请先填写“商品名称”再保存(上面下拉菜单选“+ 新建商品”之后,还需要在下面这个框里手动输入名字)。",
     unitRequiredAlert: "请先填写“单位”再保存,比如 kg、盒、瓶都可以,自己定义就行。",
     saveFailedGenericError: "保存失败,可能是网络不稳定或服务器暂时没响应,请稍后重试;如果一直失败,请联系管理员。",
+    rateInvalidAlert: "请填写一个有效的、不小于0的时薪数字再保存。",
+    editEmployeeNameRequiredAlert: "请先填写姓名再保存。",
+    leaveRequestMissingFieldsAlert: "请填写开始日期、结束日期和请假理由再提交。",
+    correctAttendanceReasonRequiredAlert: "请填写更正理由再保存(这条理由会永久记录在案)。",
+    payrollNoteRequiredAlert: "请先填写说明内容再发布。",
+    payrollAdjustmentInvalidAlert: "请选择员工、填写说明,并填写一个不为0的金额再保存。",
     addEmployeeInviteCodeAlert: "已生成邀请码,请把这个码发给对方完成注册:",
     suspendEmployeeAction: "停用", reactivateEmployeeAction: "恢复", cancelInviteAction: "撤销邀请",
     confirmSuspendEmployee: "确定要停用这名员工吗?停用后对方无法再登录,随时可以恢复。",
@@ -1600,6 +1652,7 @@ const i18n = {
     colCompany: "公司", colPlan: "订阅状态", colEmployees: "员工数", churn: "流失率",
     adsSub: "仅支持 Banner 广告,不支持弹窗或全屏广告。",
     navSettings: "设置",
+    forceRefreshAppBtn: "⟳ 刷新", forceRefreshAppTitle: "清缓存并重新加载", forceRefreshAppConfirming: "正在清理缓存…",
     colType: "用工类型", colMonthHoursShort: "本月工时", colTodayHoursShort: "今日工时",
     refreshEmployeeHoursNow: "立即刷新工时", refreshedJustNow: "已刷新",
     typeFullTime: "正式员工", typePartTime: "兼职", typeTemporary: "临时工",
@@ -1934,6 +1987,12 @@ const i18n = {
     itemNameRequiredAlert: "Please enter the item name before saving (if you picked \"+ New item\" in the dropdown above, you still need to type the actual name into the box below it).",
     unitRequiredAlert: "Please enter a unit before saving — kg, box, bottle, anything you like.",
     saveFailedGenericError: "Save failed — the network may be unstable or the server didn't respond in time. Please try again shortly; if it keeps failing, contact your admin.",
+    rateInvalidAlert: "Please enter a valid hourly rate (0 or higher) before saving.",
+    editEmployeeNameRequiredAlert: "Please enter a name before saving.",
+    leaveRequestMissingFieldsAlert: "Please fill in the start date, end date, and reason before submitting.",
+    correctAttendanceReasonRequiredAlert: "Please enter a reason for the correction before saving (this is kept on permanent record).",
+    payrollNoteRequiredAlert: "Please write the note content before publishing.",
+    payrollAdjustmentInvalidAlert: "Please select an employee, fill in a label, and enter a non-zero amount before saving.",
     addEmployeeInviteCodeAlert: "Invitation code generated — share this with them to complete registration: ",
     suspendEmployeeAction: "Suspend", reactivateEmployeeAction: "Reactivate", cancelInviteAction: "Cancel invite",
     confirmSuspendEmployee: "Suspend this employee? They won't be able to log in until reactivated.",
@@ -1946,6 +2005,7 @@ const i18n = {
     colCompany: "Company", colPlan: "Subscription", colEmployees: "Employees", churn: "Churn rate",
     adsSub: "Banner ads only — no popups, no fullscreen ads.",
     navSettings: "Settings",
+    forceRefreshAppBtn: "⟳ Refresh", forceRefreshAppTitle: "Clear cache and reload", forceRefreshAppConfirming: "Clearing cache…",
     colType: "Employment type", colMonthHoursShort: "Hours this month", colTodayHoursShort: "Hours today",
     refreshEmployeeHoursNow: "Refresh hours now", refreshedJustNow: "Refreshed",
     typeFullTime: "Full-time", typePartTime: "Part-time", typeTemporary: "Temporary",
@@ -3229,11 +3289,22 @@ function renderEmployeeTable() {
 
 document.getElementById("form-edit-rate").addEventListener("submit", async e => {
   e.preventDefault();
+  const dict = i18n[currentLang];
+  const errorEl = document.getElementById("editRateFormError");
+  errorEl.classList.add("hidden");
   const targetId = Number(document.getElementById("editRateEmployeeId").value);
   const emp = employees.find(x => x.id === targetId);
   if (!emp) return;
   const parsed = Number(document.getElementById("editRateValue").value);
-  if (Number.isNaN(parsed) || parsed < 0) return;
+  // Bug 修复(全代码排查发现的同类"静默失败"问题——和之前"新增库存商品保存无反应"
+  // 是同一种 bug:数字没填或填了负数,以前直接 if(...) return,弹窗留在原地什么提示
+  // 都没有。补上可见错误提示,不再让人以为是系统卡住了。
+  if (Number.isNaN(parsed) || parsed < 0) {
+    errorEl.textContent = dict.rateInvalidAlert;
+    errorEl.classList.remove("hidden");
+    document.getElementById("editRateValue").focus();
+    return;
+  }
   const newRateCents = Math.round(parsed * 100);
   const effectiveFromRaw = document.getElementById("editRateEffectiveFrom").value;
   const effectiveFrom = effectiveFromRaw || undefined;
@@ -3257,7 +3328,10 @@ document.getElementById("form-edit-rate").addEventListener("submit", async e => 
     renderPayrollTable();
     closeModal(document.getElementById("modal-edit-rate"));
   } catch (err) {
-    window.alert(err.message);
+    const errorText = err && err.message ? err.message : dict.saveFailedGenericError;
+    errorEl.textContent = errorText;
+    errorEl.classList.remove("hidden");
+    window.alert(errorText);
   } finally {
     if (submitBtn) submitBtn.disabled = false;
   }
@@ -3272,11 +3346,20 @@ document.getElementById("form-edit-rate").addEventListener("submit", async e => 
 document.getElementById("form-edit-employee").addEventListener("submit", async e => {
   e.preventDefault();
   const dict = i18n[currentLang];
+  const errorEl = document.getElementById("editEmployeeFormError");
+  errorEl.classList.add("hidden");
   const targetId = Number(document.getElementById("editEmployeeId").value);
   const emp = employees.find(x => x.id === targetId);
   if (!emp) return;
   const name = document.getElementById("editEmployeeName").value.trim();
-  if (!name) return;
+  // Bug 修复(全代码排查发现的同类"静默失败"问题):姓名没填以前直接 return,弹窗
+  // 留在原地什么提示都没有——和之前修过的"新增库存商品保存无反应"是同一个 bug 类型。
+  if (!name) {
+    errorEl.textContent = dict.editEmployeeNameRequiredAlert;
+    errorEl.classList.remove("hidden");
+    document.getElementById("editEmployeeName").focus();
+    return;
+  }
   const phone = document.getElementById("editEmployeePhone").value.trim();
   const role = document.getElementById("editEmployeeRole").value;
   const employmentType = document.getElementById("editEmployeeType").value;
@@ -3292,7 +3375,10 @@ document.getElementById("form-edit-employee").addEventListener("submit", async e
       } catch (err) {
         // 接口目前很可能还不存在(后端尚未支持编辑员工资料)——如实告诉管理员没保存成功,
         // 不悄悄只改本地数据、制造"已经存好了"的假象。
-        window.alert(dict.editEmployeeSaveFailedBackendMissing + (err && err.message ? "\n\n(" + err.message + ")" : ""));
+        const errorText = dict.editEmployeeSaveFailedBackendMissing + (err && err.message ? "\n\n(" + err.message + ")" : "");
+        errorEl.textContent = errorText;
+        errorEl.classList.remove("hidden");
+        window.alert(errorText);
         return;
       }
     }
@@ -5111,6 +5197,7 @@ document.getElementById("leaveTypeSelect").addEventListener("change", e => {
 
 document.getElementById("form-leave-request").addEventListener("submit", async e => {
   e.preventDefault();
+  const dict = i18n[currentLang];
   const category = document.getElementById("leaveTypeSelect").value;
   const start = document.getElementById("leaveStartDate").value;
   const end = document.getElementById("leaveEndDate").value;
@@ -5118,10 +5205,22 @@ document.getElementById("form-leave-request").addEventListener("submit", async e
   const destinationInput = document.getElementById("tripDestination");
   const insufficientHint = document.getElementById("leaveBalanceInsufficientHint");
   const attachmentHint = document.getElementById("doctorNoteRequiredHint");
+  const formErrorEl = document.getElementById("leaveRequestFormError");
   insufficientHint.classList.add("hidden");
   attachmentHint.classList.add("hidden");
-  if (!start || !end || !reason) return;
-  if (!currentUserId || !currentUserCompanyId || !accessToken) return; // 理论上走不到这里(没登录看不到这个表单),多一层保护
+  formErrorEl.classList.add("hidden");
+  // Bug 修复(全代码排查发现的同类"静默失败"问题):日期/理由没填以前直接 return,
+  // 弹窗留在原地什么提示都没有——和之前修过的"新增库存商品保存无反应"是同一类 bug。
+  if (!start || !end || !reason) {
+    formErrorEl.textContent = dict.leaveRequestMissingFieldsAlert;
+    formErrorEl.classList.remove("hidden");
+    return;
+  }
+  if (!currentUserId || !currentUserCompanyId || !accessToken) {
+    formErrorEl.textContent = dict.inventorySyncError;
+    formErrorEl.classList.remove("hidden");
+    return; // 理论上走不到这里(没登录看不到这个表单),多一层保护
+  }
 
   const leaveType = realLeaveTypesByCategory[category];
   if (!leaveType) { window.alert(i18n[currentLang].leaveTypesNotReadyAlert || "请假类型还没准备好,请稍后重试"); return; }
@@ -5153,7 +5252,10 @@ document.getElementById("form-leave-request").addEventListener("submit", async e
     } else if (err.code === "LEAVE_BALANCE_INSUFFICIENT") {
       insufficientHint.classList.remove("hidden");
     } else {
-      window.alert(err.message);
+      const errorText = err && err.message ? err.message : dict.saveFailedGenericError;
+      formErrorEl.textContent = errorText;
+      formErrorEl.classList.remove("hidden");
+      window.alert(errorText);
     }
     if (submitBtn) submitBtn.disabled = false;
     return;
@@ -5764,13 +5866,23 @@ document.getElementById("form-add-attendance").addEventListener("submit", async 
 
 document.getElementById("form-correct-attendance").addEventListener("submit", async e => {
   e.preventDefault();
+  const dict = i18n[currentLang];
+  const errorEl = document.getElementById("correctAttendanceFormError");
+  errorEl.classList.add("hidden");
   const sessionId = document.getElementById("correctAttendanceId").value;
   const session = realAttendanceSessions.find(s => s.id === sessionId);
   if (!session) return;
   const newClockIn = document.getElementById("correctClockIn").value;
   const newClockOut = document.getElementById("correctClockOut").value;
   const reason = document.getElementById("correctReason").value.trim();
-  if (!reason) return;
+  // Bug 修复(全代码排查发现的同类"静默失败"问题):理由没填以前直接 return,弹窗
+  // 留在原地什么提示都没有——和之前修过的"新增库存商品保存无反应"是同一类 bug。
+  if (!reason) {
+    errorEl.textContent = dict.correctAttendanceReasonRequiredAlert;
+    errorEl.classList.remove("hidden");
+    document.getElementById("correctReason").focus();
+    return;
+  }
   // 更正只改当天的上/下班时间点,沿用这条记录原本的日期(和补录打卡表单一样,
   // 跨零点的夜班场景是已知的、和旧版本一致的简化,不在这次请求范围内)。
   const dateStr = new Date(session.clockInAt).toISOString().slice(0, 10);
@@ -5780,7 +5892,10 @@ document.getElementById("form-correct-attendance").addEventListener("submit", as
   try {
     await apiRequest("/companies/" + currentUserCompanyId + "/attendance/" + sessionId, { method: "PATCH", auth: true, body });
   } catch (err) {
-    window.alert(err.message);
+    const errorText = err && err.message ? err.message : dict.saveFailedGenericError;
+    errorEl.textContent = errorText;
+    errorEl.classList.remove("hidden");
+    window.alert(errorText);
     return;
   }
   await refreshRealAttendanceData();
@@ -7832,10 +7947,20 @@ async function refreshPayrollNotesListForAdmin(employeeId) {
 
 document.getElementById("form-payroll-note").addEventListener("submit", async e => {
   e.preventDefault();
+  const dict = i18n[currentLang];
+  const errorEl = document.getElementById("payrollNoteFormError");
+  errorEl.classList.add("hidden");
   const employeeId = document.getElementById("payrollNoteEmployeeId").value;
   const noteInput = document.getElementById("payrollNoteInput");
   const note = noteInput.value.trim();
-  if (!employeeId || !note) return;
+  // Bug 修复(全代码排查发现的同类"静默失败"问题):说明内容没填以前直接 return,
+  // 弹窗留在原地什么提示都没有——和之前修过的"新增库存商品保存无反应"是同一类 bug。
+  if (!employeeId || !note) {
+    errorEl.textContent = dict.payrollNoteRequiredAlert;
+    errorEl.classList.remove("hidden");
+    noteInput.focus();
+    return;
+  }
   const submitBtn = e.target.querySelector('button[type="submit"]');
   if (submitBtn) submitBtn.disabled = true;
   try {
@@ -7844,7 +7969,10 @@ document.getElementById("form-payroll-note").addEventListener("submit", async e 
       body: { employeeId, note },
     });
   } catch (err) {
-    window.alert(err.message);
+    const errorText = err && err.message ? err.message : dict.saveFailedGenericError;
+    errorEl.textContent = errorText;
+    errorEl.classList.remove("hidden");
+    window.alert(errorText);
     if (submitBtn) submitBtn.disabled = false;
     return;
   }
@@ -7855,10 +7983,19 @@ document.getElementById("form-payroll-note").addEventListener("submit", async e 
 
 document.getElementById("form-payroll-adjustment").addEventListener("submit", async e => {
   e.preventDefault();
+  const dict = i18n[currentLang];
+  const errorEl = document.getElementById("payrollAdjustmentFormError");
+  errorEl.classList.add("hidden");
   const employeeId = document.getElementById("payrollAdjustmentEmployee").value;
   const label = document.getElementById("payrollAdjustmentLabel").value.trim();
   const amount = Number(document.getElementById("payrollAdjustmentAmount").value);
-  if (!employeeId || !label || Number.isNaN(amount) || amount === 0) return;
+  // Bug 修复(全代码排查发现的同类"静默失败"问题):字段没填全/金额是0以前直接 return,
+  // 弹窗留在原地什么提示都没有——和之前修过的"新增库存商品保存无反应"是同一类 bug。
+  if (!employeeId || !label || Number.isNaN(amount) || amount === 0) {
+    errorEl.textContent = dict.payrollAdjustmentInvalidAlert;
+    errorEl.classList.remove("hidden");
+    return;
+  }
   const submitBtn = e.target.querySelector('button[type="submit"]');
   if (submitBtn) submitBtn.disabled = true;
   try {
@@ -7867,7 +8004,10 @@ document.getElementById("form-payroll-adjustment").addEventListener("submit", as
       body: { employeeId, label, amountCents: Math.round(amount * 100) },
     });
   } catch (err) {
-    window.alert(err.message);
+    const errorText = err && err.message ? err.message : dict.saveFailedGenericError;
+    errorEl.textContent = errorText;
+    errorEl.classList.remove("hidden");
+    window.alert(errorText);
     if (submitBtn) submitBtn.disabled = false;
     return;
   }
