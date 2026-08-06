@@ -1393,6 +1393,11 @@
       <div class="field-hint" id="inventoryItemQuantityHint" data-i18n="inventoryItemHint">库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过"记录流水"入库(员工每次从仓库出库到操作间,这里的总量也会相应减少)。</div>
       <div class="field-hint" data-i18n="reorderThresholdHint">当前库存总量低于"进货阈值"时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。</div>
       <div class="field-hint" data-i18n="packSizeHint">不是每个商品都按箱管理:填了"每箱数量",库存和采购建议会顺带换算成箱数;留空就只按上面的单位显示。</div>
+      <!-- 用户明确反馈:"点击保存之后,没有任何反应"——过去所有出错提示都靠 window.alert()
+           弹窗,但个别浏览器/安装成桌面App的环境下,系统原生弹窗有可能弹不出来或被静默
+           拦截,结果就是"看起来完全没反应"。现在把提示同时写在页面里这块红字上(不依赖
+           系统弹窗,不可能被拦截),保存失败/字段没填,原因都会直接显示在这里。 -->
+      <div class="field-hint hidden" id="inventoryItemFormError" style="color:var(--danger);font-weight:600;"></div>
       <button type="submit" class="btn btn-primary btn-block" id="btnSubmitInventoryItem" data-i18n="submitAddItem">保存</button>
     </form>
   </div>
@@ -1582,6 +1587,7 @@ const i18n = {
     addEmployeeMissingFields: "请填写姓名和员工编号",
     itemNameRequiredAlert: "请先填写“商品名称”再保存(上面下拉菜单选“+ 新建商品”之后,还需要在下面这个框里手动输入名字)。",
     unitRequiredAlert: "请先填写“单位”再保存,比如 kg、盒、瓶都可以,自己定义就行。",
+    saveFailedGenericError: "保存失败,可能是网络不稳定或服务器暂时没响应,请稍后重试;如果一直失败,请联系管理员。",
     addEmployeeInviteCodeAlert: "已生成邀请码,请把这个码发给对方完成注册:",
     suspendEmployeeAction: "停用", reactivateEmployeeAction: "恢复", cancelInviteAction: "撤销邀请",
     confirmSuspendEmployee: "确定要停用这名员工吗?停用后对方无法再登录,随时可以恢复。",
@@ -1927,6 +1933,7 @@ const i18n = {
     addEmployeeMissingFields: "Please fill in the full name and employee ID",
     itemNameRequiredAlert: "Please enter the item name before saving (if you picked \"+ New item\" in the dropdown above, you still need to type the actual name into the box below it).",
     unitRequiredAlert: "Please enter a unit before saving — kg, box, bottle, anything you like.",
+    saveFailedGenericError: "Save failed — the network may be unstable or the server didn't respond in time. Please try again shortly; if it keeps failing, contact your admin.",
     addEmployeeInviteCodeAlert: "Invitation code generated — share this with them to complete registration: ",
     suspendEmployeeAction: "Suspend", reactivateEmployeeAction: "Reactivate", cancelInviteAction: "Cancel invite",
     confirmSuspendEmployee: "Suspend this employee? They won't be able to log in until reactivated.",
@@ -2268,17 +2275,30 @@ const API_BASE_URL = "https://api.worktrackai.com/api/v1";
     绝不自动重试,避免出现"点一次却提交了两次"这种更麻烦的问题)——最多重试 2 次,
     重试间隔逐次拉长(500ms → 1500ms),三次都失败才真正算作网络错误,交给上层的
     notifySyncIssue() 提示用户。 */
+// Bug 修复(用户反馈:"点击保存之后,没有任何反应,弹窗一直开着"):以前这里的 fetch()
+// 没有任何超时限制——正常情况下后端响应慢(Railway 冷启动)顶多等个几秒到十几秒,
+// 但万一某次请求卡住了(连接建立了但服务器一直不回应、或者中间网络设备把连接静默
+// 挂起),fetch() 的 Promise 可能永远不 resolve/reject,保存按钮会一直卡在"保存中…"、
+// 弹窗永远关不掉,用户看到的就是"点了完全没反应"——而且这种情况连 catch 块里的错误
+// 提示都触发不到,因为请求根本没有失败,只是"永远没结束"。现在给每次请求加一个 20 秒
+// 超时:超过 20 秒还没响应就主动放弃,抛出一个看得懂的错误,保存流程一定会在有限时间
+// 内要么成功、要么把失败原因显示出来,不会再无限期挂着。
+const API_REQUEST_TIMEOUT_MS = 20000;
 async function fetchWithRetry(url, options, method) {
   const maxAttempts = method === "GET" ? 3 : 1;
   let lastErr;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
     try {
-      return await fetch(url, options);
+      return await fetch(url, Object.assign({}, options, { signal: controller.signal }));
     } catch (networkErr) {
       lastErr = networkErr;
       if (attempt < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, attempt === 1 ? 500 : 1500));
       }
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
   throw lastErr;
@@ -6105,6 +6125,7 @@ function populateInvItemNameSelect(categoryId) {
 
 function openInventoryItemModal(item) {
   const dict = i18n[currentLang];
+  document.getElementById("inventoryItemFormError").classList.add("hidden");
   document.getElementById("inventoryItemModalTitle").textContent = item ? dict.editItem : dict.addInventoryItem;
   document.getElementById("btnSubmitInventoryItem").textContent = item ? dict.saveChanges : dict.submitAddItem;
   document.getElementById("inventoryItemId").value = item ? String(item.id) : "";
@@ -6692,6 +6713,18 @@ document.getElementById("invFieldNameSelect").addEventListener("change", e => {
 document.getElementById("form-inventory-item").addEventListener("submit", async e => {
   e.preventDefault();
   const dict = i18n[currentLang];
+  const formErrorEl = document.getElementById("inventoryItemFormError");
+  // Bug 修复(用户明确反馈:"点击保存之后,没有任何反应"):以前所有出错提示都只靠
+  // window.alert() 弹窗。但部分浏览器/安装成桌面(PWA)之后的环境,系统原生弹窗可能
+  // 弹不出来或被静默拦截——代码其实照常执行、原因也打印出来了,只是用户什么都看不到,
+  // 体验上就是"点了没反应"。现在每次校验失败/保存失败,先把原因写进页面上这块红字
+  // (不依赖系统弹窗,不会被拦截),window.alert() 保留作为双重提示,两边都不遗漏。
+  const showFormError = msg => {
+    formErrorEl.textContent = msg;
+    formErrorEl.classList.remove("hidden");
+    formErrorEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+  formErrorEl.classList.add("hidden");
   const idVal = document.getElementById("inventoryItemId").value;
   const name = document.getElementById("invFieldName").value.trim();
   const categoryId = document.getElementById("invFieldCategoryId").value;
@@ -6705,14 +6738,8 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
   // 只在"新增商品"时才读取和使用这个值——编辑已有商品时这个输入框是隐藏的,不应该被
   // 拿来当成"要把库存改成这个数字",库存的变动永远只能走"记录流水"。
   const initialQuantityRaw = idVal ? "" : document.getElementById("invFieldInitialQuantity").value;
-  // Bug 修复(用户明确反馈:"无法保存新增商品,这是很不好的事情"):根本原因是这里以前
-  // 只写了 "if (!name) return;"——名字没填(比如上面下拉选了"+ 新建商品"之后,忘了在
-  // 下面这个文本框里手动打字)就直接静默 return,没有任何提示、弹窗也不会关,在用户
-  // 看来就是点了保存"什么都没发生"。虽然这个输入框本来就带 HTML5 的 required 属性,
-  // 但手机浏览器在自定义弹窗(不是原生 <dialog>)里经常无法正确弹出/定位这个原生提示,
-  // 表现就是"完全没反应"。现在改成:名字没填就用看得见的提示框直接说清楚原因,并且把
-  // 光标定位到这个输入框上,不再让人以为是系统卡住或者坏了。
   if (!name) {
+    showFormError(dict.itemNameRequiredAlert);
     window.alert(dict.itemNameRequiredAlert);
     document.getElementById("invFieldName").focus();
     return;
@@ -6720,11 +6747,13 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
   // 单位现在改成自由填写的文本框(不再是固定下拉,肯定有值可选)——同样用可见提示+聚焦,
   // 不要静默 return,和上面商品名称的检查保持同一套原则。
   if (!unit) {
+    showFormError(dict.unitRequiredAlert);
     window.alert(dict.unitRequiredAlert);
     document.getElementById("invFieldUnit").focus();
     return;
   }
   if (!accessToken || !currentUserCompanyId) {
+    showFormError(dict.inventorySyncError);
     window.alert(dict.inventorySyncError);
     return;
   }
@@ -6812,11 +6841,13 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
     closeModal(document.getElementById("modal-inventory-item"));
     syncInventoryFromBackend();
   } catch (err) {
-    if (err.code === "INVENTORY_CATEGORY_NOT_FOUND") {
-      window.alert(dict.categoryNotFoundError);
-    } else {
-      window.alert(err.message);
-    }
+    // err.message 有可能是空字符串/undefined(比如请求彻底连不上服务器时),这种情况给一句
+    // 兜底文案,不要让红字区域显示"undefined"或者干脆空白,那样等于又变回"看不出原因"。
+    const errorText = err.code === "INVENTORY_CATEGORY_NOT_FOUND"
+      ? dict.categoryNotFoundError
+      : (err && err.message ? err.message : dict.saveFailedGenericError);
+    showFormError(errorText);
+    window.alert(errorText);
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = submitBtnOriginalText;
@@ -6834,7 +6865,13 @@ document.getElementById("form-inventory-transaction").addEventListener("submit",
   const note = document.getElementById("invFieldNote").value.trim();
   const errorEl = document.getElementById("invStockError");
   errorEl.classList.add("hidden");
-  if (!accessToken || !currentUserCompanyId) return;
+  // 同一类"静默失败"问题:登录状态丢失时以前直接 return,弹窗留在原地什么提示都没有。
+  // 这里补上和上面商品保存表单一样的可见错误提示。
+  if (!accessToken || !currentUserCompanyId) {
+    errorEl.textContent = dict.inventorySyncError;
+    errorEl.classList.remove("hidden");
+    return;
+  }
 
   // 质量验收只在"入库"上有意义,和后端 recordTransaction() 的校验规则一致——其余类型永远不落质量字段。
   const qualityGrade = type === "RECEIPT" ? document.getElementById("invFieldQualityGrade").value : undefined;
@@ -6856,7 +6893,7 @@ document.getElementById("form-inventory-transaction").addEventListener("submit",
     closeModal(document.getElementById("modal-inventory-transaction"));
     syncInventoryFromBackend();
   } catch (err) {
-    errorEl.textContent = err.code === "INVENTORY_INSUFFICIENT_STOCK" ? dict.insufficientStockError : err.message;
+    errorEl.textContent = err.code === "INVENTORY_INSUFFICIENT_STOCK" ? dict.insufficientStockError : (err && err.message ? err.message : dict.saveFailedGenericError);
     errorEl.classList.remove("hidden");
   } finally {
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitBtnOriginalText; }
