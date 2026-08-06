@@ -1166,6 +1166,7 @@
             <option value="ml">ml</option>
             <option value="piece" data-i18n="unitPiece">件</option>
             <option value="box" data-i18n="unitBox">箱</option>
+            <option value="carton" data-i18n="unitCarton">盒</option>
             <option value="pack" data-i18n="unitPack">包</option>
             <option value="strip" data-i18n="unitStrip">条</option>
           </select>
@@ -1491,7 +1492,7 @@ const i18n = {
     reorderThresholdHint: "当前库存总量低于“进货阈值”时,系统会自动算出建议进货数量,并出现在库存提醒里——不需要自己动手算。",
     inventoryItemHint: "库存数量不能在这里直接填写——新建商品的初始库存永远是 0,之后通过\"记录流水\"入库(员工每次从仓库出库到操作间,这里的总量也会相应减少)。",
     inventoryItemEditHint: function (unit) { return "单位是" + unit + "。上面这个数字可以直接改成盘点后的实际库存——保存时如果数字有变化,系统会自动生成一笔\"盘点调整\"流水记录,差值、时间全部留痕,不会出现来路不明的数字变动。"; },
-    unitPiece: "件", unitBox: "箱", unitPack: "包", unitStrip: "条",
+    unitPiece: "件", unitBox: "箱", unitCarton: "盒", unitPack: "包", unitStrip: "条",
     recordTransaction: "记录流水", fieldTransactionType: "流水类型",
     typeReceipt: "入库(采购到货)", typeConsumption: "消耗(正常使用)", typeWaste: "浪费/报废", typeAdjustment: "盘点调整",
     fieldQuantity: "数量(本次变化量)", fieldQuantityAdjustment: "盘点后的实际库存数量",
@@ -1518,6 +1519,7 @@ const i18n = {
     categoryDuplicateNameError: "同一层级下已经有一个同名的分类了,请换一个名称。",
     categoryNotFoundError: "这个分类不存在或不属于本公司,请刷新分类列表后重试。",
     inventorySyncError: "库存数据同步失败,请检查网络连接后重试。",
+    itemNameRequiredError: "请填写商品名称后再保存。",
     seedCategoryTemplate: "一键生成示例分类",
     confirmSeedTemplate: "将会创建「鱼类/Poke Bowl消耗品/寿司消耗品/热食/包装盒/配料消耗品」这 6 个大类及其常见子类(已存在的会自动跳过,不会重复创建,也不会影响您已经改过的名字)。是否继续?",
     colItemName: "商品名称",
@@ -1788,7 +1790,7 @@ const i18n = {
     reorderThresholdHint: "When current stock drops below the \"reorder threshold\", the system automatically works out a suggested reorder quantity and surfaces it in the inventory alerts — no manual math needed.",
     inventoryItemHint: "Stock quantity can't be set here directly — a new item always starts at 0, then goes up via \"Record transaction\" (each time an employee stocks out from the warehouse to the prep area, this total goes down accordingly).",
     inventoryItemEditHint: function (unit) { return "Unit: " + unit + ". You can edit the number above directly to match an actual stock count — if it changes, the system automatically records an \"Adjustment\" transaction with the difference and timestamp, so there's never an untraceable change."; },
-    unitPiece: "piece", unitBox: "box", unitPack: "pack", unitStrip: "strip",
+    unitPiece: "piece", unitBox: "box", unitCarton: "carton", unitPack: "pack", unitStrip: "strip",
     recordTransaction: "Record transaction", fieldTransactionType: "Transaction type",
     typeReceipt: "Receipt (purchase arrived)", typeConsumption: "Consumption (used in operations)", typeWaste: "Waste / spoilage", typeAdjustment: "Stock count adjustment",
     fieldQuantity: "Quantity (change this time)", fieldQuantityAdjustment: "Actual counted quantity",
@@ -1815,6 +1817,7 @@ const i18n = {
     categoryDuplicateNameError: "A category with this name already exists at this level — please use a different name.",
     categoryNotFoundError: "This category doesn't exist or doesn't belong to your company — please refresh the category list and try again.",
     inventorySyncError: "Failed to sync inventory data — please check your connection and try again.",
+    itemNameRequiredError: "Please enter an item name before saving.",
     seedCategoryTemplate: "Generate suggested categories",
     confirmSeedTemplate: "This will create 6 top categories (Fish / Poke Bowl supplies / Sushi supplies / Hot food / Packaging / Condiments) with their common sub-categories. Existing ones (including anything you've already renamed) will be skipped automatically. Continue?",
     colItemName: "Item",
@@ -5468,7 +5471,9 @@ function openInventoryItemModal(item) {
   document.getElementById("inventoryItemModalTitle").textContent = item ? dict.editItem : dict.addInventoryItem;
   document.getElementById("btnSubmitInventoryItem").textContent = item ? dict.saveChanges : dict.submitAddItem;
   document.getElementById("inventoryItemId").value = item ? String(item.id) : "";
-  document.getElementById("invFieldName").value = item ? item.name : "";
+  const nameInputEl = document.getElementById("invFieldName");
+  nameInputEl.value = item ? item.name : "";
+  nameInputEl.dataset.autoFilled = ""; // 每次打开弹窗都重置,避免上一次操作留下的标记影响这一次
   populateInventoryCategorySelect(document.getElementById("invFieldCategoryId"), item ? item.categoryId : null);
   populateInvItemNameSelect(item ? item.categoryId : null);
   document.getElementById("invFieldUnit").value = item ? item.unit : "kg";
@@ -5802,15 +5807,28 @@ document.getElementById("invFieldCategoryId").addEventListener("change", e => {
 
 // "商品名称"下拉菜单跟分类是双向联动的:选了一个已有商品名,自动把它的名称填进
 // 下面的文本框,同时把分类下拉框也一起带出来(如果当时还没选分类)——避免分类
-// 选错。选"+ 新建商品"表示要打一个全新名字:清空文本框并把焦点给它,方便直接输入。
+// 选错。选"+ 新建商品"表示要打一个全新名字:把焦点给文本框,方便直接输入。
+//
+// Bug 修复(用户反馈:"熏三文鱼我已经加上了,怎么就消失了?我没有办法保存"):
+// 以前只要下拉菜单的值变成"__new__",不管文本框里是不是已经手打了字,都会直接
+// 清空——如果管理员先在文本框里打好了新商品名称,之后不小心碰了一下这个下拉菜单
+// (哪怕它本来就停在"+ 新建商品"这个选项上,手机上很容易误触),打好的名字就会
+// 被整个清空,而且没有任何提示,保存按钮自然也就没反应了。现在只有当文本框里的
+// 内容是"通过下拉菜单选出来的"(用 dataset.autoFilled 标记),切回"+ 新建商品"
+// 时才清空;只要用户自己手动打过字,这个标记就会被下面的 input 监听器清掉,
+// 之后再怎么碰这个下拉菜单都不会动到已经手打的文字。
 document.getElementById("invFieldNameSelect").addEventListener("change", e => {
   const nameInput = document.getElementById("invFieldName");
   if (e.target.value === "__new__") {
-    nameInput.value = "";
+    if (nameInput.dataset.autoFilled === "1") {
+      nameInput.value = "";
+    }
+    nameInput.dataset.autoFilled = "";
     nameInput.focus();
     return;
   }
   nameInput.value = e.target.value;
+  nameInput.dataset.autoFilled = "1";
   const categorySelect = document.getElementById("invFieldCategoryId");
   if (!categorySelect.value) {
     const matched = inventoryItems.find(it => it.name === e.target.value);
@@ -5818,6 +5836,9 @@ document.getElementById("invFieldNameSelect").addEventListener("change", e => {
       categorySelect.value = matched.categoryId;
     }
   }
+});
+document.getElementById("invFieldName").addEventListener("input", e => {
+  e.target.dataset.autoFilled = "";
 });
 
 document.getElementById("form-inventory-item").addEventListener("submit", async e => {
@@ -5835,7 +5856,13 @@ document.getElementById("form-inventory-item").addEventListener("submit", async 
   // 只在"新增商品"时才读取和使用这个值——编辑已有商品时这个输入框是隐藏的,库存总量
   // 改用下面的 invFieldCurrentQuantity(可编辑),两个字段不会互相干扰。
   const initialQuantityRaw = idVal ? "" : document.getElementById("invFieldInitialQuantity").value;
-  if (!name) return;
+  // Bug 修复:以前这里名称是空的话直接 return,点"保存"没有任何反应、也不知道为什么——
+  // 现在明确弹出提示,不管是什么原因导致名称是空的(手滑清空/忘记填),都能一眼看出
+  // 问题出在哪,不会看起来像"保存按钮坏了"。
+  if (!name) {
+    window.alert(dict.itemNameRequiredError);
+    return;
+  }
   if (!accessToken || !currentUserCompanyId) {
     window.alert(dict.inventorySyncError);
     return;
