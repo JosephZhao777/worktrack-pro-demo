@@ -3199,7 +3199,7 @@ function renderEmployeeTable() {
             method: "DELETE", auth: true,
           });
         } catch (err) {
-          window.alert(err.message);
+          window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
           return;
         }
       }
@@ -3225,7 +3225,7 @@ function renderEmployeeTable() {
             method: "PATCH", auth: true,
           });
         } catch (err) {
-          window.alert(err.message);
+          window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
           return;
         }
       }
@@ -3247,7 +3247,7 @@ function renderEmployeeTable() {
             method: "DELETE", auth: true,
           });
         } catch (err) {
-          window.alert(err.message);
+          window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
           return;
         }
       }
@@ -3469,7 +3469,7 @@ document.getElementById("form-add-employee").addEventListener("submit", async e 
       closeModal(document.getElementById("modal-add-employee"));
       window.alert(dict.addEmployeeInviteCodeAlert + result.invitationCode);
     } catch (err) {
-      window.alert(err.message);
+      window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
     }
     return;
   }
@@ -4287,6 +4287,12 @@ clockBtn.addEventListener("click", async () => {
  */
 function resumeActiveClockSession() {
   if (!clockedIn || !currentClockInAt) return;
+  // 自我复查发现的隐患:这里以前直接 setInterval 赋值给 timerHandle,没有先清掉可能已经
+  // 存在的旧计时器——目前这个函数在整个文件里只在启动时调用一次,还不会真的触发重复
+  // 计时(秒表跳两倍快、汇总卡片每秒被多渲染一次),但只要以后哪次改动多调用了一次这个
+  // 函数,就会埋下这个坑。提前补上防御性清理,不管当前是不是已经有一个在跑,都保证
+  // 最终只有一个计时器。
+  if (timerHandle) clearInterval(timerHandle);
   elapsedSeconds = Math.max(0, Math.floor((Date.now() - currentClockInAt.getTime()) / 1000));
   clockBtn.classList.add("clocked-in");
   timerEl.textContent = formatElapsed(elapsedSeconds);
@@ -5144,7 +5150,7 @@ function wireLeaveCardEvents(container, isAdminView) {
           method: "POST", auth: true, body: { message: text },
         });
       } catch (err) {
-        window.alert(err.message);
+        window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
         btn.disabled = false;
         return;
       }
@@ -5190,7 +5196,7 @@ async function reviewLeaveRequest(id, decision) {
       method: "PATCH", auth: true, body: { decision },
     });
   } catch (err) {
-    window.alert(err.message);
+    window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
     return;
   }
   await refreshCompanyLeaveRequests();
@@ -5389,7 +5395,7 @@ function renderAnnouncementList(list) {
           method: "DELETE", auth: true,
         });
       } catch (err) {
-        window.alert(err.message);
+        window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
         return;
       }
       refreshAnnouncementListForAdmin();
@@ -5439,7 +5445,7 @@ document.getElementById("btnPublishAnnouncement").addEventListener("click", asyn
       body: { title, body, expiresAt: expiryDate ? expiryDate + "T23:59:59" : undefined },
     });
   } catch (err) {
-    window.alert(err.message);
+    window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
     btn.disabled = false;
     return;
   }
@@ -5711,7 +5717,7 @@ function wireAttendanceCardEvents(container) {
           method: "PATCH", auth: true, body: { reason: reason.trim() },
         });
       } catch (err) {
-        window.alert(err.message);
+        window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
         return;
       }
       await refreshRealAttendanceData();
@@ -5726,7 +5732,7 @@ function wireAttendanceCardEvents(container) {
       try {
         await apiRequest("/companies/" + currentUserCompanyId + "/attendance/" + sessionId + "/restore", { method: "PATCH", auth: true, body: {} });
       } catch (err) {
-        window.alert(err.message);
+        window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
         return;
       }
       await refreshRealAttendanceData();
@@ -6580,7 +6586,7 @@ function wireInventoryCardEvents(container) {
         await apiRequest("/companies/" + currentUserCompanyId + "/inventory/items/" + id, { method: "DELETE", auth: true });
         await syncInventoryFromBackend();
       } catch (err) {
-        window.alert(err.message);
+        window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
       }
     });
   });
@@ -6789,7 +6795,7 @@ async function renderInventoryArchivedList() {
         await renderInventoryArchivedList();
         await syncInventoryFromBackend();
       } catch (err) {
-        window.alert(err.message);
+        window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
       }
     });
   });
@@ -7182,7 +7188,7 @@ async function handleToggleCategory(categoryId, currentName, isTop, currentlyAct
     await syncInventoryFromBackend();
     renderInventoryCategoriesModal();
   } catch (err) {
-    window.alert(err.message);
+    window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
   }
 }
 
@@ -7201,7 +7207,7 @@ async function handleDeleteCategory(categoryId, currentName, isTop) {
     if (err.code === "INVENTORY_CATEGORY_IN_USE") {
       window.alert(dict.categoryInUseNotice);
     } else {
-      window.alert(err.message);
+      window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
     }
   }
   await syncInventoryFromBackend();
@@ -7241,7 +7247,7 @@ async function handleSeedCategoryTemplate() {
     await syncInventoryFromBackend();
     renderInventoryCategoriesModal();
   } catch (err) {
-    window.alert(err.message);
+    window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -7655,7 +7661,7 @@ async function renderPayrollTable() {
           method: "DELETE", auth: true,
         });
       } catch (err) {
-        window.alert(err.message);
+        window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
         return;
       }
       renderPayrollTable();
@@ -7951,7 +7957,7 @@ async function refreshPayrollNotesListForAdmin(employeeId) {
           method: "DELETE", auth: true,
         });
       } catch (err) {
-        window.alert(err.message);
+        window.alert(err && err.message ? err.message : i18n[currentLang].saveFailedGenericError);
         return;
       }
       refreshPayrollNotesListForAdmin(document.getElementById("payrollNoteEmployeeId").value);
