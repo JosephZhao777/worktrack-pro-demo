@@ -6021,17 +6021,28 @@ function syncInventoryFromBackend() {
   if (inventorySyncPromise) return inventorySyncPromise;
   inventorySyncPromise = (async () => {
     try {
-      const [categories, items, insights] = await Promise.all([
+      // Bug 修复:原来把 categories/items/insights 三个请求放进同一个 Promise.all 里一起等。
+      // 实测 insights 这个接口经常要 23~24 秒才有响应,已经超过前端 20 秒的请求超时——insights
+      // 一超时/报错,Promise.all 直接整体失败,导致明明已经成功拿到的 items/categories 数据
+      // 也被一起丢弃,页面继续显示"暂无库存商品"。现在把 insights 拆出来单独 try/catch:
+      // items/categories 一旦成功就立刻渲染库存清单,不用等 insights;insights 单独失败只影响
+      // "库存不足/浪费预警"这部分提示,不会再把整个库存列表拖成空白。
+      const [categories, items] = await Promise.all([
         apiRequest("/companies/" + currentUserCompanyId + "/inventory/categories?includeInactive=true", { auth: true }),
         apiRequest("/companies/" + currentUserCompanyId + "/inventory/items", { auth: true }),
-        apiRequest("/companies/" + currentUserCompanyId + "/inventory/insights", { auth: true }),
       ]);
       inventoryCategoryTree = categories;
       inventoryItems = items;
-      inventoryInsightsData = insights;
       renderInventoryTable();
       renderEmpInventoryWithdrawList();
       updateEmpInventoryDashboardNote();
+
+      try {
+        inventoryInsightsData = await apiRequest("/companies/" + currentUserCompanyId + "/inventory/insights", { auth: true });
+        renderInventoryTable();
+      } catch (insightsErr) {
+        console.warn("同步库存洞察(不足/浪费预警)数据失败,不影响已显示的商品清单:", insightsErr);
+      }
     } catch (err) {
       // 同步失败(比如后端暂时没响应)不阻断已经登录成功这件事,继续显示上一次成功同步的数据;
       // 用户切换页面、或者手动做一次库存相关操作时会自然再次触发重试。
