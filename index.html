@@ -279,7 +279,11 @@
   .view { display: none; }
   .view.active { display: block; }
   .app-topbar {
-    display: flex; align-items: center; gap: 14px; padding: 16px 24px; border-bottom: 1px solid var(--border-c);
+    /* Bug 修复:右上角有个全局固定定位的语言切换下拉(.float-controls,
+       position:fixed; top:18px; right:18px;),跟这里靠右对齐的"刷新"按钮
+       不在同一个布局体系里,以前会视觉重叠在一起。这里给顶栏右侧预留出
+       固定宽度的安全间距,并允许换行,确保刷新按钮永远不会被语言选择器挡住。 */
+    display: flex; align-items: center; flex-wrap: wrap; row-gap: 8px; gap: 14px; padding: 16px 150px 16px 24px; border-bottom: 1px solid var(--border-c);
   }
   .app-topbar .back-link {
     display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: var(--text-1);
